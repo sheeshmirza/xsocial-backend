@@ -108,3 +108,54 @@ func TestPublicTrackerPixel(t *testing.T) {
 		t.Errorf("expected content-type image/gif, got %s", rec.Header().Get("Content-Type"))
 	}
 }
+
+func TestSecurityHeaders(t *testing.T) {
+	srv := &Server{
+		cfg: &config.Config{},
+	}
+	handler := srv.Handler()
+
+	req := httptest.NewRequest(http.MethodGet, "/healthz", nil)
+	rec := httptest.NewRecorder()
+	handler.ServeHTTP(rec, req)
+
+	if rec.Header().Get("X-Content-Type-Options") != "nosniff" {
+		t.Errorf("expected X-Content-Type-Options: nosniff, got %s", rec.Header().Get("X-Content-Type-Options"))
+	}
+	if rec.Header().Get("X-Frame-Options") != "DENY" {
+		t.Errorf("expected X-Frame-Options: DENY, got %s", rec.Header().Get("X-Frame-Options"))
+	}
+}
+
+func TestUnauthorizedProtectedEndpoints(t *testing.T) {
+	srv := &Server{
+		cfg: &config.Config{
+			JWTAccessSecret: "secret12345678901234567890",
+		},
+	}
+	handler := srv.Handler()
+
+	endpoints := []struct {
+		method string
+		path   string
+	}{
+		{http.MethodGet, "/v1/posts"},
+		{http.MethodGet, "/v1/brands"},
+		{http.MethodGet, "/v1/ads/campaigns"},
+		{http.MethodGet, "/v1/competitors"},
+		{http.MethodGet, "/v1/inbox"},
+		{http.MethodGet, "/v1/smartlinks"},
+		{http.MethodGet, "/v1/analytics/social"},
+	}
+
+	for _, ep := range endpoints {
+		req := httptest.NewRequest(ep.method, ep.path, nil)
+		rec := httptest.NewRecorder()
+		handler.ServeHTTP(rec, req)
+
+		if rec.Code != http.StatusUnauthorized {
+			t.Errorf("expected 401 for %s %s, got %d", ep.method, ep.path, rec.Code)
+		}
+	}
+}
+

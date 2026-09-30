@@ -206,7 +206,7 @@ func (s *AdCampaignService) SyncAdAccounts(ctx context.Context, brandID bson.Obj
 	platformMap := make(map[string]*models.SocialHandle)
 	for i := range handles {
 		h := &handles[i]
-		if h.IsConnected && !h.IsExpired() {
+		if !h.IsExpired() && h.PlatformAccessToken != "" {
 			platformMap[strings.ToLower(h.Platform)] = h
 		}
 	}
@@ -218,11 +218,11 @@ func (s *AdCampaignService) SyncAdAccounts(ctx context.Context, brandID bson.Obj
 
 	for _, p := range requestedPlatforms {
 		handle, ok := platformMap[p]
-		if !ok || handle.AccessToken == "" {
+		if !ok || handle.PlatformAccessToken == "" {
 			// No connected ad account for this platform; skip without fabricating fake data
 			continue
 		}
-		// Future: Call platform's real Ad API (Meta Marketing API / Google Ads API) using handle.AccessToken
+		// Future: Call platform's real Ad API (Meta Marketing API / Google Ads API) using handle.PlatformAccessToken
 	}
 
 	return nil
