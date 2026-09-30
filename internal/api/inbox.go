@@ -12,6 +12,16 @@ func (s *Server) resolveBrandForRequest(r *http.Request) (bson.ObjectID, error) 
 	if bID, ok := currentBrandOID(r); ok {
 		return bID, nil
 	}
+	if qBrand := r.URL.Query().Get("brandId"); qBrand != "" {
+		if oid, err := bson.ObjectIDFromHex(qBrand); err == nil {
+			return oid, nil
+		}
+	}
+	if hBrand := r.Header.Get("X-Brand-ID"); hBrand != "" {
+		if oid, err := bson.ObjectIDFromHex(hBrand); err == nil {
+			return oid, nil
+		}
+	}
 	if uID, ok := currentUserOID(r); ok {
 		brands, err := s.brandRepo.FindBrandsByUserID(r.Context(), uID)
 		if err == nil && len(brands) > 0 {

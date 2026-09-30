@@ -162,11 +162,11 @@ func (s *AuthService) Logout(ctx context.Context, rawRefreshToken string) error 
 	return err
 }
 
-func (s *AuthService) ForgotPassword(ctx context.Context, email string) error {
+func (s *AuthService) ForgotPassword(ctx context.Context, email string) (string, error) {
 	normEmail := strings.ToLower(strings.TrimSpace(email))
 	user, err := s.userRepo.FindByEmail(ctx, normEmail)
 	if err != nil || user == nil {
-		return nil // Don't leak user existence
+		return "", nil // Don't leak user existence
 	}
 
 	resetToken := utils.RandomToken(32)
@@ -176,7 +176,7 @@ func (s *AuthService) ForgotPassword(ctx context.Context, email string) error {
 		"resetPasswordToken":     resetToken,
 		"resetPasswordExpiresAt": resetExpiry,
 	})
-	return err
+	return resetToken, err
 }
 
 func (s *AuthService) ResetPassword(ctx context.Context, token, newPassword string) error {

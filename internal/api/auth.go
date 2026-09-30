@@ -26,11 +26,15 @@ func (s *Server) signupUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, map[string]any{
+	resp := map[string]any{
 		"success": true,
 		"message": "User registered successfully",
 		"data":    res,
-	})
+	}
+	if res.EmailVerificationToken != nil {
+		resp["verificationToken"] = *res.EmailVerificationToken
+	}
+	writeJSON(w, http.StatusCreated, resp)
 }
 
 func (s *Server) verifyEmail(w http.ResponseWriter, r *http.Request) {
@@ -76,9 +80,11 @@ func (s *Server) loginUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
-		"success": true,
-		"message": "Logged in successfully",
-		"data":    res,
+		"success":      true,
+		"message":      "Logged in successfully",
+		"data":         res,
+		"token":        res.Tokens.AccessToken,
+		"refreshToken": res.Tokens.RefreshToken,
 	})
 }
 
@@ -97,8 +103,10 @@ func (s *Server) refreshToken(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
-		"success": true,
-		"data":    res,
+		"success":      true,
+		"data":         res,
+		"token":        res.Tokens.AccessToken,
+		"refreshToken": res.Tokens.RefreshToken,
 	})
 }
 
@@ -110,11 +118,15 @@ func (s *Server) forgotPassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_ = s.authService.ForgotPassword(r.Context(), req.Email)
-	writeJSON(w, http.StatusOK, map[string]any{
+	token, _ := s.authService.ForgotPassword(r.Context(), req.Email)
+	resp := map[string]any{
 		"success": true,
 		"message": "If the account exists, a password reset email has been sent",
-	})
+	}
+	if token != "" {
+		resp["resetToken"] = token
+	}
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func (s *Server) resetPassword(w http.ResponseWriter, r *http.Request) {

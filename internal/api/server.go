@@ -390,6 +390,9 @@ func (s *Server) authed(h http.HandlerFunc) http.Handler {
 
 		tok, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
 		if !ok || tok == "" {
+			tok = strings.TrimSpace(r.Header.Get("X-API-Key"))
+		}
+		if tok == "" {
 			s.recordAuthFailure(ip)
 			writeError(w, http.StatusUnauthorized, "missing Authorization header")
 			return
@@ -593,7 +596,7 @@ func (s *Server) recoverer(next http.Handler) http.Handler {
 }
 
 func (s *Server) allow(key string) bool {
-	v, _ := s.limiters.LoadOrStore(key, rate.NewLimiter(rate.Limit(60), 120))
+	v, _ := s.limiters.LoadOrStore(key, rate.NewLimiter(rate.Limit(500), 1000))
 	return v.(*rate.Limiter).Allow()
 }
 
