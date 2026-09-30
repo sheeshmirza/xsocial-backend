@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/hex"
+	"strings"
 )
 
 func RandomToken(size int) string {
@@ -36,3 +37,25 @@ func HMACSHA256(secret, payload string) string {
 func ConstantTimeCompare(a, b string) bool {
 	return subtle.ConstantTimeCompare([]byte(a), []byte(b)) == 1
 }
+
+func Slugify(s string) string {
+	s = strings.ToLower(strings.TrimSpace(s))
+	var buf strings.Builder
+	for _, r := range s {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') {
+			buf.WriteRune(r)
+		} else if r == ' ' || r == '-' || r == '_' {
+			buf.WriteRune('-')
+		}
+	}
+	res := buf.String()
+	for strings.Contains(res, "--") {
+		res = strings.ReplaceAll(res, "--", "-")
+	}
+	res = strings.Trim(res, "-")
+	if res == "" {
+		return "report"
+	}
+	return res
+}
+

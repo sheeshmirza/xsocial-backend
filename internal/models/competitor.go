@@ -32,6 +32,21 @@ type Competitor struct {
 }
 
 type AddCompetitorRequest struct {
-	Platform string `json:"platform" binding:"required"`
-	Handle   string `json:"handle" binding:"required"`
+	Platform       string  `json:"platform"`
+	Handle         string  `json:"handle"`
+	Name           string  `json:"name"`
+	AvatarURL      string  `json:"avatarUrl"`
+	ExternalID     string  `json:"externalId"`
+	Followers      int64   `json:"followers"`
+	Following      int64   `json:"following"`
+	PostsCount     int64   `json:"postsCount"`
+	EngagementRate float64 `json:"engagementRate"`
 }
+
+type RecordCompetitorSnapshotRequest struct {
+	Date           string  `json:"date"`
+	Followers      int64   `json:"followers"`
+	PostsCount     int64   `json:"postsCount"`
+	EngagementRate float64 `json:"engagementRate"`
+}
+

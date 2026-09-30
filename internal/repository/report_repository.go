@@ -80,3 +80,16 @@ func (r *ReportRepository) UpdateStatus(ctx context.Context, id bson.ObjectID, s
 	_, err := r.collection.UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$set": update})
 	return err
 }
+
+func (r *ReportRepository) UpdateWithMetrics(ctx context.Context, id bson.ObjectID, status models.ReportStatus, fileURL string, metrics map[string]any) error {
+	now := time.Now()
+	update := bson.M{
+		"status":      status,
+		"fileUrl":     fileURL,
+		"metrics":     metrics,
+		"completedAt": now,
+	}
+	_, err := r.collection.UpdateOne(ctx, bson.M{"_id": id}, bson.M{"$set": update})
+	return err
+}
+

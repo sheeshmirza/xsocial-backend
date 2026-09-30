@@ -72,6 +72,7 @@ func main() {
 		postRepo,
 		postActivityRepo,
 		handleRepo,
+		brandRepo,
 		postPublishService,
 		aiService,
 		liActivityService,
@@ -80,16 +81,16 @@ func main() {
 	)
 
 	// 7. Initialize Metricool Services
-	apiKeyService := service.NewApiKeyService(apiKeyRepo, redisClient)
+	apiKeyService := service.NewApiKeyService(apiKeyRepo, redisClient, brandRepo)
 	brandService := service.NewBrandService(brandRepo, userRepo)
 	inboxService := service.NewInboxService(inboxRepo, brandRepo, handleRepo)
 	smartLinkService := service.NewSmartLinkService(smartLinkRepo, brandRepo)
 	autolistService := service.NewAutolistService(autolistRepo, postRepo, postPublishService)
 	bestTimesService := service.NewBestTimesService(analyticsRepo, brandRepo)
-	competitorService := service.NewCompetitorService(competitorRepo)
-	adCampaignService := service.NewAdCampaignService(adCampaignRepo)
+	competitorService := service.NewCompetitorService(competitorRepo, brandRepo)
+	adCampaignService := service.NewAdCampaignService(adCampaignRepo, handleRepo, brandRepo)
 	analyticsService := service.NewAnalyticsService(analyticsRepo, brandRepo)
-	reportService := service.NewReportService(reportRepo, brandRepo, analyticsRepo)
+	reportService := service.NewReportService(reportRepo, brandRepo, analyticsRepo, postRepo)
 	webhookService := service.NewWebhookService(webhookRepo)
 	auditLogService := service.NewAuditLogService(auditLogRepo)
 

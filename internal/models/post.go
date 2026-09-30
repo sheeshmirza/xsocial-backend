@@ -225,9 +225,11 @@ type CreatePostInput struct {
 	ScheduledTime      *time.Time  `json:"scheduledTime"`
 	Recurrence         string      `json:"recurrence"`
 	RecurrenceInterval *int        `json:"recurrenceInterval"`
-	RecurrenceUnit     *string     `json:"recurrenceUnit"`
-	Status             string      `json:"status"`
-	AI                 *AISettings `json:"ai"`
+	RecurrenceUnit     *string        `json:"recurrenceUnit"`
+	Status             string         `json:"status"`
+	BrandID            *bson.ObjectID `json:"brandId,omitempty"`
+	FirstComment       string         `json:"firstComment,omitempty"`
+	AI                 *AISettings    `json:"ai"`
 }
 
 type UpdatePostInput struct {

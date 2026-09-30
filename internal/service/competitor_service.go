@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	"math/rand"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -13,40 +13,57 @@ import (
 )
 
 type CompetitorService struct {
-	repo *repository.CompetitorRepository
+	repo      *repository.CompetitorRepository
+	brandRepo *repository.BrandRepository
 }
 
-func NewCompetitorService(repo *repository.CompetitorRepository) *CompetitorService {
+func NewCompetitorService(repo *repository.CompetitorRepository, brandRepo *repository.BrandRepository) *CompetitorService {
 	return &CompetitorService{
-		repo: repo,
+		repo:      repo,
+		brandRepo: brandRepo,
 	}
 }
 
 func (s *CompetitorService) AddCompetitor(ctx context.Context, brandID bson.ObjectID, req models.AddCompetitorRequest) (*models.Competitor, error) {
-	// Initialize with baseline follower benchmarks
-	initialFollowers := int64(1000 + rand.Intn(50000))
-	posts := int64(50 + rand.Intn(400))
-	engagement := 1.5 + rand.Float64()*4.0
+	platform := strings.ToLower(strings.TrimSpace(req.Platform))
+	if platform == "" {
+		return nil, utils.BadRequest("platform is required (e.g. instagram, facebook, youtube, twitter, twitch)")
+	}
+
+	handle := strings.TrimSpace(req.Handle)
+	if handle == "" {
+		return nil, utils.BadRequest("competitor handle is required")
+	}
+
+	name := strings.TrimSpace(req.Name)
+	if name == "" {
+		name = handle
+	}
 
 	today := time.Now().Format("2006-01-02")
-	history := []models.CompetitorSnapshot{
-		{
+	var history []models.CompetitorSnapshot
+	if req.Followers > 0 || req.PostsCount > 0 || req.EngagementRate > 0 {
+		history = append(history, models.CompetitorSnapshot{
 			Date:           today,
-			Followers:      initialFollowers,
-			PostsCount:     posts,
-			EngagementRate: engagement,
-		},
+			Followers:      req.Followers,
+			PostsCount:     req.PostsCount,
+			EngagementRate: req.EngagementRate,
+		})
+	} else {
+		history = []models.CompetitorSnapshot{}
 	}
 
 	comp := &models.Competitor{
 		BrandID:        brandID,
-		Platform:       req.Platform,
-		Handle:         req.Handle,
-		Name:           req.Handle,
-		Followers:      initialFollowers,
-		Following:      int64(200 + rand.Intn(1000)),
-		PostsCount:     posts,
-		EngagementRate: engagement,
+		Platform:       platform,
+		Handle:         handle,
+		Name:           name,
+		AvatarURL:      req.AvatarURL,
+		ExternalID:     req.ExternalID,
+		Followers:      req.Followers,
+		Following:      req.Following,
+		PostsCount:     req.PostsCount,
+		EngagementRate: req.EngagementRate,
 		History:        history,
 	}
 
@@ -71,29 +88,31 @@ func (s *CompetitorService) DeleteCompetitor(ctx context.Context, id, brandID bs
 	return nil
 }
 
-func (s *CompetitorService) SyncCompetitorMetrics(ctx context.Context, id bson.ObjectID) error {
+func (s *CompetitorService) RecordSnapshot(ctx context.Context, id, brandID bson.ObjectID, snap models.CompetitorSnapshot) error {
 	comp, err := s.repo.FindByID(ctx, id)
-	if err != nil || comp == nil {
+	if err != nil || comp == nil || comp.BrandID != brandID {
 		return utils.NotFound("Competitor not found")
 	}
 
-	growth := int64(rand.Intn(100) - 20)
-	newFollowers := comp.Followers + growth
-	newPosts := comp.PostsCount
-	if rand.Float32() > 0.6 {
-		newPosts++
-	}
-	newEngagement := comp.EngagementRate + (rand.Float64()*0.4 - 0.2)
-	if newEngagement < 0.1 {
-		newEngagement = 0.5
+	if snap.Date == "" {
+		snap.Date = time.Now().Format("2006-01-02")
 	}
 
-	snapshot := models.CompetitorSnapshot{
-		Date:           time.Now().Format("2006-01-02"),
-		Followers:      newFollowers,
-		PostsCount:     newPosts,
-		EngagementRate: newEngagement,
+	return s.repo.AddSnapshot(ctx, id, snap)
+}
+
+func (s *CompetitorService) SyncCompetitorMetrics(ctx context.Context, id, brandID bson.ObjectID, manualSnapshot *models.CompetitorSnapshot) error {
+	comp, err := s.repo.FindByID(ctx, id)
+	if err != nil || comp == nil || comp.BrandID != brandID {
+		return utils.NotFound("Competitor not found")
 	}
 
-	return s.repo.AddSnapshot(ctx, id, snapshot)
+	if manualSnapshot != nil {
+		return s.RecordSnapshot(ctx, id, brandID, *manualSnapshot)
+	}
+
+	// Update lastSyncedAt timestamp when no external provider payload was given
+	return s.repo.Update(ctx, id, bson.M{
+		"lastSyncedAt": time.Now(),
+	})
 }

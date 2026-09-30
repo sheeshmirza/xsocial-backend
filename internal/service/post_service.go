@@ -21,6 +21,7 @@ type PostService struct {
 	postRepo            *repository.PostRepository
 	postActivityRepo    *repository.PostActivityRepository
 	socialHandleRepo    *repository.SocialHandleRepository
+	brandRepo           *repository.BrandRepository
 	postPublishService  *PostPublishService
 	aiService           *AIService
 	activityService     *LinkedInActivityService
@@ -32,6 +33,7 @@ func NewPostService(
 	postRepo *repository.PostRepository,
 	activityRepo *repository.PostActivityRepository,
 	handleRepo *repository.SocialHandleRepository,
+	brandRepo *repository.BrandRepository,
 	publishService *PostPublishService,
 	aiService *AIService,
 	actService *LinkedInActivityService,
@@ -42,6 +44,7 @@ func NewPostService(
 		postRepo:           postRepo,
 		postActivityRepo:   activityRepo,
 		socialHandleRepo:   handleRepo,
+		brandRepo:          brandRepo,
 		postPublishService: publishService,
 		aiService:          aiService,
 		activityService:    actService,
@@ -370,10 +373,19 @@ func (s *PostService) CreatePost(ctx context.Context, userID bson.ObjectID, payl
 		recurrence = models.RecurrenceOnce
 	}
 
+	if payload.BrandID != nil && !payload.BrandID.IsZero() && s.brandRepo != nil {
+		member, err := s.brandRepo.FindMember(ctx, *payload.BrandID, userID)
+		if err != nil || member == nil {
+			return nil, utils.Forbidden("User does not have access to this brand")
+		}
+	}
+
 	post := &models.Post{
 		UserID:             userID,
+		BrandID:            payload.BrandID,
 		Title:              payload.Title,
 		Caption:            payload.Caption,
+		FirstComment:       payload.FirstComment,
 		Hashtags:           payload.Hashtags,
 		Mentions:           payload.Mentions,
 		Media:              payload.Media,
@@ -408,6 +420,17 @@ func (s *PostService) ListPosts(ctx context.Context, userID bson.ObjectID, query
 	}
 
 	filters := bson.M{}
+	if bStr := queryParams["brandId"]; bStr != "" {
+		if bOID, err := bson.ObjectIDFromHex(bStr); err == nil {
+			filters["brandId"] = bOID
+		}
+	}
+	if platform := queryParams["platform"]; platform != "" {
+		filters["selectedPlatforms"] = platform
+	}
+	if reviewStatus := queryParams["reviewStatus"]; reviewStatus != "" {
+		filters["reviewStatus"] = reviewStatus
+	}
 	if st := queryParams["status"]; st != "" {
 		filters["status"] = st
 	}

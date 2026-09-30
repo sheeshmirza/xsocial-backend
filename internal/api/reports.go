@@ -66,21 +66,15 @@ func (s *Server) downloadReport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	report, err := s.reportService.GetReport(r.Context(), reportOID)
-	if err != nil || report == nil {
-		writeError(w, http.StatusNotFound, "report not found")
+	_, filename, contentType, data, err := s.reportService.BuildReportExportData(r.Context(), reportOID)
+	if err != nil {
+		writeApiError(w, err)
 		return
 	}
 
-	if report.FileURL != "" {
-		http.Redirect(w, r, report.FileURL, http.StatusTemporaryRedirect)
-		return
-	}
-
-	// Generate downloadable mock summary PDF / text
-	content := fmt.Sprintf("%%PDF-1.4\n1 0 obj\n<< /Title (%s) /Author (xSocial) >>\nendobj\ntrailer\n<< /Root 1 0 R >>\n%%%%EOF", report.Title)
-	w.Header().Set("Content-Type", "application/pdf")
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"report-%s.pdf\"", report.ID.Hex()))
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
 	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write([]byte(content))
+	_, _ = w.Write(data)
 }
+

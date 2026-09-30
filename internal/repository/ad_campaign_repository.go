@@ -111,3 +111,52 @@ func (r *AdCampaignRepository) GetSummary(ctx context.Context, brandID bson.Obje
 	}
 	return summary, nil
 }
+
+func (r *AdCampaignRepository) Create(ctx context.Context, camp *models.AdCampaign) error {
+	now := time.Now()
+	camp.CreatedAt = now
+	camp.UpdatedAt = now
+	res, err := r.collection.InsertOne(ctx, camp)
+	if err != nil {
+		return err
+	}
+	if oid, ok := res.InsertedID.(bson.ObjectID); ok {
+		camp.ID = oid
+	}
+	return nil
+}
+
+func (r *AdCampaignRepository) FindByID(ctx context.Context, id bson.ObjectID) (*models.AdCampaign, error) {
+	var camp models.AdCampaign
+	err := r.collection.FindOne(ctx, bson.M{"_id": id}).Decode(&camp)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &camp, nil
+}
+
+func (r *AdCampaignRepository) Update(ctx context.Context, id, brandID bson.ObjectID, update bson.M) (*models.AdCampaign, error) {
+	update["updatedAt"] = time.Now()
+	opt := options.FindOneAndUpdate().SetReturnDocument(options.After)
+	var updated models.AdCampaign
+	err := r.collection.FindOneAndUpdate(ctx, bson.M{"_id": id, "brandId": brandID}, bson.M{"$set": update}, opt).Decode(&updated)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &updated, nil
+}
+
+func (r *AdCampaignRepository) Delete(ctx context.Context, id, brandID bson.ObjectID) (bool, error) {
+	res, err := r.collection.DeleteOne(ctx, bson.M{"_id": id, "brandId": brandID})
+	if err != nil {
+		return false, err
+	}
+	return res.DeletedCount > 0, nil
+}
+

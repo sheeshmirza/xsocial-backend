@@ -18,14 +18,16 @@ import (
 )
 
 type ApiKeyService struct {
-	repo  *repository.ApiKeyRepository
-	redis *database.RedisClient
+	repo      *repository.ApiKeyRepository
+	redis     *database.RedisClient
+	brandRepo *repository.BrandRepository
 }
 
-func NewApiKeyService(repo *repository.ApiKeyRepository, redis *database.RedisClient) *ApiKeyService {
+func NewApiKeyService(repo *repository.ApiKeyRepository, redis *database.RedisClient, brandRepo *repository.BrandRepository) *ApiKeyService {
 	return &ApiKeyService{
-		repo:  repo,
-		redis: redis,
+		repo:      repo,
+		redis:     redis,
+		brandRepo: brandRepo,
 	}
 }
 
@@ -58,10 +60,19 @@ func (s *ApiKeyService) CreateApiKey(ctx context.Context, userID bson.ObjectID, 
 
 	var brandID *bson.ObjectID
 	if req.BrandID != "" {
-		if bid, err := bson.ObjectIDFromHex(req.BrandID); err == nil {
-			brandID = &bid
+		bid, err := bson.ObjectIDFromHex(req.BrandID)
+		if err != nil {
+			return nil, utils.BadRequest("Invalid brand ID")
 		}
+		if s.brandRepo != nil {
+			member, err := s.brandRepo.FindMember(ctx, bid, userID)
+			if err != nil || member == nil {
+				return nil, utils.Forbidden("Access to brand denied")
+			}
+		}
+		brandID = &bid
 	}
+
 
 	var expiresAt *time.Time
 	if req.ExpiresInDays > 0 {

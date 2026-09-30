@@ -2,13 +2,13 @@ package service
 
 import (
 	"context"
-	"math/rand"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 
 	"xsocial-backend/internal/models"
 	"xsocial-backend/internal/repository"
+	"xsocial-backend/internal/utils"
 )
 
 type AnalyticsService struct {
@@ -62,44 +62,18 @@ func (s *AnalyticsService) GetSocialOverview(ctx context.Context, brandID bson.O
 	if err != nil {
 		return nil, err
 	}
-
-	// If no data exists, generate simulated historical rollups so charts render cleanly
-	if len(rollups) == 0 {
-		rollups = s.generateSimulatedRollups(ctx, brandID, platform, days)
+	if rollups == nil {
+		rollups = []models.SocialMetricRollup{}
 	}
-
 	return rollups, nil
 }
 
-func (s *AnalyticsService) generateSimulatedRollups(ctx context.Context, brandID bson.ObjectID, platform string, days int) []models.SocialMetricRollup {
-	now := time.Now()
-	baseFollowers := int64(5000 + rand.Intn(10000))
-	results := make([]models.SocialMetricRollup, 0, days)
-
-	for i := days; i >= 0; i-- {
-		d := now.AddDate(0, 0, -i)
-		gained := int64(rand.Intn(35) + 5)
-		baseFollowers += gained
-		impr := int64(rand.Intn(3000) + 1000)
-		reach := int64(float64(impr) * 0.75)
-		eng := int64(float64(impr) * 0.08)
-
-		r := models.SocialMetricRollup{
-			BrandID:           brandID,
-			Platform:          platform,
-			Date:              d.Format("2006-01-02"),
-			Followers:         baseFollowers,
-			FollowersGained:   gained,
-			Impressions:       impr,
-			Reach:             reach,
-			Engagement:        eng,
-			Clicks:            int64(rand.Intn(120) + 20),
-			VideoViews:        int64(rand.Intn(1500) + 300),
-			PostsCount:        int64(rand.Intn(3) + 1),
-			InteractionsCount: eng,
-		}
-		_ = s.repo.UpsertSocialRollup(ctx, &r)
-		results = append(results, r)
+func (s *AnalyticsService) RecordSocialMetricRollup(ctx context.Context, rollup *models.SocialMetricRollup) error {
+	if rollup == nil || rollup.BrandID.IsZero() {
+		return utils.BadRequest("invalid rollup payload or missing brandId")
 	}
-	return results
+	if rollup.Date == "" {
+		rollup.Date = time.Now().Format("2006-01-02")
+	}
+	return s.repo.UpsertSocialRollup(ctx, rollup)
 }

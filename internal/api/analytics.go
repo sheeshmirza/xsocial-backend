@@ -116,3 +116,25 @@ func (s *Server) publicTrackerEvent(w http.ResponseWriter, r *http.Request) {
 		"success": true,
 	})
 }
+
+func (s *Server) recordSocialRollup(w http.ResponseWriter, r *http.Request) {
+	brandOID, err := s.resolveBrandForRequest(r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "brandId is required")
+		return
+	}
+
+	var rollup models.SocialMetricRollup
+	if !decode(w, r, 0, &rollup) {
+		return
+	}
+
+	rollup.BrandID = brandOID
+	if err := s.analyticsService.RecordSocialMetricRollup(r.Context(), &rollup); err != nil {
+		writeApiError(w, err)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"success": true})
+}
+

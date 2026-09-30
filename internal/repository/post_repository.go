@@ -152,6 +152,29 @@ func (r *PostRepository) CountByUserID(ctx context.Context, userID bson.ObjectID
 	return r.collection.CountDocuments(ctx, query)
 }
 
+func (r *PostRepository) CountByFilter(ctx context.Context, filter bson.M) (int64, error) {
+	return r.collection.CountDocuments(ctx, filter)
+}
+
+func (r *PostRepository) ListByFilter(ctx context.Context, filter bson.M, limit int) ([]models.Post, error) {
+	opt := options.Find().SetSort(bson.D{{Key: "createdAt", Value: -1}})
+	if limit > 0 {
+		opt.SetLimit(int64(limit))
+	}
+	cursor, err := r.collection.Find(ctx, filter, opt)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var posts []models.Post
+	if err := cursor.All(ctx, &posts); err != nil {
+		return nil, err
+	}
+	return posts, nil
+}
+
+
 func (r *PostRepository) UpdateByIDAndUserID(ctx context.Context, id, userID bson.ObjectID, update bson.M) (*models.Post, error) {
 	update["updatedAt"] = time.Now()
 	opt := options.FindOneAndUpdate().SetReturnDocument(options.After)

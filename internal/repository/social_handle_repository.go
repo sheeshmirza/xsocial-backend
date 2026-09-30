@@ -245,3 +245,21 @@ func (r *SocialHandleRepository) FindByUserAndIDs(ctx context.Context, userID bs
 	}
 	return items, nil
 }
+
+func (r *SocialHandleRepository) FindByBrand(ctx context.Context, brandID bson.ObjectID) ([]models.SocialHandle, error) {
+	cursor, err := r.collection.Find(ctx, bson.M{"brandId": brandID})
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var items []models.SocialHandle
+	if err := cursor.All(ctx, &items); err != nil {
+		return nil, err
+	}
+	if items == nil {
+		items = []models.SocialHandle{}
+	}
+	return items, nil
+}
+

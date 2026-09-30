@@ -23,9 +23,10 @@ type Report struct {
 	Format         string        `bson:"format" json:"format"` // pdf, csv, json
 	FileURL        string        `bson:"fileUrl" json:"fileUrl"`
 	Status         ReportStatus  `bson:"status" json:"status"`
-	WhiteLabelLogo string        `bson:"whiteLabelLogo" json:"whiteLabelLogo"`
-	CreatedAt      time.Time     `bson:"createdAt" json:"createdAt"`
-	CompletedAt    *time.Time    `bson:"completedAt,omitempty" json:"completedAt,omitempty"`
+	WhiteLabelLogo string         `bson:"whiteLabelLogo" json:"whiteLabelLogo"`
+	Metrics        map[string]any `bson:"metrics,omitempty" json:"metrics,omitempty"`
+	CreatedAt      time.Time      `bson:"createdAt" json:"createdAt"`
+	CompletedAt    *time.Time     `bson:"completedAt,omitempty" json:"completedAt,omitempty"`
 }
 
 type GenerateReportRequest struct {

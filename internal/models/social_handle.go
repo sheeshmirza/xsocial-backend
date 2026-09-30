@@ -26,3 +26,11 @@ type SocialHandle struct {
 	LinkedPageCount int    `bson:"-" json:"linkedPageCount,omitempty"`
 	Warning         string `bson:"-" json:"warning,omitempty"`
 }
+
+func (h *SocialHandle) IsExpired() bool {
+	if h.PlatformAccessTokenExpiry == nil {
+		return false
+	}
+	return time.Now().After(*h.PlatformAccessTokenExpiry)
+}
+

@@ -37,3 +37,29 @@ type AdSummary struct {
 	AverageCPC       float64 `json:"averageCpc"`
 	AverageROAS      float64 `json:"averageRoas"`
 }
+
+type CreateAdCampaignRequest struct {
+	Platform           string  `json:"platform"`
+	ExternalCampaignID string  `json:"externalCampaignId"`
+	Name               string  `json:"name"`
+	Status             string  `json:"status"`
+	Objective          string  `json:"objective"`
+	Budget             float64 `json:"budget"`
+	Spend              float64 `json:"spend"`
+	Impressions        int64   `json:"impressions"`
+	Clicks             int64   `json:"clicks"`
+	Conversions        int64   `json:"conversions"`
+	DateRange          string  `json:"dateRange"`
+}
+
+type UpdateAdCampaignRequest struct {
+	Name        *string  `json:"name"`
+	Status      *string  `json:"status"`
+	Objective   *string  `json:"objective"`
+	Budget      *float64 `json:"budget"`
+	Spend       *float64 `json:"spend"`
+	Impressions *int64   `json:"impressions"`
+	Clicks      *int64   `json:"clicks"`
+	Conversions *int64   `json:"conversions"`
+	DateRange   *string  `json:"dateRange"`
+}

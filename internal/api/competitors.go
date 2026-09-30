@@ -83,13 +83,32 @@ func (s *Server) deleteCompetitor(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) syncCompetitor(w http.ResponseWriter, r *http.Request) {
+	brandOID, err := s.resolveBrandForRequest(r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "brandId is required")
+		return
+	}
+
 	compOID, err := bson.ObjectIDFromHex(r.PathValue("id"))
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid competitor ID")
 		return
 	}
 
-	if err := s.competitorServ.SyncCompetitorMetrics(r.Context(), compOID); err != nil {
+	var snapReq *models.CompetitorSnapshot
+	if r.Body != nil && r.ContentLength > 0 {
+		var req models.RecordCompetitorSnapshotRequest
+		if decode(w, r, 0, &req) {
+			snapReq = &models.CompetitorSnapshot{
+				Date:           req.Date,
+				Followers:      req.Followers,
+				PostsCount:     req.PostsCount,
+				EngagementRate: req.EngagementRate,
+			}
+		}
+	}
+
+	if err := s.competitorServ.SyncCompetitorMetrics(r.Context(), compOID, brandOID, snapReq); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -99,3 +118,37 @@ func (s *Server) syncCompetitor(w http.ResponseWriter, r *http.Request) {
 		"message": "competitor metrics synchronized",
 	})
 }
+
+func (s *Server) recordCompetitorSnapshot(w http.ResponseWriter, r *http.Request) {
+	brandOID, err := s.resolveBrandForRequest(r)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "brandId is required")
+		return
+	}
+
+	compOID, err := bson.ObjectIDFromHex(r.PathValue("id"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid competitor ID")
+		return
+	}
+
+	var req models.RecordCompetitorSnapshotRequest
+	if !decode(w, r, 0, &req) {
+		return
+	}
+
+	snap := models.CompetitorSnapshot{
+		Date:           req.Date,
+		Followers:      req.Followers,
+		PostsCount:     req.PostsCount,
+		EngagementRate: req.EngagementRate,
+	}
+
+	if err := s.competitorServ.RecordSnapshot(r.Context(), compOID, brandOID, snap); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{"success": true})
+}
+

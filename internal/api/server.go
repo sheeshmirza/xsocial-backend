@@ -323,19 +323,25 @@ func (s *Server) Handler() http.Handler {
 		"DELETE /v1/rss-feeds/{id}":      s.deleteRSSFeed,
 
 		// Competitors
-		"POST /v1/competitors":             s.addCompetitor,
-		"GET /v1/competitors":              s.listCompetitors,
-		"DELETE /v1/competitors/{id}":      s.deleteCompetitor,
-		"POST /v1/competitors/{id}/sync":   s.syncCompetitor,
+		"POST /v1/competitors":                s.addCompetitor,
+		"GET /v1/competitors":                 s.listCompetitors,
+		"DELETE /v1/competitors/{id}":         s.deleteCompetitor,
+		"POST /v1/competitors/{id}/sync":      s.syncCompetitor,
+		"POST /v1/competitors/{id}/snapshots": s.recordCompetitorSnapshot,
 
 		// Ad Campaigns (Google, Meta, TikTok)
-		"GET /v1/ads/campaigns": s.listAdCampaigns,
-		"GET /v1/ads/summary":   s.getAdSummary,
-		"POST /v1/ads/sync":     s.syncAdCampaigns,
+		"GET /v1/ads/campaigns":        s.listAdCampaigns,
+		"POST /v1/ads/campaigns":       s.createAdCampaign,
+		"PUT /v1/ads/campaigns/{id}":   s.updateAdCampaign,
+		"PATCH /v1/ads/campaigns/{id}": s.updateAdCampaign,
+		"DELETE /v1/ads/campaigns/{id}": s.deleteAdCampaign,
+		"GET /v1/ads/summary":          s.getAdSummary,
+		"POST /v1/ads/sync":            s.syncAdCampaigns,
 
 		// Analytics
-		"GET /v1/analytics/web":    s.getWebAnalytics,
-		"GET /v1/analytics/social": s.getSocialAnalytics,
+		"GET /v1/analytics/web":             s.getWebAnalytics,
+		"GET /v1/analytics/social":          s.getSocialAnalytics,
+		"POST /v1/analytics/social/rollups": s.recordSocialRollup,
 
 		// Reports
 		"POST /v1/reports/generate":     s.generateReport,

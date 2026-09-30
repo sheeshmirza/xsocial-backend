@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	"math/rand"
+	"strings"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 
@@ -12,12 +12,20 @@ import (
 )
 
 type AdCampaignService struct {
-	repo *repository.AdCampaignRepository
+	repo       *repository.AdCampaignRepository
+	handleRepo *repository.SocialHandleRepository
+	brandRepo  *repository.BrandRepository
 }
 
-func NewAdCampaignService(repo *repository.AdCampaignRepository) *AdCampaignService {
+func NewAdCampaignService(
+	repo *repository.AdCampaignRepository,
+	handleRepo *repository.SocialHandleRepository,
+	brandRepo *repository.BrandRepository,
+) *AdCampaignService {
 	return &AdCampaignService{
-		repo: repo,
+		repo:       repo,
+		handleRepo: handleRepo,
+		brandRepo:  brandRepo,
 	}
 }
 
@@ -29,72 +37,193 @@ func (s *AdCampaignService) GetSummary(ctx context.Context, brandID bson.ObjectI
 	return s.repo.GetSummary(ctx, brandID)
 }
 
+func (s *AdCampaignService) CreateCampaign(ctx context.Context, brandID bson.ObjectID, req models.CreateAdCampaignRequest) (*models.AdCampaign, error) {
+	name := strings.TrimSpace(req.Name)
+	if name == "" {
+		return nil, utils.BadRequest("campaign name is required")
+	}
+
+	platform := strings.ToLower(strings.TrimSpace(req.Platform))
+	if platform == "" {
+		return nil, utils.BadRequest("platform is required (meta, google, tiktok)")
+	}
+
+	extID := strings.TrimSpace(req.ExternalCampaignID)
+	if extID == "" {
+		extID = platform + "_camp_" + utils.HashSHA256(name + brandID.Hex())[:12]
+	}
+
+	status := strings.ToUpper(strings.TrimSpace(req.Status))
+	if status == "" {
+		status = "ACTIVE"
+	}
+
+	ctr := 0.0
+	if req.Impressions > 0 {
+		ctr = (float64(req.Clicks) / float64(req.Impressions)) * 100
+	}
+	cpc := 0.0
+	if req.Clicks > 0 {
+		cpc = req.Spend / float64(req.Clicks)
+	}
+	cpm := 0.0
+	if req.Impressions > 0 {
+		cpm = (req.Spend / float64(req.Impressions)) * 1000
+	}
+	roas := 0.0
+	if req.Spend > 0 && req.Conversions > 0 {
+		roas = float64(req.Conversions*50) / req.Spend
+	}
+
+	dateRange := strings.TrimSpace(req.DateRange)
+	if dateRange == "" {
+		dateRange = "Last 30 Days"
+	}
+
+	camp := &models.AdCampaign{
+		BrandID:            brandID,
+		Platform:           platform,
+		ExternalCampaignID: extID,
+		Name:               name,
+		Status:             status,
+		Objective:          req.Objective,
+		Budget:             req.Budget,
+		Spend:              req.Spend,
+		Impressions:        req.Impressions,
+		Clicks:             req.Clicks,
+		Conversions:        req.Conversions,
+		CTR:                ctr,
+		CPC:                cpc,
+		CPM:                cpm,
+		ROAS:               roas,
+		DateRange:          dateRange,
+	}
+
+	if err := s.repo.UpsertCampaign(ctx, camp); err != nil {
+		return nil, utils.InternalServerError("Failed to save ad campaign")
+	}
+
+	return camp, nil
+}
+
+func (s *AdCampaignService) UpdateCampaign(ctx context.Context, id, brandID bson.ObjectID, req models.UpdateAdCampaignRequest) (*models.AdCampaign, error) {
+	update := bson.M{}
+	if req.Name != nil {
+		n := strings.TrimSpace(*req.Name)
+		if n == "" {
+			return nil, utils.BadRequest("campaign name cannot be empty")
+		}
+		update["name"] = n
+	}
+	if req.Status != nil {
+		update["status"] = strings.ToUpper(strings.TrimSpace(*req.Status))
+	}
+	if req.Objective != nil {
+		update["objective"] = *req.Objective
+	}
+	if req.Budget != nil {
+		update["budget"] = *req.Budget
+	}
+	if req.Spend != nil {
+		update["spend"] = *req.Spend
+	}
+	if req.Impressions != nil {
+		update["impressions"] = *req.Impressions
+	}
+	if req.Clicks != nil {
+		update["clicks"] = *req.Clicks
+	}
+	if req.Conversions != nil {
+		update["conversions"] = *req.Conversions
+	}
+	if req.DateRange != nil {
+		update["dateRange"] = *req.DateRange
+	}
+
+	// Calculate derived metrics if spend/impressions/clicks changed
+	existing, err := s.repo.FindByID(ctx, id)
+	if err != nil || existing == nil {
+		return nil, utils.NotFound("Ad campaign not found")
+	}
+
+	impr := existing.Impressions
+	if req.Impressions != nil {
+		impr = *req.Impressions
+	}
+	clicks := existing.Clicks
+	if req.Clicks != nil {
+		clicks = *req.Clicks
+	}
+	spend := existing.Spend
+	if req.Spend != nil {
+		spend = *req.Spend
+	}
+	convs := existing.Conversions
+	if req.Conversions != nil {
+		convs = *req.Conversions
+	}
+
+	if impr > 0 {
+		update["ctr"] = (float64(clicks) / float64(impr)) * 100
+		update["cpm"] = (spend / float64(impr)) * 1000
+	}
+	if clicks > 0 {
+		update["cpc"] = spend / float64(clicks)
+	}
+	if spend > 0 && convs > 0 {
+		update["roas"] = float64(convs*50) / spend
+	}
+
+	updated, err := s.repo.Update(ctx, id, brandID, update)
+	if err != nil {
+		return nil, utils.InternalServerError("Failed to update ad campaign")
+	}
+	if updated == nil {
+		return nil, utils.NotFound("Ad campaign not found")
+	}
+	return updated, nil
+}
+
+func (s *AdCampaignService) DeleteCampaign(ctx context.Context, id, brandID bson.ObjectID) error {
+	deleted, err := s.repo.Delete(ctx, id, brandID)
+	if err != nil {
+		return utils.InternalServerError("Failed to delete ad campaign")
+	}
+	if !deleted {
+		return utils.NotFound("Ad campaign not found")
+	}
+	return nil
+}
+
 func (s *AdCampaignService) SyncAdAccounts(ctx context.Context, brandID bson.ObjectID, platform string) error {
-	// Sync simulated or live ad metrics from Meta / Google / TikTok Ads API
-	platforms := []string{"meta", "google", "tiktok"}
+	// Query connected handles for the brand to sync real ad metrics
+	handles, err := s.handleRepo.FindByBrand(ctx, brandID)
+	if err != nil {
+		return utils.InternalServerError("Failed to query connected handles")
+	}
+
+	// Only sync platforms where valid credentials exist
+	platformMap := make(map[string]*models.SocialHandle)
+	for i := range handles {
+		h := &handles[i]
+		if h.IsConnected && !h.IsExpired() {
+			platformMap[strings.ToLower(h.Platform)] = h
+		}
+	}
+
+	requestedPlatforms := []string{"meta", "google", "tiktok"}
 	if platform != "" {
-		platforms = []string{platform}
+		requestedPlatforms = []string{strings.ToLower(platform)}
 	}
 
-	for _, p := range platforms {
-		campaigns := []struct {
-			name      string
-			budget    float64
-			spend     float64
-			impr      int64
-			clicks    int64
-			convs     int64
-			objective string
-		}{
-			{name: "Spring Conversion Booster", budget: 1500, spend: 1240.50, impr: 85000, clicks: 3200, convs: 184, objective: "CONVERSIONS"},
-			{name: "Brand Awareness Evergreen", budget: 800, spend: 760.00, impr: 140000, clicks: 1950, convs: 42, objective: "AWARENESS"},
-			{name: "Retargeting Cart Abandoners", budget: 500, spend: 490.20, impr: 22000, clicks: 1100, convs: 98, objective: "SALES"},
+	for _, p := range requestedPlatforms {
+		handle, ok := platformMap[p]
+		if !ok || handle.AccessToken == "" {
+			// No connected ad account for this platform; skip without fabricating fake data
+			continue
 		}
-
-		for _, c := range campaigns {
-			// jitter
-			spend := c.spend + float64(rand.Intn(50))
-			impr := c.impr + int64(rand.Intn(2000))
-			clicks := c.clicks + int64(rand.Intn(100))
-			convs := c.convs + int64(rand.Intn(10))
-
-			ctr := 0.0
-			if impr > 0 {
-				ctr = (float64(clicks) / float64(impr)) * 100
-			}
-			cpc := 0.0
-			if clicks > 0 {
-				cpc = spend / float64(clicks)
-			}
-			cpm := 0.0
-			if impr > 0 {
-				cpm = (spend / float64(impr)) * 1000
-			}
-			roas := 0.0
-			if spend > 0 && convs > 0 {
-				roas = (float64(convs*45) / spend)
-			}
-
-			camp := &models.AdCampaign{
-				BrandID:            brandID,
-				Platform:           p,
-				ExternalCampaignID: p + "_camp_" + utils.HashSHA256(c.name)[:12],
-				Name:               c.name,
-				Status:             "ACTIVE",
-				Objective:          c.objective,
-				Budget:             c.budget,
-				Spend:              spend,
-				Impressions:        impr,
-				Clicks:             clicks,
-				Conversions:        convs,
-				CTR:                ctr,
-				CPC:                cpc,
-				CPM:                cpm,
-				ROAS:               roas,
-				DateRange:          "Last 30 Days",
-			}
-			_ = s.repo.UpsertCampaign(ctx, camp)
-		}
+		// Future: Call platform's real Ad API (Meta Marketing API / Google Ads API) using handle.AccessToken
 	}
+
 	return nil
 }
