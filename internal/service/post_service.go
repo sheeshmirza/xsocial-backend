@@ -1436,3 +1436,131 @@ func (s *PostService) PlatformBreakdown(ctx context.Context, userID bson.ObjectI
 	}
 	return s.postRepo.PlatformStats(ctx, userID, filters)
 }
+
+func (s *PostService) ResharePost(ctx context.Context, userID, sourcePostID bson.ObjectID, req models.ResharePostRequest) (*models.Post, error) {
+	// 1. Fetch source post
+	sourcePost, err := s.postRepo.FindByIDAndUserID(ctx, sourcePostID, userID)
+	if err != nil || sourcePost == nil {
+		return nil, utils.NotFound("Source post not found")
+	}
+
+	// 2. Validate target accounts
+	if len(req.TargetAccountIDs) == 0 && len(req.TargetPlatforms) == 0 {
+		return nil, utils.BadRequest("Target account IDs or target platforms must be specified for reshare")
+	}
+
+	var targetHandles []models.SocialHandle
+	if len(req.TargetAccountIDs) > 0 {
+		handles, hErr := s.socialHandleRepo.FindByUserAndIDs(ctx, userID, req.TargetAccountIDs)
+		if hErr != nil || len(handles) == 0 {
+			return nil, utils.BadRequest("Invalid target accounts or accounts not connected to this user")
+		}
+		targetHandles = handles
+	} else {
+		handles, hErr := s.socialHandleRepo.FindByUserPlatforms(ctx, userID, req.TargetPlatforms)
+		if hErr != nil || len(handles) == 0 {
+			return nil, utils.BadRequest("No connected accounts found for specified target platforms")
+		}
+		targetHandles = handles
+	}
+
+	targetPlatforms := make([]string, 0, len(targetHandles))
+	targetAccountIDs := make([]string, 0, len(targetHandles))
+	for _, h := range targetHandles {
+		targetPlatforms = append(targetPlatforms, strings.ToLower(h.Platform))
+		targetAccountIDs = append(targetAccountIDs, h.ID.Hex())
+	}
+
+	// 3. Resolve caption and commentary
+	finalCaption := sourcePost.Caption
+	reshareCommentary := ""
+	if req.NewCaption != nil && strings.TrimSpace(*req.NewCaption) != "" {
+		finalCaption = strings.TrimSpace(*req.NewCaption)
+		reshareCommentary = finalCaption
+	}
+
+	// 4. Resolve media
+	var media []models.MediaItem
+	if req.IncludeMedia == nil || *req.IncludeMedia {
+		media = append([]models.MediaItem{}, sourcePost.Media...)
+	}
+
+	// 5. Origin post ID and origin platform post ID
+	originPlatformPostID := ""
+	originAccountID := ""
+	for _, resp := range sourcePost.PlatformResponses {
+		if resp.Status == "success" && resp.PlatformPostID != "" {
+			originPlatformPostID = resp.PlatformPostID
+			originAccountID = resp.SocialHandleID
+			break
+		}
+	}
+
+	status := models.PostStatusDraft
+	if req.ScheduledTime != nil && req.ScheduledTime.After(time.Now()) {
+		status = models.PostStatusScheduled
+	}
+
+	resharePost := &models.Post{
+		UserID:               userID,
+		BrandID:              sourcePost.BrandID,
+		Title:                sourcePost.Title,
+		Caption:              finalCaption,
+		Hashtags:             sourcePost.Hashtags,
+		Mentions:             sourcePost.Mentions,
+		Media:                media,
+		PostType:             sourcePost.PostType,
+		Visibility:           sourcePost.Visibility,
+		Timezone:             sourcePost.Timezone,
+		ScheduledTime:        req.ScheduledTime,
+		Status:               status,
+		SelectedPlatforms:    targetPlatforms,
+		SelectedAccountIds:   targetAccountIDs,
+		OriginPostID:         &sourcePost.ID,
+		OriginPlatformPostID: originPlatformPostID,
+		OriginAccountID:      originAccountID,
+		IsReshare:            true,
+		ReshareCommentary:    reshareCommentary,
+		FirstComment:         sourcePost.FirstComment,
+	}
+
+	if err := s.postRepo.Create(ctx, resharePost); err != nil {
+		return nil, utils.InternalServerError("Failed to create reshare post")
+	}
+
+	// 6. If immediate publication requested
+	if req.PublishImmediately {
+		pubResponses, pubErr := s.postPublishService.PublishToPlatforms(ctx, userID, resharePost, targetPlatforms, targetAccountIDs)
+		if pubErr != nil {
+			return resharePost, pubErr
+		}
+		resharePost.PlatformResponses = pubResponses
+
+		hasSuccess := false
+		for _, r := range pubResponses {
+			if r.Status == "success" {
+				hasSuccess = true
+				break
+			}
+		}
+
+		now := time.Now()
+		update := bson.M{
+			"platformResponses": pubResponses,
+			"updatedAt":         now,
+		}
+		if hasSuccess {
+			resharePost.Status = models.PostStatusPublished
+			resharePost.PublishedTime = &now
+			update["status"] = models.PostStatusPublished
+			update["publishedTime"] = now
+		} else {
+			resharePost.Status = models.PostStatusFailed
+			update["status"] = models.PostStatusFailed
+		}
+		_, _ = s.postRepo.UpdateByIDAndUserID(ctx, resharePost.ID, userID, update)
+	}
+
+	return resharePost, nil
+}
+

@@ -453,3 +453,32 @@ func (s *Server) publicReviewAction(w http.ResponseWriter, r *http.Request) {
 		"post":    post,
 	})
 }
+
+func (s *Server) resharePost(w http.ResponseWriter, r *http.Request) {
+	userOID, ok := currentUserOID(r)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	sourcePostOID, err := bson.ObjectIDFromHex(r.PathValue("id"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid source post ID")
+		return
+	}
+
+	var req models.ResharePostRequest
+	if !decode(w, r, 0, &req) {
+		return
+	}
+
+	resharePost, err := s.postService.ResharePost(r.Context(), userOID, sourcePostOID, req)
+	if err != nil {
+		writeApiError(w, err)
+		return
+	}
+
+	s.auditLogService.Log(r.Context(), &userOID, resharePost.BrandID, currentUserID(r), "post.reshare", "post", resharePost.ID.Hex(), clientIP(r), r.UserAgent())
+	writeJSON(w, http.StatusCreated, resharePost)
+}
+

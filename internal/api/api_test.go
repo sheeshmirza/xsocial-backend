@@ -146,6 +146,7 @@ func TestUnauthorizedProtectedEndpoints(t *testing.T) {
 		{http.MethodGet, "/v1/inbox"},
 		{http.MethodGet, "/v1/smartlinks"},
 		{http.MethodGet, "/v1/analytics/social"},
+		{http.MethodPost, "/v1/posts/650c00000000000000000001/reshare"},
 	}
 
 	for _, ep := range endpoints {

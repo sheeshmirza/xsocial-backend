@@ -88,6 +88,11 @@ type Post struct {
 	FirstComment       string                    `bson:"firstComment,omitempty" json:"firstComment,omitempty"`
 	BestTimeScore      float64                   `bson:"bestTimeScore,omitempty" json:"bestTimeScore,omitempty"`
 	InstagramTrial     *InstagramTrialSettings   `bson:"instagramTrial,omitempty" json:"instagramTrial,omitempty"`
+	OriginPostID       *bson.ObjectID            `bson:"originPostId,omitempty" json:"originPostId,omitempty"`
+	OriginPlatformPostID string                  `bson:"originPlatformPostId,omitempty" json:"originPlatformPostId,omitempty"`
+	OriginAccountID    string                    `bson:"originAccountId,omitempty" json:"originAccountId,omitempty"`
+	IsReshare          bool                      `bson:"isReshare,omitempty" json:"isReshare,omitempty"`
+	ReshareCommentary  string                    `bson:"reshareCommentary,omitempty" json:"reshareCommentary,omitempty"`
 	PlatformResponses  []PlatformPublishResponse `bson:"platformResponses" json:"platformResponses"`
 	AI                 *AISettings               `bson:"ai,omitempty" json:"ai,omitempty"`
 	CreatedAt          time.Time                 `bson:"createdAt" json:"createdAt"`
@@ -288,3 +293,13 @@ type SchedulePostInput struct {
 type BulkIDsInput struct {
 	IDs []string `json:"ids" binding:"required"`
 }
+
+type ResharePostRequest struct {
+	TargetAccountIDs   []string   `json:"targetAccountIds"`
+	TargetPlatforms    []string   `json:"targetPlatforms"`
+	NewCaption         *string    `json:"newCaption"`
+	ScheduledTime      *time.Time `json:"scheduledTime"`
+	IncludeMedia       *bool      `json:"includeMedia"`
+	PublishImmediately bool       `json:"publishImmediately"`
+}
+

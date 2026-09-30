@@ -224,6 +224,11 @@ func (a *PublishAdapter) Publish(ctx context.Context, post *models.Post, handle 
 		},
 	}
 
+	// Native LinkedIn Reshare (quote post or direct share)
+	if post.IsReshare && strings.HasPrefix(post.OriginPlatformPostID, "urn:li:") {
+		shareContent["resharedShare"] = post.OriginPlatformPostID
+	}
+
 	// Determine posting category:
 	// 1. Article / Link post
 	isArticle := postType == "article" || postType == "link"

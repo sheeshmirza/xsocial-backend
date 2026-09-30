@@ -292,6 +292,7 @@ func (s *Server) Handler() http.Handler {
 		"POST /v1/posts/{id}/submit-approval":    s.submitPostForApproval,
 		"POST /v1/posts/{id}/approve":            s.approvePost,
 		"POST /v1/posts/{id}/reject":             s.rejectPost,
+		"POST /v1/posts/{id}/reshare":            s.resharePost,
 
 		// Best Times to Post Heatmaps
 		"GET /v1/planner/best-times": s.getBestTimes,
