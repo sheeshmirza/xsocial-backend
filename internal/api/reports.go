@@ -29,7 +29,7 @@ func (s *Server) generateReport(w http.ResponseWriter, r *http.Request) {
 
 	report, err := s.reportService.GenerateReport(r.Context(), userOID, req)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -46,7 +46,7 @@ func (s *Server) listReports(w http.ResponseWriter, r *http.Request) {
 
 	reports, err := s.reportService.ListReports(r.Context(), brandOID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to list reports: "+err.Error())
+		writeApiError(w, err)
 		return
 	}
 	if reports == nil {

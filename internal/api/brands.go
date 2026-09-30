@@ -29,7 +29,7 @@ func (s *Server) createBrand(w http.ResponseWriter, r *http.Request) {
 
 	brand, err := s.brandService.CreateBrand(r.Context(), userOID, req)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -46,7 +46,7 @@ func (s *Server) listBrands(w http.ResponseWriter, r *http.Request) {
 
 	brands, err := s.brandService.ListBrands(r.Context(), userOID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to list brands")
+		writeApiError(w, err)
 		return
 	}
 	if brands == nil {
@@ -74,7 +74,7 @@ func (s *Server) getBrand(w http.ResponseWriter, r *http.Request) {
 
 	brand, err := s.brandService.GetBrand(r.Context(), brandOID, userOID)
 	if err != nil {
-		writeError(w, http.StatusNotFound, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -101,7 +101,7 @@ func (s *Server) updateBrand(w http.ResponseWriter, r *http.Request) {
 
 	brand, err := s.brandService.UpdateBrand(r.Context(), brandOID, userOID, req)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -123,7 +123,7 @@ func (s *Server) deleteBrand(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.brandService.DeleteBrand(r.Context(), brandOID, userOID); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -154,7 +154,7 @@ func (s *Server) addBrandMember(w http.ResponseWriter, r *http.Request) {
 
 	member, err := s.brandService.AddMember(r.Context(), brandOID, userOID, req)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -177,7 +177,7 @@ func (s *Server) listBrandMembers(w http.ResponseWriter, r *http.Request) {
 
 	members, err := s.brandService.ListMembers(r.Context(), brandOID, userOID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		writeApiError(w, err)
 		return
 	}
 	if members == nil {
@@ -210,7 +210,7 @@ func (s *Server) removeBrandMember(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.brandService.RemoveMember(r.Context(), brandOID, targetOID, userOID); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 

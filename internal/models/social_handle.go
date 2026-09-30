@@ -9,6 +9,7 @@ import (
 type SocialHandle struct {
 	ID                         bson.ObjectID  `bson:"_id,omitempty" json:"id"`
 	UserID                     bson.ObjectID  `bson:"userId" json:"userId"`
+	BrandID                    *bson.ObjectID `bson:"brandId,omitempty" json:"brandId,omitempty"`
 	Platform                   string         `bson:"platform" json:"platform"` // INSTAGRAM or LINKEDIN
 	PlatformID                 string         `bson:"platformId" json:"platformId"`
 	PlatformUsername           string         `bson:"platformUsername" json:"platformUsername"`

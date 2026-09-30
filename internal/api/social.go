@@ -48,7 +48,7 @@ func (s *Server) connectSocialPlatform(w http.ResponseWriter, r *http.Request) {
 
 	connectURL, err := s.socialService.GetConnectURL(uid, platform)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -116,7 +116,7 @@ func (s *Server) refreshSocialToken(w http.ResponseWriter, r *http.Request) {
 
 	refreshed, err := s.socialService.RefreshPlatformToken(r.Context(), userOID, socialOID)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -140,7 +140,7 @@ func (s *Server) disconnectSocialAccount(w http.ResponseWriter, r *http.Request)
 	}
 
 	if err := s.socialService.DisconnectAccount(r.Context(), userOID, socialOID); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 

@@ -23,7 +23,7 @@ func (s *Server) createPost(w http.ResponseWriter, r *http.Request) {
 
 	post, err := s.postService.CreatePost(r.Context(), userOID, input)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -51,7 +51,7 @@ func (s *Server) listPosts(w http.ResponseWriter, r *http.Request) {
 	sort := bson.D{{Key: "createdAt", Value: -1}}
 	posts, total, err := s.postService.ListPosts(r.Context(), userOID, queryParams, skip, limitNum, sort)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to list posts: "+err.Error())
+		writeApiError(w, err)
 		return
 	}
 	if posts == nil {
@@ -81,7 +81,7 @@ func (s *Server) getPost(w http.ResponseWriter, r *http.Request) {
 
 	post, err := s.postService.GetPost(r.Context(), userOID, postOID)
 	if err != nil {
-		writeError(w, http.StatusNotFound, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -108,7 +108,7 @@ func (s *Server) updatePost(w http.ResponseWriter, r *http.Request) {
 
 	post, err := s.postService.UpdatePost(r.Context(), userOID, postOID, input)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -130,7 +130,7 @@ func (s *Server) deletePost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.postService.DeletePost(r.Context(), userOID, postOID); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -155,7 +155,7 @@ func (s *Server) deleteScheduledPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.postService.DeleteScheduledPost(r.Context(), userOID, postOID); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -180,7 +180,7 @@ func (s *Server) deletePublishedPost(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.postService.DeletePublishedPost(r.Context(), userOID, postOID); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -205,7 +205,7 @@ func (s *Server) bulkDeletePosts(w http.ResponseWriter, r *http.Request) {
 
 	count, err := s.postService.BulkDeletePosts(r.Context(), userOID, input.IDs)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -229,7 +229,7 @@ func (s *Server) bulkDeleteScheduledPosts(w http.ResponseWriter, r *http.Request
 
 	deleted, failed, err := s.postService.BulkDeleteScheduledPosts(r.Context(), userOID, input.IDs)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -254,7 +254,7 @@ func (s *Server) bulkDeletePublishedPosts(w http.ResponseWriter, r *http.Request
 
 	deleted, failed, err := s.postService.BulkDeletePublishedPosts(r.Context(), userOID, input.IDs)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -279,7 +279,7 @@ func (s *Server) bulkPauseRecurringPosts(w http.ResponseWriter, r *http.Request)
 
 	paused, failed, err := s.postService.BulkPauseRecurringPosts(r.Context(), userOID, input.IDs)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -304,7 +304,7 @@ func (s *Server) bulkResumeRecurringPosts(w http.ResponseWriter, r *http.Request
 
 	resumed, published, failed, err := s.postService.BulkResumeRecurringPosts(r.Context(), userOID, input.IDs)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -331,7 +331,7 @@ func (s *Server) submitPostForApproval(w http.ResponseWriter, r *http.Request) {
 
 	post, err := s.postService.SubmitForApproval(r.Context(), userOID, postOID)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -366,7 +366,7 @@ func (s *Server) approvePost(w http.ResponseWriter, r *http.Request) {
 
 	post, err := s.postService.ApprovePost(r.Context(), userOID, postOID, req.Comment)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -399,7 +399,7 @@ func (s *Server) rejectPost(w http.ResponseWriter, r *http.Request) {
 
 	post, err := s.postService.RejectPost(r.Context(), userOID, postOID, req.Reason)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -444,7 +444,7 @@ func (s *Server) publicReviewAction(w http.ResponseWriter, r *http.Request) {
 
 	post, err := s.postService.PublicReviewAction(r.Context(), token, req.Action, req.ReviewerName, req.Feedback)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 

@@ -13,7 +13,10 @@ type ApiError struct {
 }
 
 func (e *ApiError) Error() string {
-	return fmt.Sprintf("status %d: %s", e.StatusCode, e.Message)
+	if e.Message != "" {
+		return e.Message
+	}
+	return fmt.Sprintf("error %d", e.StatusCode)
 }
 
 func NewApiError(statusCode int, message string, details ...any) *ApiError {

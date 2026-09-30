@@ -46,12 +46,20 @@ func (u *User) ToProfileResponse() UserProfileResponse {
 
 type UserSanitized struct {
 	ID         bson.ObjectID `json:"id"`
+	Email      string        `json:"email"`
+	FullName   string        `json:"fullName"`
+	Timezone   string        `json:"timezone"`
 	IsVerified bool          `json:"isVerified"`
+	CreatedAt  time.Time     `json:"createdAt"`
 }
 
 func (u *User) ToSanitized() UserSanitized {
 	return UserSanitized{
 		ID:         u.ID,
+		Email:      u.Email,
+		FullName:   u.FullName,
+		Timezone:   u.Timezone,
 		IsVerified: u.IsVerified,
+		CreatedAt:  u.CreatedAt,
 	}
 }

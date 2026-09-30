@@ -32,7 +32,7 @@ func (s *Server) createAPIKey(w http.ResponseWriter, r *http.Request) {
 
 	resp, err := s.apiKeyService.CreateApiKey(r.Context(), userOID, req)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -49,7 +49,7 @@ func (s *Server) listAPIKeys(w http.ResponseWriter, r *http.Request) {
 
 	keys, err := s.apiKeyService.ListApiKeys(r.Context(), userOID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to list API keys")
+		writeApiError(w, err)
 		return
 	}
 	if keys == nil {
@@ -77,7 +77,7 @@ func (s *Server) deleteAPIKey(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.apiKeyService.RevokeApiKey(r.Context(), keyOID, userOID); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 

@@ -26,6 +26,7 @@ import (
 	"xsocial-backend/internal/platform/linkedin"
 	"xsocial-backend/internal/repository"
 	"xsocial-backend/internal/service"
+	"xsocial-backend/internal/utils"
 )
 
 type ctxKey struct{}
@@ -614,6 +615,7 @@ func (r *statusRecorder) WriteHeader(code int) {
 // JSON & Request Helpers matching mailhost-backend
 func writeJSON(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(v)
 }
@@ -624,6 +626,18 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 		"error":   msg,
 		"message": msg,
 	})
+}
+
+func writeApiError(w http.ResponseWriter, err error) {
+	if err == nil {
+		return
+	}
+	var apiErr *utils.ApiError
+	if errors.As(err, &apiErr) {
+		writeError(w, apiErr.StatusCode, apiErr.Message)
+		return
+	}
+	writeError(w, http.StatusBadRequest, err.Error())
 }
 
 func decode(w http.ResponseWriter, r *http.Request, limit int64, v any) bool {

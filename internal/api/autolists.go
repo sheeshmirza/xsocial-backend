@@ -28,7 +28,7 @@ func (s *Server) createAutolist(w http.ResponseWriter, r *http.Request) {
 
 	list, err := s.autolistService.CreateAutolist(r.Context(), brandOID, req)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -45,7 +45,7 @@ func (s *Server) listAutolists(w http.ResponseWriter, r *http.Request) {
 
 	lists, err := s.autolistService.ListAutolists(r.Context(), brandOID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to list autolists: "+err.Error())
+		writeApiError(w, err)
 		return
 	}
 	if lists == nil {
@@ -78,7 +78,7 @@ func (s *Server) addAutolistPost(w http.ResponseWriter, r *http.Request) {
 
 	list, err := s.autolistService.AddPostToAutolist(r.Context(), autolistOID, brandOID, req)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -99,7 +99,7 @@ func (s *Server) deleteAutolist(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.autolistService.DeleteAutolist(r.Context(), autolistOID, brandOID); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -129,7 +129,7 @@ func (s *Server) createRSSFeed(w http.ResponseWriter, r *http.Request) {
 
 	feed, err := s.autolistService.CreateRSSFeed(r.Context(), brandOID, req)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -146,7 +146,7 @@ func (s *Server) listRSSFeeds(w http.ResponseWriter, r *http.Request) {
 
 	feeds, err := s.autolistService.ListRSSFeeds(r.Context(), brandOID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to list RSS feeds: "+err.Error())
+		writeApiError(w, err)
 		return
 	}
 	if feeds == nil {
@@ -173,7 +173,7 @@ func (s *Server) deleteRSSFeed(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.autolistService.DeleteRSSFeed(r.Context(), feedOID, brandOID); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 

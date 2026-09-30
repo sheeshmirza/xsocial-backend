@@ -28,7 +28,7 @@ func (s *Server) createWebhook(w http.ResponseWriter, r *http.Request) {
 
 	wh, err := s.webhookService.CreateWebhook(r.Context(), userOID, req)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -50,7 +50,7 @@ func (s *Server) listWebhooks(w http.ResponseWriter, r *http.Request) {
 
 	webhooks, err := s.webhookService.ListWebhooks(r.Context(), userOID, brandOIDPtr)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to list webhooks: "+err.Error())
+		writeApiError(w, err)
 		return
 	}
 	if webhooks == nil {
@@ -77,7 +77,7 @@ func (s *Server) deleteWebhook(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.webhookService.DeleteWebhook(r.Context(), whOID, userOID); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 

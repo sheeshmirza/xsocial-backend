@@ -22,7 +22,7 @@ func (s *Server) signupUser(w http.ResponseWriter, r *http.Request) {
 
 	res, err := s.authService.Signup(r.Context(), req.Email, req.Password)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -50,7 +50,7 @@ func (s *Server) verifyEmail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.authService.VerifyEmail(r.Context(), token); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -71,7 +71,7 @@ func (s *Server) loginUser(w http.ResponseWriter, r *http.Request) {
 
 	res, err := s.authService.Login(r.Context(), req.Email, req.Password, r.UserAgent(), clientIP(r))
 	if err != nil {
-		writeError(w, http.StatusUnauthorized, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -92,7 +92,7 @@ func (s *Server) refreshToken(w http.ResponseWriter, r *http.Request) {
 
 	res, err := s.authService.Refresh(r.Context(), req.RefreshToken, r.UserAgent(), clientIP(r))
 	if err != nil {
-		writeError(w, http.StatusUnauthorized, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -127,7 +127,7 @@ func (s *Server) resetPassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.authService.ResetPassword(r.Context(), req.Token, req.NewPassword); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -190,7 +190,7 @@ func (s *Server) updateCurrentUser(w http.ResponseWriter, r *http.Request) {
 
 	updated, err := s.userService.UpdateProfile(r.Context(), userOID, req.FullName, req.Timezone)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -217,7 +217,7 @@ func (s *Server) changePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := s.userService.ChangePassword(r.Context(), userOID, req.OldPassword, req.NewPassword); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -235,7 +235,7 @@ func (s *Server) deleteCurrentUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.userService.DeleteUser(r.Context(), userOID); err != nil {
-		writeError(w, http.StatusInternalServerError, err.Error())
+		writeApiError(w, err)
 		return
 	}
 

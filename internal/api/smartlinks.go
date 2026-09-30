@@ -28,7 +28,7 @@ func (s *Server) createSmartLink(w http.ResponseWriter, r *http.Request) {
 
 	page, err := s.smartLinkService.CreatePage(r.Context(), brandOID, userOID, req)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -45,7 +45,7 @@ func (s *Server) listSmartLinks(w http.ResponseWriter, r *http.Request) {
 
 	pages, err := s.smartLinkService.ListPagesByBrand(r.Context(), brandOID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to list smartlinks: "+err.Error())
+		writeApiError(w, err)
 		return
 	}
 	if pages == nil {
@@ -78,7 +78,7 @@ func (s *Server) updateSmartLink(w http.ResponseWriter, r *http.Request) {
 
 	page, err := s.smartLinkService.UpdatePage(r.Context(), pageOID, brandOID, req)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -99,7 +99,7 @@ func (s *Server) deleteSmartLink(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err := s.smartLinkService.DeletePage(r.Context(), pageOID, brandOID); err != nil {
-		writeError(w, http.StatusBadRequest, err.Error())
+		writeApiError(w, err)
 		return
 	}
 
@@ -124,7 +124,7 @@ func (s *Server) getSmartLinkAnalytics(w http.ResponseWriter, r *http.Request) {
 
 	analytics, err := s.smartLinkService.GetAnalytics(r.Context(), pageOID, brandOID)
 	if err != nil {
-		writeError(w, http.StatusInternalServerError, "failed to get analytics: "+err.Error())
+		writeApiError(w, err)
 		return
 	}
 
