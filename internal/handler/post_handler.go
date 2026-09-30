@@ -478,9 +478,10 @@ func (h *PostHandler) ApprovePost(c *gin.Context) {
 		return
 	}
 
+	schedStatus := models.PostStatusScheduled
 	updated, err := h.postService.UpdatePost(c.Request.Context(), userOID, id, models.UpdatePostRequest{
 		ReviewStatus: "approved",
-		Status:       models.PostStatusScheduled,
+		Status:       &schedStatus,
 	})
 	if err != nil {
 		c.Error(err)
@@ -509,9 +510,10 @@ func (h *PostHandler) RejectPost(c *gin.Context) {
 	}
 	_ = c.ShouldBindJSON(&req)
 
+	draftStatus := models.PostStatusDraft
 	updated, err := h.postService.UpdatePost(c.Request.Context(), userOID, id, models.UpdatePostRequest{
 		ReviewStatus: "rejected",
-		Status:       models.PostStatusDraft,
+		Status:       &draftStatus,
 	})
 	if err != nil {
 		c.Error(err)
@@ -567,7 +569,7 @@ func (h *PostHandler) PublicReviewAction(c *gin.Context) {
 
 	updated, err := h.postService.UpdatePost(c.Request.Context(), post.UserID, post.ID, models.UpdatePostRequest{
 		ReviewStatus: reviewStatus,
-		Status:       postStatus,
+		Status:       &postStatus,
 	})
 	if err != nil {
 		c.Error(err)

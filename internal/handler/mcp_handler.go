@@ -467,11 +467,11 @@ func (h *MCPHandler) executeTool(ctx context.Context, userID bson.ObjectID, name
 		return string(b), nil
 
 	case "get_scheduled_posts":
-		posts, _, err := h.postService.GetPosts(ctx, userID, models.PostFilterOptions{
-			Status: getArg("status"),
-			Page:   1,
-			Limit:  50,
-		})
+		queryParams := map[string]string{}
+		if st := getArg("status"); st != "" {
+			queryParams["status"] = st
+		}
+		posts, _, err := h.postService.ListPosts(ctx, userID, queryParams, 0, 50, bson.D{{Key: "createdAt", Value: -1}})
 		if err != nil {
 			return "", err
 		}
@@ -529,8 +529,9 @@ func (h *MCPHandler) executeTool(ctx context.Context, userID bson.ObjectID, name
 		if brandOID != nil || getArg("first_comment") != "" {
 			post.BrandID = brandOID
 			post.FirstComment = getArg("first_comment")
-			_ = h.postService.UpdatePost(ctx, post.ID, userID, models.UpdatePostRequest{
+			_, _ = h.postService.UpdatePost(ctx, userID, post.ID, models.UpdatePostRequest{
 				FirstComment: getArg("first_comment"),
+				BrandID:      brandOID,
 			})
 		}
 
@@ -542,10 +543,22 @@ func (h *MCPHandler) executeTool(ctx context.Context, userID bson.ObjectID, name
 		if err != nil {
 			return "", fmt.Errorf("invalid post_id")
 		}
-		post, err := h.postService.PublishNow(ctx, pid, userID)
+		post, err := h.postService.GetPost(ctx, userID, pid)
 		if err != nil {
 			return "", err
 		}
+		responses, err := h.publishService.PublishToPlatforms(ctx, userID, post, post.SelectedPlatforms, post.SelectedAccountIds)
+		if err != nil {
+			return "", err
+		}
+		pubStatus := models.PostStatusPublished
+		now := time.Now()
+		post.Status = pubStatus
+		post.PublishedTime = &now
+		post.PlatformResponses = responses
+		_, _ = h.postService.UpdatePost(ctx, userID, post.ID, models.UpdatePostRequest{
+			Status: &pubStatus,
+		})
 		b, _ := json.MarshalIndent(post, "", "  ")
 		return string(b), nil
 
@@ -554,16 +567,14 @@ func (h *MCPHandler) executeTool(ctx context.Context, userID bson.ObjectID, name
 		if err != nil {
 			return "", fmt.Errorf("invalid post_id")
 		}
-		now := time.Now()
-		post, err := h.postService.UpdatePost(ctx, pid, userID, models.UpdatePostRequest{
-			Status: models.PostStatusScheduled,
+		schedStatus := models.PostStatusScheduled
+		post, err := h.postService.UpdatePost(ctx, userID, pid, models.UpdatePostRequest{
+			Status:       &schedStatus,
+			ReviewStatus: "approved",
 		})
 		if err != nil {
 			return "", err
 		}
-		post.ReviewStatus = "approved"
-		post.ApprovedBy = &userID
-		post.ApprovedAt = &now
 		b, _ := json.MarshalIndent(post, "", "  ")
 		return string(b), nil
 
