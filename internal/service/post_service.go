@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/v2/bson"
 
 	"xsocial-backend/internal/models"
@@ -551,6 +552,118 @@ func (s *PostService) UpdatePost(ctx context.Context, userID, postID bson.Object
 
 func (s *PostService) FindByApprovalToken(ctx context.Context, token string) (*models.Post, error) {
 	return s.postRepo.FindByApprovalToken(ctx, token)
+}
+
+func (s *PostService) SubmitForApproval(ctx context.Context, userID, postID bson.ObjectID) (*models.Post, error) {
+	post, err := s.postRepo.FindByIDAndUserID(ctx, postID, userID)
+	if err != nil || post == nil {
+		return nil, utils.NotFound("Post not found")
+	}
+
+	token := uuid.NewString()
+	update := bson.M{
+		"reviewStatus":  "pending",
+		"approvalToken": token,
+		"updatedAt":     time.Now(),
+	}
+
+	return s.postRepo.UpdateByIDAndUserID(ctx, postID, userID, update)
+}
+
+func (s *PostService) ApprovePost(ctx context.Context, approverID, postID bson.ObjectID, comment string) (*models.Post, error) {
+	post, err := s.postRepo.FindByID(ctx, postID)
+	if err != nil || post == nil {
+		return nil, utils.NotFound("Post not found")
+	}
+
+	now := time.Now()
+	update := bson.M{
+		"reviewStatus": "approved",
+		"approvedBy":   approverID,
+		"approvedAt":   now,
+		"updatedAt":    now,
+	}
+
+	if comment != "" {
+		note := models.ReviewNote{
+			UserID:    approverID,
+			UserName:  "Approver",
+			Note:      comment,
+			CreatedAt: now,
+		}
+		if post.ReviewNotes == nil {
+			update["reviewNotes"] = []models.ReviewNote{note}
+		} else {
+			update["reviewNotes"] = append(post.ReviewNotes, note)
+		}
+	}
+
+	return s.postRepo.UpdateByID(ctx, postID, update)
+}
+
+func (s *PostService) RejectPost(ctx context.Context, rejectorID, postID bson.ObjectID, reason string) (*models.Post, error) {
+	post, err := s.postRepo.FindByID(ctx, postID)
+	if err != nil || post == nil {
+		return nil, utils.NotFound("Post not found")
+	}
+
+	now := time.Now()
+	update := bson.M{
+		"reviewStatus": "rejected",
+		"updatedAt":    now,
+	}
+
+	if reason != "" {
+		note := models.ReviewNote{
+			UserID:    rejectorID,
+			UserName:  "Reviewer",
+			Note:      reason,
+			CreatedAt: now,
+		}
+		if post.ReviewNotes == nil {
+			update["reviewNotes"] = []models.ReviewNote{note}
+		} else {
+			update["reviewNotes"] = append(post.ReviewNotes, note)
+		}
+	}
+
+	return s.postRepo.UpdateByID(ctx, postID, update)
+}
+
+func (s *PostService) PublicReviewAction(ctx context.Context, token, action, reviewerName, feedback string) (*models.Post, error) {
+	post, err := s.postRepo.FindByApprovalToken(ctx, token)
+	if err != nil || post == nil {
+		return nil, utils.NotFound("Post not found or approval link invalid")
+	}
+
+	now := time.Now()
+	status := "approved"
+	if strings.ToLower(action) == "reject" || strings.ToLower(action) == "rejected" {
+		status = "rejected"
+	}
+
+	update := bson.M{
+		"reviewStatus": status,
+		"updatedAt":    now,
+	}
+	if status == "approved" {
+		update["approvedAt"] = now
+	}
+
+	if feedback != "" || reviewerName != "" {
+		note := models.ReviewNote{
+			UserName:  reviewerName,
+			Note:      feedback,
+			CreatedAt: now,
+		}
+		if post.ReviewNotes == nil {
+			update["reviewNotes"] = []models.ReviewNote{note}
+		} else {
+			update["reviewNotes"] = append(post.ReviewNotes, note)
+		}
+	}
+
+	return s.postRepo.UpdateByID(ctx, post.ID, update)
 }
 
 func (s *PostService) deleteLinkedInPlatformPosts(ctx context.Context, userID bson.ObjectID, post *models.Post) {

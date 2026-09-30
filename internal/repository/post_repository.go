@@ -166,6 +166,34 @@ func (r *PostRepository) UpdateByIDAndUserID(ctx context.Context, id, userID bso
 	return &post, nil
 }
 
+func (r *PostRepository) UpdateByID(ctx context.Context, id bson.ObjectID, update bson.M) (*models.Post, error) {
+	hasOp := false
+	for k := range update {
+		if len(k) > 0 && k[0] == '$' {
+			hasOp = true
+			break
+		}
+	}
+	var updateDoc bson.M
+	if hasOp {
+		updateDoc = update
+	} else {
+		update["updatedAt"] = time.Now()
+		updateDoc = bson.M{"$set": update}
+	}
+
+	opt := options.FindOneAndUpdate().SetReturnDocument(options.After)
+	var post models.Post
+	err := r.collection.FindOneAndUpdate(ctx, bson.M{"_id": id}, updateDoc, opt).Decode(&post)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &post, nil
+}
+
 func (r *PostRepository) DeleteByIDAndUserID(ctx context.Context, id, userID bson.ObjectID) (*models.Post, error) {
 	var post models.Post
 	err := r.collection.FindOneAndDelete(ctx, bson.M{"_id": id, "userId": userID}).Decode(&post)
