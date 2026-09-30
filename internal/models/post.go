@@ -48,6 +48,11 @@ type AISettings struct {
 	ImageFormat      string   `bson:"imageFormat,omitempty" json:"imageFormat,omitempty"`
 }
 
+type InstagramTrialSettings struct {
+	Enabled            bool   `bson:"enabled" json:"enabled"`
+	GraduationStrategy string `bson:"graduationStrategy,omitempty" json:"graduationStrategy,omitempty"` // "MANUAL" or "SS_PERFORMANCE"
+}
+
 // Common Post Domain Model
 // Represents draft, scheduled (onetime / recurring), and published/posted states.
 type Post struct {
@@ -58,7 +63,7 @@ type Post struct {
 	Hashtags           []string                  `bson:"hashtags" json:"hashtags"`
 	Mentions           []string                  `bson:"mentions" json:"mentions"`
 	Media              []MediaItem               `bson:"media" json:"media"`
-	PostType           string                    `bson:"postType" json:"postType"` // "text", "image", "video", "gif", "mixed"
+	PostType           string                    `bson:"postType" json:"postType"` // "text", "image", "video", "gif", "mixed", "reel", "story", "carousel"
 	Visibility         string                    `bson:"visibility" json:"visibility"` // "public", "private"
 	Timezone           string                    `bson:"timezone" json:"timezone"`
 	ScheduledTime      *time.Time                `bson:"scheduledTime" json:"scheduledTime"`
@@ -82,6 +87,7 @@ type Post struct {
 	ApprovedAt         *time.Time                `bson:"approvedAt,omitempty" json:"approvedAt,omitempty"`
 	FirstComment       string                    `bson:"firstComment,omitempty" json:"firstComment,omitempty"`
 	BestTimeScore      float64                   `bson:"bestTimeScore,omitempty" json:"bestTimeScore,omitempty"`
+	InstagramTrial     *InstagramTrialSettings   `bson:"instagramTrial,omitempty" json:"instagramTrial,omitempty"`
 	PlatformResponses  []PlatformPublishResponse `bson:"platformResponses" json:"platformResponses"`
 	AI                 *AISettings               `bson:"ai,omitempty" json:"ai,omitempty"`
 	CreatedAt          time.Time                 `bson:"createdAt" json:"createdAt"`
@@ -226,34 +232,36 @@ type CreatePostInput struct {
 	Recurrence         string      `json:"recurrence"`
 	RecurrenceInterval *int        `json:"recurrenceInterval"`
 	RecurrenceUnit     *string        `json:"recurrenceUnit"`
-	Status             string         `json:"status"`
-	BrandID            *bson.ObjectID `json:"brandId,omitempty"`
-	FirstComment       string         `json:"firstComment,omitempty"`
-	AI                 *AISettings    `json:"ai"`
+	Status             string                  `json:"status"`
+	BrandID            *bson.ObjectID          `json:"brandId,omitempty"`
+	FirstComment       string                  `json:"firstComment,omitempty"`
+	InstagramTrial     *InstagramTrialSettings `json:"instagramTrial,omitempty"`
+	AI                 *AISettings             `json:"ai"`
 }
 
 type UpdatePostInput struct {
-	Title              *string      `json:"title"`
-	Caption            *string      `json:"caption"`
-	Hashtags           *[]string    `json:"hashtags"`
-	Mentions           *[]string    `json:"mentions"`
-	Media              *[]MediaItem `json:"media"`
-	PostType           *string      `json:"postType"`
-	Visibility         *string      `json:"visibility"`
-	Timezone           *string      `json:"timezone"`
-	SelectedPlatforms  *[]string    `json:"selectedPlatforms"`
-	SelectedAccountIds *[]string    `json:"selectedAccountIds"`
-	ExpiryMinutes      *int         `json:"expiryMinutes"`
-	ExpiryInterval     *int         `json:"expiryInterval"`
-	ExpiryUnit         *string      `json:"expiryUnit"`
-	Recurrence         *string      `json:"recurrence"`
-	RecurrenceInterval *int         `json:"recurrenceInterval"`
-	RecurrenceUnit     *string      `json:"recurrenceUnit"`
-	Status             *string      `json:"status"`
-	BrandID            *bson.ObjectID `json:"brandId"`
-	ReviewStatus       string       `json:"reviewStatus"`
-	ApprovalToken      string       `json:"approvalToken"`
-	FirstComment       string       `json:"firstComment"`
+	Title              *string                 `json:"title"`
+	Caption            *string                 `json:"caption"`
+	Hashtags           *[]string               `json:"hashtags"`
+	Mentions           *[]string               `json:"mentions"`
+	Media              *[]MediaItem            `json:"media"`
+	PostType           *string                 `json:"postType"`
+	Visibility         *string                 `json:"visibility"`
+	Timezone           *string                 `json:"timezone"`
+	SelectedPlatforms  *[]string               `json:"selectedPlatforms"`
+	SelectedAccountIds *[]string               `json:"selectedAccountIds"`
+	ExpiryMinutes      *int                    `json:"expiryMinutes"`
+	ExpiryInterval     *int                    `json:"expiryInterval"`
+	ExpiryUnit         *string                 `json:"expiryUnit"`
+	Recurrence         *string                 `json:"recurrence"`
+	RecurrenceInterval *int                    `json:"recurrenceInterval"`
+	RecurrenceUnit     *string                 `json:"recurrenceUnit"`
+	Status             *string                 `json:"status"`
+	BrandID            *bson.ObjectID          `json:"brandId"`
+	ReviewStatus       string                  `json:"reviewStatus"`
+	ApprovalToken      string                  `json:"approvalToken"`
+	FirstComment       string                  `json:"firstComment"`
+	InstagramTrial     *InstagramTrialSettings `json:"instagramTrial,omitempty"`
 }
 
 type CreatePostRequest = CreatePostInput

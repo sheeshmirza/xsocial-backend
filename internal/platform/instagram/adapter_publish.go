@@ -177,7 +177,22 @@ func (a *PublishAdapter) publishWithToken(ctx context.Context, igUserID, token s
 		if a.isVideo(first) || postType == "reel" || postType == "reels" || postType == "video" {
 			params.Set("media_type", "REELS")
 			params.Set("video_url", strings.TrimSpace(first.URL))
-			params.Set("share_to_feed", "true")
+
+			// Instagram Trial Reels configuration
+			if post.InstagramTrial != nil && post.InstagramTrial.Enabled {
+				strategy := strings.ToUpper(strings.TrimSpace(post.InstagramTrial.GraduationStrategy))
+				if strategy != "SS_PERFORMANCE" {
+					strategy = "MANUAL"
+				}
+				trialObj := map[string]string{
+					"graduation_strategy": strategy,
+				}
+				if trialJSON, err := json.Marshal(trialObj); err == nil {
+					params.Set("trial_params", string(trialJSON))
+				}
+			} else {
+				params.Set("share_to_feed", "true")
+			}
 		} else {
 			params.Set("image_url", strings.TrimSpace(first.URL))
 		}
@@ -256,16 +271,27 @@ func (a *PublishAdapter) publishWithToken(ctx context.Context, igUserID, token s
 		}
 	}
 
+	isTrial := post.InstagramTrial != nil && post.InstagramTrial.Enabled
+	rawResult := map[string]any{
+		"container": rawContainer,
+		"publish":   rawPub,
+		"comment":   rawComment,
+		"isTrial":   isTrial,
+	}
+	if isTrial {
+		strategy := strings.ToUpper(strings.TrimSpace(post.InstagramTrial.GraduationStrategy))
+		if strategy != "SS_PERFORMANCE" {
+			strategy = "MANUAL"
+		}
+		rawResult["trialGraduationStrategy"] = strategy
+	}
+
 	return &models.PlatformPublishResponse{
 		Platform:       "instagram",
 		Status:         "success",
 		PlatformPostID: pubResp.ID,
 		URL:            postURL,
-		Raw: map[string]any{
-			"container": rawContainer,
-			"publish":   rawPub,
-			"comment":   rawComment,
-		},
+		Raw:            rawResult,
 	}, nil
 }
 

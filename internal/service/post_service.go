@@ -389,6 +389,7 @@ func (s *PostService) CreatePost(ctx context.Context, userID bson.ObjectID, payl
 		Title:              payload.Title,
 		Caption:            payload.Caption,
 		FirstComment:       payload.FirstComment,
+		InstagramTrial:     payload.InstagramTrial,
 		Hashtags:           payload.Hashtags,
 		Mentions:           payload.Mentions,
 		Media:              payload.Media,
@@ -568,6 +569,9 @@ func (s *PostService) UpdatePost(ctx context.Context, userID, postID bson.Object
 	}
 	if input.FirstComment != "" {
 		update["firstComment"] = input.FirstComment
+	}
+	if input.InstagramTrial != nil {
+		update["instagramTrial"] = input.InstagramTrial
 	}
 	if input.BrandID != nil {
 		update["brandId"] = *input.BrandID

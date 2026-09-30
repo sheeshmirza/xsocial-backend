@@ -75,3 +75,25 @@ func TestInstagramPublishValidation_InaccessibleURL(t *testing.T) {
 		t.Errorf("expected failed status for inaccessible media, got %s", resp.Status)
 	}
 }
+
+func TestInstagramTrialReelSettings(t *testing.T) {
+	post := &models.Post{
+		Caption:  "Trial Reel",
+		PostType: "reel",
+		Media: []models.MediaItem{
+			{Type: "video", URL: "https://example.com/test.mp4"},
+		},
+		InstagramTrial: &models.InstagramTrialSettings{
+			Enabled:            true,
+			GraduationStrategy: "MANUAL",
+		},
+	}
+
+	if post.InstagramTrial == nil || !post.InstagramTrial.Enabled {
+		t.Fatalf("expected InstagramTrial to be enabled")
+	}
+	if post.InstagramTrial.GraduationStrategy != "MANUAL" {
+		t.Errorf("expected MANUAL graduation strategy, got %s", post.InstagramTrial.GraduationStrategy)
+	}
+}
+
