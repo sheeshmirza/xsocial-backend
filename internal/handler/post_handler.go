@@ -448,7 +448,7 @@ func (h *PostHandler) SubmitForApproval(c *gin.Context) {
 	}
 
 	token := utils.GenerateRandomToken(16)
-	updated, err := h.postService.UpdatePost(c.Request.Context(), id, userOID, models.UpdatePostRequest{
+	updated, err := h.postService.UpdatePost(c.Request.Context(), userOID, id, models.UpdatePostRequest{
 		ReviewStatus:  "pending_approval",
 		ApprovalToken: token,
 	})
@@ -478,7 +478,7 @@ func (h *PostHandler) ApprovePost(c *gin.Context) {
 		return
 	}
 
-	updated, err := h.postService.UpdatePost(c.Request.Context(), id, userOID, models.UpdatePostRequest{
+	updated, err := h.postService.UpdatePost(c.Request.Context(), userOID, id, models.UpdatePostRequest{
 		ReviewStatus: "approved",
 		Status:       models.PostStatusScheduled,
 	})
@@ -509,7 +509,7 @@ func (h *PostHandler) RejectPost(c *gin.Context) {
 	}
 	_ = c.ShouldBindJSON(&req)
 
-	updated, err := h.postService.UpdatePost(c.Request.Context(), id, userOID, models.UpdatePostRequest{
+	updated, err := h.postService.UpdatePost(c.Request.Context(), userOID, id, models.UpdatePostRequest{
 		ReviewStatus: "rejected",
 		Status:       models.PostStatusDraft,
 	})
@@ -565,7 +565,7 @@ func (h *PostHandler) PublicReviewAction(c *gin.Context) {
 		postStatus = models.PostStatusDraft
 	}
 
-	updated, err := h.postService.UpdatePost(c.Request.Context(), post.ID, post.UserID, models.UpdatePostRequest{
+	updated, err := h.postService.UpdatePost(c.Request.Context(), post.UserID, post.ID, models.UpdatePostRequest{
 		ReviewStatus: reviewStatus,
 		Status:       postStatus,
 	})

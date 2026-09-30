@@ -533,8 +533,24 @@ func (s *PostService) UpdatePost(ctx context.Context, userID, postID bson.Object
 	if input.Status != nil {
 		update["status"] = *input.Status
 	}
+	if input.ReviewStatus != "" {
+		update["reviewStatus"] = input.ReviewStatus
+	}
+	if input.ApprovalToken != "" {
+		update["approvalToken"] = input.ApprovalToken
+	}
+	if input.FirstComment != "" {
+		update["firstComment"] = input.FirstComment
+	}
+	if input.BrandID != nil {
+		update["brandId"] = *input.BrandID
+	}
 
 	return s.postRepo.UpdateByIDAndUserID(ctx, postID, userID, update)
+}
+
+func (s *PostService) FindByApprovalToken(ctx context.Context, token string) (*models.Post, error) {
+	return s.postRepo.FindByApprovalToken(ctx, token)
 }
 
 func (s *PostService) deleteLinkedInPlatformPosts(ctx context.Context, userID bson.ObjectID, post *models.Post) {

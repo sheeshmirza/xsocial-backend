@@ -10,6 +10,7 @@ type APIResponse struct {
 	Data    any    `json:"data,omitempty"`
 	Meta    any    `json:"meta,omitempty"`
 	Details any    `json:"details,omitempty"`
+	Errors  any    `json:"errors,omitempty"`
 }
 
 func SendSuccess(c *gin.Context, statusCode int, message string, data any, meta ...any) {
