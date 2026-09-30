@@ -164,3 +164,32 @@ func (c *HTTPClient) do(req *http.Request) ([]byte, int, error) {
 
 	return bodyBytes, resp.StatusCode, nil
 }
+
+func (c *HTTPClient) FetchMediaBytes(ctx context.Context, mediaURL string) ([]byte, string, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, mediaURL, nil)
+	if err != nil {
+		return nil, "", err
+	}
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, "", err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return nil, "", fmt.Errorf("HTTP error %d fetching media from URL", resp.StatusCode)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, "", err
+	}
+
+	contentType := resp.Header.Get("Content-Type")
+	if contentType == "" {
+		contentType = http.DetectContentType(body)
+	}
+
+	return body, contentType, nil
+}
+

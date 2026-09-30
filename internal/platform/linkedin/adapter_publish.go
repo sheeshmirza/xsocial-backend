@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -33,26 +34,85 @@ func NewPublishAdapter(cfg config.OAuthPlatformConfig) *PublishAdapter {
 	}
 }
 
-func (a *PublishAdapter) resolveImage(post *models.Post) *common.ParsedImagePayload {
+func (a *PublishAdapter) resolveImages(ctx context.Context, post *models.Post) []*common.ParsedImagePayload {
+	var images []*common.ParsedImagePayload
 	for _, m := range post.Media {
 		mediaType := strings.ToLower(strings.TrimSpace(m.Type))
 		if mediaType != "image" && mediaType != "gif" {
 			continue
 		}
+
 		if m.Base64Data != "" {
 			parsed := common.ParseBase64Image(m.Base64Data)
 			if parsed != nil && len(parsed.Buffer) > 0 {
 				if m.MimeType != "" {
 					parsed.MimeType = m.MimeType
 				}
-				return parsed
+				images = append(images, parsed)
+				continue
+			}
+		}
+
+		if strings.TrimSpace(m.URL) != "" {
+			buf, contentType, err := a.http.FetchMediaBytes(ctx, m.URL)
+			if err == nil && len(buf) > 0 {
+				mime := m.MimeType
+				if mime == "" {
+					mime = contentType
+				}
+				if mime == "" {
+					mime = "image/jpeg"
+				}
+				images = append(images, &common.ParsedImagePayload{
+					MimeType: mime,
+					Buffer:   buf,
+				})
 			}
 		}
 	}
-	return nil
+	return images
 }
 
-func (a *PublishAdapter) uploadImageAsset(ctx context.Context, accessToken, authorURN string, img *common.ParsedImagePayload) (string, error) {
+func (a *PublishAdapter) resolveVideos(ctx context.Context, post *models.Post) []*common.ParsedImagePayload {
+	var videos []*common.ParsedImagePayload
+	for _, m := range post.Media {
+		mediaType := strings.ToLower(strings.TrimSpace(m.Type))
+		if mediaType != "video" {
+			continue
+		}
+
+		if m.Base64Data != "" {
+			parsed := common.ParseBase64Image(m.Base64Data)
+			if parsed != nil && len(parsed.Buffer) > 0 {
+				if m.MimeType != "" {
+					parsed.MimeType = m.MimeType
+				}
+				videos = append(videos, parsed)
+				continue
+			}
+		}
+
+		if strings.TrimSpace(m.URL) != "" {
+			buf, contentType, err := a.http.FetchMediaBytes(ctx, m.URL)
+			if err == nil && len(buf) > 0 {
+				mime := m.MimeType
+				if mime == "" {
+					mime = contentType
+				}
+				if mime == "" {
+					mime = "video/mp4"
+				}
+				videos = append(videos, &common.ParsedImagePayload{
+					MimeType: mime,
+					Buffer:   buf,
+				})
+			}
+		}
+	}
+	return videos
+}
+
+func (a *PublishAdapter) uploadMediaAsset(ctx context.Context, accessToken, authorURN, recipe string, media *common.ParsedImagePayload) (string, error) {
 	token := common.NormalizeToken(accessToken)
 	headers := map[string]string{
 		"Authorization":             fmt.Sprintf("Bearer %s", token),
@@ -64,7 +124,7 @@ func (a *PublishAdapter) uploadImageAsset(ctx context.Context, accessToken, auth
 		"registerUploadRequest": map[string]any{
 			"owner": authorURN,
 			"recipes": []string{
-				"urn:li:digitalmediaRecipe:feedshare-image",
+				recipe,
 			},
 			"serviceRelationships": []map[string]any{
 				{
@@ -78,7 +138,7 @@ func (a *PublishAdapter) uploadImageAsset(ctx context.Context, accessToken, auth
 	reqURL := fmt.Sprintf("%s/v2/assets?action=registerUpload", LinkedInAPIBase)
 	body, status, err := a.http.PostJSON(ctx, reqURL, registerPayload, headers)
 	if err != nil || status >= 400 {
-		return "", fmt.Errorf("LinkedIn image upload registration failed: %s", string(body))
+		return "", fmt.Errorf("LinkedIn media upload registration failed: %s", string(body))
 	}
 
 	var regResp struct {
@@ -103,11 +163,11 @@ func (a *PublishAdapter) uploadImageAsset(ctx context.Context, accessToken, auth
 		return "", fmt.Errorf("missing upload URL or asset URN from LinkedIn")
 	}
 
-	// Upload the raw image binary
+	// Upload raw binary bytes
 	uploadHeaders := map[string]string{}
-	_, putStatus, err := a.http.PutRaw(ctx, uploadURL, img.Buffer, img.MimeType, uploadHeaders)
+	_, putStatus, err := a.http.PutRaw(ctx, uploadURL, media.Buffer, media.MimeType, uploadHeaders)
 	if err != nil || putStatus >= 400 {
-		return "", fmt.Errorf("failed to upload image binary to LinkedIn")
+		return "", fmt.Errorf("failed to upload media binary to LinkedIn")
 	}
 
 	return assetURN, nil
@@ -115,32 +175,7 @@ func (a *PublishAdapter) uploadImageAsset(ctx context.Context, accessToken, auth
 
 func (a *PublishAdapter) Publish(ctx context.Context, post *models.Post, handle *models.SocialHandle) (*models.PlatformPublishResponse, error) {
 	caption := strings.TrimSpace(post.Caption)
-	imagePayload := a.resolveImage(post)
-
-	hasRequestedImage := false
-	for _, m := range post.Media {
-		mediaType := strings.ToLower(strings.TrimSpace(m.Type))
-		if mediaType == "image" || mediaType == "gif" {
-			hasRequestedImage = true
-			break
-		}
-	}
-
-	if caption == "" && imagePayload == nil {
-		return &models.PlatformPublishResponse{
-			Platform: "linkedin",
-			Status:   "failed",
-			Message:  "LinkedIn publishing requires caption or an image with base64 data",
-		}, nil
-	}
-
-	if hasRequestedImage && imagePayload == nil {
-		return &models.PlatformPublishResponse{
-			Platform: "linkedin",
-			Status:   "failed",
-			Message:  "LinkedIn image publishing requires base64 image data in post media",
-		}, nil
-	}
+	postType := strings.ToLower(strings.TrimSpace(post.PostType))
 
 	accountType := ""
 	if handle.PlatformMetadata != nil {
@@ -162,36 +197,57 @@ func (a *PublishAdapter) Publish(ctx context.Context, post *models.Post, handle 
 	}
 
 	token := common.NormalizeToken(handle.PlatformAccessToken)
-	var mediaAssetURN string
-	if imagePayload != nil {
-		asset, err := a.uploadImageAsset(ctx, token, authorURN, imagePayload)
-		if err != nil {
-			return &models.PlatformPublishResponse{
-				Platform: "linkedin",
-				Status:   "failed",
-				Message:  err.Error(),
-			}, nil
-		}
-		mediaAssetURN = asset
+	if token == "" {
+		return &models.PlatformPublishResponse{
+			Platform: "linkedin",
+			Status:   "failed",
+			Message:  "LinkedIn access token is missing",
+		}, nil
 	}
 
-	mediaCategory := "NONE"
-	if mediaAssetURN != "" {
-		mediaCategory = "IMAGE"
+	// Resolve media
+	imagePayloads := a.resolveImages(ctx, post)
+	videoPayloads := a.resolveVideos(ctx, post)
+
+	// Validate inputs
+	if caption == "" && len(imagePayloads) == 0 && len(videoPayloads) == 0 && postType != "article" && postType != "link" {
+		return &models.PlatformPublishResponse{
+			Platform: "linkedin",
+			Status:   "failed",
+			Message:  "LinkedIn publishing requires caption, image, or video media",
+		}, nil
 	}
 
 	shareContent := map[string]any{
 		"shareCommentary": map[string]any{
 			"text": caption,
 		},
-		"shareMediaCategory": mediaCategory,
 	}
 
-	if mediaAssetURN != "" {
+	// Determine posting category:
+	// 1. Article / Link post
+	isArticle := postType == "article" || postType == "link"
+	var linkURL string
+	if isArticle {
+		// Detect URL from media or caption
+		for _, m := range post.Media {
+			if strings.ToLower(m.Type) == "link" && m.URL != "" {
+				linkURL = m.URL
+				break
+			}
+		}
+		if linkURL == "" {
+			reURL := regexp.MustCompile(`https?://[^\s]+`)
+			linkURL = reURL.FindString(caption)
+		}
+	}
+
+	if isArticle && linkURL != "" {
+		shareContent["shareMediaCategory"] = "ARTICLE"
 		shareContent["media"] = []map[string]any{
 			{
-				"status": "READY",
-				"media":  mediaAssetURN,
+				"status":      "READY",
+				"originalUrl": linkURL,
 				"description": map[string]any{
 					"text": caption,
 				},
@@ -200,6 +256,64 @@ func (a *PublishAdapter) Publish(ctx context.Context, post *models.Post, handle 
 				},
 			},
 		}
+	} else if len(videoPayloads) > 0 || postType == "video" {
+		// 2. Video Post
+		if len(videoPayloads) == 0 {
+			return &models.PlatformPublishResponse{
+				Platform: "linkedin",
+				Status:   "failed",
+				Message:  "Video media binary could not be resolved for LinkedIn video post",
+			}, nil
+		}
+		videoAssetURN, err := a.uploadMediaAsset(ctx, token, authorURN, "urn:li:digitalmediaRecipe:feedshare-video", videoPayloads[0])
+		if err != nil {
+			return &models.PlatformPublishResponse{
+				Platform: "linkedin",
+				Status:   "failed",
+				Message:  err.Error(),
+			}, nil
+		}
+		shareContent["shareMediaCategory"] = "VIDEO"
+		shareContent["media"] = []map[string]any{
+			{
+				"status": "READY",
+				"media":  videoAssetURN,
+				"description": map[string]any{
+					"text": caption,
+				},
+				"title": map[string]any{
+					"text": post.Title,
+				},
+			},
+		}
+	} else if len(imagePayloads) > 0 {
+		// 3. Image or Multi-Image (Carousel) Post
+		mediaList := make([]map[string]any, 0, len(imagePayloads))
+		for i, img := range imagePayloads {
+			assetURN, err := a.uploadMediaAsset(ctx, token, authorURN, "urn:li:digitalmediaRecipe:feedshare-image", img)
+			if err != nil {
+				return &models.PlatformPublishResponse{
+					Platform: "linkedin",
+					Status:   "failed",
+					Message:  fmt.Sprintf("Failed uploading image slide %d: %v", i+1, err),
+				}, nil
+			}
+			mediaList = append(mediaList, map[string]any{
+				"status": "READY",
+				"media":  assetURN,
+				"description": map[string]any{
+					"text": caption,
+				},
+				"title": map[string]any{
+					"text": fmt.Sprintf("%s - %d", post.Title, i+1),
+				},
+			})
+		}
+		shareContent["shareMediaCategory"] = "IMAGE"
+		shareContent["media"] = mediaList
+	} else {
+		// 4. Text-only Post
+		shareContent["shareMediaCategory"] = "NONE"
 	}
 
 	payload := map[string]any{
@@ -240,11 +354,31 @@ func (a *PublishAdapter) Publish(ctx context.Context, post *models.Post, handle 
 	var rawResp any
 	_ = json.Unmarshal(body, &rawResp)
 
+	// Post first comment if provided
+	var rawComment any
+	if pubResp.ID != "" && strings.TrimSpace(post.FirstComment) != "" {
+		encodedURN := url.PathEscape(pubResp.ID)
+		commentURL := fmt.Sprintf("%s/v2/socialActions/%s/comments", LinkedInAPIBase, encodedURN)
+		commentPayload := map[string]any{
+			"actor": authorURN,
+			"message": map[string]any{
+				"text": strings.TrimSpace(post.FirstComment),
+			},
+		}
+		cBody, cStatus, cErr := a.http.PostJSON(ctx, commentURL, commentPayload, headers)
+		if cErr == nil && cStatus < 400 {
+			_ = json.Unmarshal(cBody, &rawComment)
+		}
+	}
+
 	return &models.PlatformPublishResponse{
 		Platform:       "linkedin",
 		Status:         "success",
 		PlatformPostID: pubResp.ID,
-		Raw:            rawResp,
+		Raw: map[string]any{
+			"response": rawResp,
+			"comment":  rawComment,
+		},
 	}, nil
 }
 

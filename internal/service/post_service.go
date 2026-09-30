@@ -81,13 +81,16 @@ func (s *PostService) validateInstagramContentRequirements(platforms []string, m
 	if includesInstagram {
 		hasMedia := false
 		for _, m := range media {
-			if strings.TrimSpace(m.URL) != "" {
+			if strings.TrimSpace(m.URL) != "" || strings.TrimSpace(m.Base64Data) != "" {
 				hasMedia = true
 				break
 			}
 		}
 		if !hasMedia {
-			return utils.BadRequest("Instagram publishing requires at least one media item")
+			return utils.BadRequest("Instagram publishing requires at least one media item (image, reel, story, or carousel)")
+		}
+		if len(media) > 10 {
+			return utils.BadRequest("Instagram carousel allows a maximum of 10 media items")
 		}
 	}
 	return nil

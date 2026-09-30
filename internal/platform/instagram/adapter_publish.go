@@ -99,11 +99,41 @@ func (a *PublishAdapter) waitForContainerReady(ctx context.Context, token, conta
 
 func (a *PublishAdapter) publishWithToken(ctx context.Context, igUserID, token string, post *models.Post, mediaList []models.MediaItem) (*models.PlatformPublishResponse, error) {
 	caption := strings.TrimSpace(post.Caption)
+	postType := strings.ToLower(strings.TrimSpace(post.PostType))
+	isStory := postType == "story" || postType == "stories"
+	isCarousel := len(mediaList) > 1 || postType == "carousel"
+
 	var containerID string
 	var rawContainer any
 
-	if len(mediaList) > 1 {
-		// Carousel container
+	if isStory {
+		// Story container (image or video without caption)
+		first := mediaList[0]
+		params := url.Values{}
+		params.Set("access_token", token)
+		params.Set("media_type", "STORIES")
+		if a.isVideo(first) {
+			params.Set("video_url", strings.TrimSpace(first.URL))
+		} else {
+			params.Set("image_url", strings.TrimSpace(first.URL))
+		}
+
+		reqURL := fmt.Sprintf("%s/%s/%s/media", InstagramGraphBase, InstagramGraphVer, igUserID)
+		body, status, err := a.http.PostParams(ctx, reqURL, params, nil)
+		if err != nil || status >= 400 {
+			return &models.PlatformPublishResponse{
+				Platform: "instagram",
+				Status:   "failed",
+				Message:  fmt.Sprintf("Instagram stories container creation failed: %s", string(body)),
+			}, nil
+		}
+
+		var resp ContainerResponse
+		_ = json.Unmarshal(body, &resp)
+		_ = json.Unmarshal(body, &rawContainer)
+		containerID = resp.ID
+	} else if isCarousel {
+		// Carousel container (multi-photo and/or video)
 		childIDs := make([]string, 0, len(mediaList))
 		for _, item := range mediaList {
 			childID, err := a.createChildContainer(ctx, igUserID, token, item)
@@ -138,15 +168,16 @@ func (a *PublishAdapter) publishWithToken(ctx context.Context, igUserID, token s
 		_ = json.Unmarshal(body, &rawContainer)
 		containerID = resp.ID
 	} else {
-		// Single media item
+		// Single Feed Image or Reel
 		first := mediaList[0]
 		params := url.Values{}
 		params.Set("access_token", token)
 		params.Set("caption", caption)
 
-		if a.isVideo(first) {
+		if a.isVideo(first) || postType == "reel" || postType == "reels" || postType == "video" {
 			params.Set("media_type", "REELS")
 			params.Set("video_url", strings.TrimSpace(first.URL))
+			params.Set("share_to_feed", "true")
 		} else {
 			params.Set("image_url", strings.TrimSpace(first.URL))
 		}
@@ -212,6 +243,19 @@ func (a *PublishAdapter) publishWithToken(ctx context.Context, igUserID, token s
 	var rawPub any
 	_ = json.Unmarshal(pubBody, &rawPub)
 
+	// Post first comment if provided
+	var rawComment any
+	if pubResp.ID != "" && strings.TrimSpace(post.FirstComment) != "" {
+		commentParams := url.Values{}
+		commentParams.Set("access_token", token)
+		commentParams.Set("message", strings.TrimSpace(post.FirstComment))
+		commentURL := fmt.Sprintf("%s/%s/%s/comments", InstagramGraphBase, InstagramGraphVer, pubResp.ID)
+		commentBody, commentStatus, cErr := a.http.PostParams(ctx, commentURL, commentParams, nil)
+		if cErr == nil && commentStatus < 400 {
+			_ = json.Unmarshal(commentBody, &rawComment)
+		}
+	}
+
 	return &models.PlatformPublishResponse{
 		Platform:       "instagram",
 		Status:         "success",
@@ -220,6 +264,7 @@ func (a *PublishAdapter) publishWithToken(ctx context.Context, igUserID, token s
 		Raw: map[string]any{
 			"container": rawContainer,
 			"publish":   rawPub,
+			"comment":   rawComment,
 		},
 	}, nil
 }
