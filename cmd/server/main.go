@@ -4,25 +4,26 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"xsocial-backend/internal/api"
 	"xsocial-backend/internal/config"
 	"xsocial-backend/internal/database"
-	"xsocial-backend/internal/handler"
 	"xsocial-backend/internal/platform/instagram"
 	"xsocial-backend/internal/platform/linkedin"
 	"xsocial-backend/internal/queue"
 	"xsocial-backend/internal/repository"
-	"xsocial-backend/internal/router"
 	"xsocial-backend/internal/service"
 )
 
 func main() {
 	cfg := config.LoadConfig()
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
 
 	// 1. Connect MongoDB
 	mongoDB, err := database.ConnectMongoDB(cfg)
@@ -53,12 +54,9 @@ func main() {
 	webhookRepo := repository.NewWebhookRepository(mongoDB.Database)
 	auditLogRepo := repository.NewAuditLogRepository(mongoDB.Database)
 
-	// 5. Initialize Dedicated Platform Services & Handlers
+	// 5. Initialize Dedicated Platform Services
 	igService := instagram.NewService(cfg.Instagram)
-	igHandler := instagram.NewHandler(igService, cfg.JWTAccessSecret)
-
 	liService := linkedin.NewService(cfg.LinkedIn)
-	liHandler := linkedin.NewHandler(liService, cfg.JWTAccessSecret)
 
 	// 6. Initialize Core & Platform Domain Services
 	tokenService := service.NewTokenService(cfg, rfRepo)
@@ -105,72 +103,65 @@ func main() {
 	postService.RequeueRecurringScheduledPostsOnStartup(ctxStartup)
 	cancelStartup()
 
-	// 10. Initialize HTTP Handlers
-	authHandler := handler.NewAuthHandler(authService)
-	userHandler := handler.NewUserHandler(userService)
-	uploadHandler := handler.NewUploadHandler(uploadService)
-	socialHandler := handler.NewSocialHandler(socialService, igHandler, liHandler, cfg.JWTAccessSecret)
-	postHandler := handler.NewPostHandler(postService)
-
-	apiKeyHandler := handler.NewApiKeyHandler(apiKeyService)
-	brandHandler := handler.NewBrandHandler(brandService)
-	inboxHandler := handler.NewInboxHandler(inboxService)
-	smartLinkHandler := handler.NewSmartLinkHandler(smartLinkService)
-	autolistHandler := handler.NewAutolistHandler(autolistService)
-	bestTimesHandler := handler.NewBestTimesHandler(bestTimesService)
-	competitorHandler := handler.NewCompetitorHandler(competitorService)
-	adCampaignHandler := handler.NewAdCampaignHandler(adCampaignService)
-	analyticsHandler := handler.NewAnalyticsHandler(analyticsService)
-	reportHandler := handler.NewReportHandler(reportService)
-	webhookHandler := handler.NewWebhookHandler(webhookService)
-	auditLogHandler := handler.NewAuditLogHandler(auditLogService)
-
-	mcpHandler := handler.NewMCPHandler(
-		brandService,
-		analyticsService,
-		bestTimesService,
-		competitorService,
-		postService,
+	// 10. Instantiate API Server with the exact mailhost-backend routing architecture
+	apiServer := api.New(
+		cfg,
+		logger,
+		redisClient,
+		userRepo,
+		rfRepo,
+		handleRepo,
+		postRepo,
+		postActivityRepo,
+		apiKeyRepo,
+		brandRepo,
+		inboxRepo,
+		smartLinkRepo,
+		autolistRepo,
+		competitorRepo,
+		adCampaignRepo,
+		analyticsRepo,
+		reportRepo,
+		webhookRepo,
+		auditLogRepo,
+		tokenService,
+		authService,
+		userService,
+		aiService,
+		uploadService,
+		socialService,
 		postPublishService,
+		liActivityService,
+		postService,
+		apiKeyService,
+		brandService,
 		inboxService,
 		smartLinkService,
+		autolistService,
+		bestTimesService,
+		competitorService,
 		adCampaignService,
+		analyticsService,
 		reportService,
+		webhookService,
+		auditLogService,
+		igService,
+		liService,
 	)
 
-	// 11. Setup Router with all dependencies
-	r := router.SetupRouter(&router.RouterDeps{
-		Config:            cfg,
-		UserRepo:          userRepo,
-		ApiKeyService:     apiKeyService,
-		AuthHandler:       authHandler,
-		UserHandler:       userHandler,
-		UploadHandler:     uploadHandler,
-		SocialHandler:     socialHandler,
-		PostHandler:       postHandler,
-		ApiKeyHandler:     apiKeyHandler,
-		BrandHandler:      brandHandler,
-		InboxHandler:      inboxHandler,
-		SmartLinkHandler:  smartLinkHandler,
-		AutolistHandler:   autolistHandler,
-		BestTimesHandler:  bestTimesHandler,
-		CompetitorHandler: competitorHandler,
-		AdCampaignHandler: adCampaignHandler,
-		AnalyticsHandler:  analyticsHandler,
-		ReportHandler:     reportHandler,
-		WebhookHandler:    webhookHandler,
-		AuditLogHandler:   auditLogHandler,
-		MCPHandler:        mcpHandler,
-	})
-
 	srv := &http.Server{
-		Addr:    fmt.Sprintf(":%d", cfg.Port),
-		Handler: r,
+		Addr:              fmt.Sprintf(":%d", cfg.Port),
+		Handler:           apiServer.Handler(),
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       2 * time.Minute,
+		WriteTimeout:      2 * time.Minute,
+		IdleTimeout:       2 * time.Minute,
+		MaxHeaderBytes:    1 << 20,
 	}
 
-	// 12. Graceful Shutdown Listener
+	// 11. Graceful Shutdown Listener
 	go func() {
-		log.Printf("Metricool/XSocial Server listening on port %d (MCP: /mcp, API: %s)", cfg.Port, cfg.ApiPrefix)
+		logger.Info("Metricool/xSocial API server listening", "port", cfg.Port, "mcp", "/mcp", "api_prefix", cfg.ApiPrefix)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Server failed: %v", err)
 		}

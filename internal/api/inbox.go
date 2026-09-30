@@ -4,6 +4,8 @@ import (
 	"net/http"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
+
+	"xsocial-backend/internal/models"
 )
 
 func (s *Server) resolveBrandForRequest(r *http.Request) (bson.ObjectID, error) {
@@ -42,8 +44,7 @@ func (s *Server) listInboxConversations(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	if convs == nil {
-		convs = []any{}
-		_ = convs
+		convs = []models.InboxConversation{}
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
@@ -99,14 +100,23 @@ func (s *Server) replyInboxMessage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Text     string `json:"text"`
-		MediaURL string `json:"mediaUrl"`
+		Text     string   `json:"text"`
+		MediaURL string   `json:"mediaUrl"`
+		MediaURLs []string `json:"mediaUrls"`
 	}
 	if !decode(w, r, 0, &req) {
 		return
 	}
 
-	msg, err := s.inboxService.ReplyToConversation(r.Context(), convOID, brandOID, userOID, req.Text, req.MediaURL)
+	mediaURLs := req.MediaURLs
+	if len(mediaURLs) == 0 && req.MediaURL != "" {
+		mediaURLs = []string{req.MediaURL}
+	}
+
+	msg, err := s.inboxService.ReplyToConversation(r.Context(), convOID, brandOID, userOID, currentUserID(r), models.ReplyInboxRequest{
+		MessageText: req.Text,
+		MediaURLs:   mediaURLs,
+	})
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
@@ -130,28 +140,33 @@ func (s *Server) updateInboxStatus(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Status     string  `json:"status"` // "open", "resolved", "archived"
-		AssignedTo *string `json:"assignedTo"`
+		Status     string   `json:"status"` // "open", "resolved", "archived"
+		Sentiment  string   `json:"sentiment"`
+		Tags       []string `json:"tags"`
+		AssignedTo *string  `json:"assignedTo"`
+		Unread     *bool    `json:"unread"`
 	}
 	if !decode(w, r, 0, &req) {
 		return
 	}
 
-	var assignedOID *bson.ObjectID
-	if req.AssignedTo != nil && *req.AssignedTo != "" {
-		if oid, err := bson.ObjectIDFromHex(*req.AssignedTo); err == nil {
-			assignedOID = &oid
-		}
+	statusReq := models.UpdateInboxStatusRequest{
+		Status:     models.InboxStatus(req.Status),
+		Sentiment:  models.InboxSentiment(req.Sentiment),
+		Tags:       req.Tags,
+		AssignedTo: req.AssignedTo,
+		Unread:     req.Unread,
 	}
 
-	if err := s.inboxService.UpdateConversationStatus(r.Context(), convOID, brandOID, req.Status, assignedOID); err != nil {
+	updated, err := s.inboxService.UpdateConversationStatus(r.Context(), convOID, brandOID, statusReq)
+	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"success": true,
-		"message": "conversation status updated",
+		"data":    updated,
 	})
 }
 
@@ -182,16 +197,21 @@ func (s *Server) createCannedReply(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var req struct {
-		Shortcut string   `json:"shortcut"`
-		Title    string   `json:"title"`
-		Text     string   `json:"text"`
-		Tags     []string `json:"tags"`
+		Shortcut string `json:"shortcut"`
+		Title    string `json:"title"`
+		Text     string `json:"text"`
+		Content  string `json:"content"`
 	}
 	if !decode(w, r, 0, &req) {
 		return
 	}
 
-	canned, err := s.inboxService.CreateCannedReply(r.Context(), brandOID, req.Shortcut, req.Title, req.Text, req.Tags)
+	content := req.Content
+	if content == "" {
+		content = req.Text
+	}
+
+	canned, err := s.inboxService.CreateCannedReply(r.Context(), brandOID, req.Shortcut, req.Title, content)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return

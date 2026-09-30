@@ -36,7 +36,7 @@ func (s *Server) createAPIKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.auditLogService.Log(r.Context(), &userOID, nil, currentUserID(r), "api_key.create", "api_key", resp.ID, clientIP(r), r.UserAgent())
+	s.auditLogService.Log(r.Context(), &userOID, nil, currentUserID(r), "api_key.create", "api_key", resp.ApiKey.ID, clientIP(r), r.UserAgent())
 	writeJSON(w, http.StatusCreated, resp)
 }
 
@@ -53,7 +53,7 @@ func (s *Server) listAPIKeys(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if keys == nil {
-		keys = []models.ApiKeyResponse{}
+		keys = []models.ApiKeyView{}
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
@@ -76,7 +76,7 @@ func (s *Server) deleteAPIKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.apiKeyService.DeleteApiKey(r.Context(), userOID, keyOID); err != nil {
+	if err := s.apiKeyService.RevokeApiKey(r.Context(), keyOID, userOID); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}

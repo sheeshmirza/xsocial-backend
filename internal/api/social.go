@@ -81,7 +81,7 @@ func (s *Server) oauthCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	frontendURL := s.cfg.FrontendURL
+	frontendURL := s.cfg.ClientURL
 	if frontendURL != "" {
 		http.Redirect(w, r, fmt.Sprintf("%s/dashboard/accounts?connected=%s", strings.TrimRight(frontendURL, "/"), platform), http.StatusTemporaryRedirect)
 		return

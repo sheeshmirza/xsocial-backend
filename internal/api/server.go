@@ -22,7 +22,6 @@ import (
 
 	"xsocial-backend/internal/config"
 	"xsocial-backend/internal/database"
-	"xsocial-backend/internal/models"
 	"xsocial-backend/internal/platform/instagram"
 	"xsocial-backend/internal/platform/linkedin"
 	"xsocial-backend/internal/repository"
@@ -359,7 +358,7 @@ func (s *Server) Handler() http.Handler {
 		}
 	}
 
-	return s.recoverer(s.cors(s.securityHeaders(s.accessLog(mux))))
+	return s.recoverer(s.cors(s.securityHeaders(s.rateLimiter(s.accessLog(mux)))))
 }
 
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {
@@ -508,6 +507,9 @@ func (s *Server) checkAuthRate(ip string) (bool, time.Duration) {
 func (s *Server) recordAuthFailure(ip string) {
 	s.authMu.Lock()
 	defer s.authMu.Unlock()
+	if s.authFailures == nil {
+		s.authFailures = make(map[string]*authFailureRecord)
+	}
 	now := time.Now()
 	rec, exists := s.authFailures[ip]
 	if !exists || now.Sub(rec.lastSeen) > 5*time.Minute {
@@ -562,7 +564,7 @@ func (s *Server) accessLog(next http.Handler) http.Handler {
 		start := time.Now()
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 		next.ServeHTTP(rec, r)
-		if rec.status >= http.StatusInternalServerError || mathrand.Float64() < 0.05 {
+		if s.log != nil && (rec.status >= http.StatusInternalServerError || mathrand.Float64() < 0.05) {
 			s.log.Info("http", "method", r.Method, "path", r.URL.Path, "status", rec.status, "dur_ms", time.Since(start).Milliseconds())
 		}
 	})
@@ -572,10 +574,29 @@ func (s *Server) recoverer(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if v := recover(); v != nil {
-				s.log.Error("panic", "value", v, "path", r.URL.Path)
+				if s.log != nil {
+					s.log.Error("panic", "value", v, "path", r.URL.Path)
+				}
 				writeError(w, http.StatusInternalServerError, "internal server error")
 			}
 		}()
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (s *Server) allow(key string) bool {
+	v, _ := s.limiters.LoadOrStore(key, rate.NewLimiter(rate.Limit(60), 120))
+	return v.(*rate.Limiter).Allow()
+}
+
+func (s *Server) rateLimiter(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ip := clientIP(r)
+		if !s.allow(ip) {
+			w.Header().Set("Retry-After", "1")
+			writeError(w, http.StatusTooManyRequests, "rate limit exceeded")
+			return
+		}
 		next.ServeHTTP(w, r)
 	})
 }

@@ -2,17 +2,25 @@ package api
 
 import (
 	"net/http"
-
-	"xsocial-backend/internal/models"
+	"strings"
 )
 
 func (s *Server) signupUser(w http.ResponseWriter, r *http.Request) {
-	var req models.SignupRequest
+	var req struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
 	if !decode(w, r, 0, &req) {
 		return
 	}
 
-	res, err := s.authService.Signup(r.Context(), req)
+	req.Email = strings.TrimSpace(req.Email)
+	if req.Email == "" || req.Password == "" {
+		writeError(w, http.StatusBadRequest, "email and password are required")
+		return
+	}
+
+	res, err := s.authService.Signup(r.Context(), req.Email, req.Password)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
@@ -53,12 +61,15 @@ func (s *Server) verifyEmail(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) loginUser(w http.ResponseWriter, r *http.Request) {
-	var req models.LoginRequest
+	var req struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
 	if !decode(w, r, 0, &req) {
 		return
 	}
 
-	res, err := s.authService.Login(r.Context(), req)
+	res, err := s.authService.Login(r.Context(), req.Email, req.Password, r.UserAgent(), clientIP(r))
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, err.Error())
 		return
@@ -72,12 +83,14 @@ func (s *Server) loginUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) refreshToken(w http.ResponseWriter, r *http.Request) {
-	var req models.RefreshTokenRequest
+	var req struct {
+		RefreshToken string `json:"refreshToken"`
+	}
 	if !decode(w, r, 0, &req) {
 		return
 	}
 
-	res, err := s.authService.RefreshAccessToken(r.Context(), req.RefreshToken)
+	res, err := s.authService.Refresh(r.Context(), req.RefreshToken, r.UserAgent(), clientIP(r))
 	if err != nil {
 		writeError(w, http.StatusUnauthorized, err.Error())
 		return
@@ -90,7 +103,9 @@ func (s *Server) refreshToken(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) forgotPassword(w http.ResponseWriter, r *http.Request) {
-	var req models.ForgotPasswordRequest
+	var req struct {
+		Email string `json:"email"`
+	}
 	if !decode(w, r, 0, &req) {
 		return
 	}
@@ -103,7 +118,10 @@ func (s *Server) forgotPassword(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) resetPassword(w http.ResponseWriter, r *http.Request) {
-	var req models.ResetPasswordRequest
+	var req struct {
+		Token       string `json:"token"`
+		NewPassword string `json:"newPassword"`
+	}
 	if !decode(w, r, 0, &req) {
 		return
 	}
@@ -123,7 +141,9 @@ func (s *Server) logoutUser(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		RefreshToken string `json:"refreshToken"`
 	}
-	_ = decode(w, r, 0, &req)
+	if r.Body != nil && r.ContentLength > 0 {
+		_ = decode(w, r, 0, &req)
+	}
 	if req.RefreshToken != "" {
 		_ = s.authService.Logout(r.Context(), req.RefreshToken)
 	}
@@ -141,15 +161,15 @@ func (s *Server) getCurrentUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := s.userService.GetProfile(r.Context(), userOID)
-	if err != nil {
+	user, err := s.userService.GetUserByID(r.Context(), userOID)
+	if err != nil || user == nil {
 		writeError(w, http.StatusNotFound, "user not found")
 		return
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"success": true,
-		"data":    user,
+		"data":    user.ToSanitized(),
 	})
 }
 
@@ -160,12 +180,15 @@ func (s *Server) updateCurrentUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req models.UpdateProfileRequest
+	var req struct {
+		FullName string `json:"fullName"`
+		Timezone string `json:"timezone"`
+	}
 	if !decode(w, r, 0, &req) {
 		return
 	}
 
-	updated, err := s.userService.UpdateProfile(r.Context(), userOID, req)
+	updated, err := s.userService.UpdateProfile(r.Context(), userOID, req.FullName, req.Timezone)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
@@ -174,7 +197,7 @@ func (s *Server) updateCurrentUser(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"success": true,
 		"message": "Profile updated successfully",
-		"data":    updated,
+		"data":    updated.ToSanitized(),
 	})
 }
 
@@ -185,12 +208,15 @@ func (s *Server) changePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req models.ChangePasswordRequest
+	var req struct {
+		OldPassword string `json:"oldPassword"`
+		NewPassword string `json:"newPassword"`
+	}
 	if !decode(w, r, 0, &req) {
 		return
 	}
 
-	if err := s.userService.ChangePassword(r.Context(), userOID, req); err != nil {
+	if _, err := s.userService.ChangePassword(r.Context(), userOID, req.OldPassword, req.NewPassword); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -208,7 +234,7 @@ func (s *Server) deleteCurrentUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.userService.DeleteAccount(r.Context(), userOID); err != nil {
+	if err := s.userService.DeleteUser(r.Context(), userOID); err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
