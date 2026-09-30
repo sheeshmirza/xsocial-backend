@@ -14,9 +14,17 @@ func RandomToken(size int) string {
 	return hex.EncodeToString(b)
 }
 
+func GenerateRandomToken(size int) string {
+	return RandomToken(size)
+}
+
 func SHA256(value string) string {
 	hash := sha256.Sum256([]byte(value))
 	return hex.EncodeToString(hash[:])
+}
+
+func HashSHA256(value string) string {
+	return SHA256(value)
 }
 
 func HMACSHA256(secret, payload string) string {

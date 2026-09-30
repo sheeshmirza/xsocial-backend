@@ -37,3 +37,24 @@ func ConnectRedis(cfg *config.Config) *RedisClient {
 	log.Println("Redis connected successfully")
 	return &RedisClient{Client: client}
 }
+
+func (r *RedisClient) Get(ctx context.Context, key string) (string, error) {
+	if r == nil || r.Client == nil {
+		return "", redis.Nil
+	}
+	return r.Client.Get(ctx, key).Result()
+}
+
+func (r *RedisClient) Set(ctx context.Context, key string, value any, expiration time.Duration) error {
+	if r == nil || r.Client == nil {
+		return nil
+	}
+	return r.Client.Set(ctx, key, value, expiration).Err()
+}
+
+func (r *RedisClient) Del(ctx context.Context, keys ...string) error {
+	if r == nil || r.Client == nil {
+		return nil
+	}
+	return r.Client.Del(ctx, keys...).Err()
+}

@@ -15,6 +15,13 @@ type MediaItem struct {
 	Size       float64 `bson:"size,omitempty" json:"size,omitempty"`
 }
 
+type ReviewNote struct {
+	UserID    bson.ObjectID `bson:"userId" json:"userId"`
+	UserName  string        `bson:"userName" json:"userName"`
+	Note      string        `bson:"note" json:"note"`
+	CreatedAt time.Time     `bson:"createdAt" json:"createdAt"`
+}
+
 type PlatformPublishResponse struct {
 	Platform       string `bson:"platform" json:"platform"`
 	Status         string `bson:"status" json:"status"` // "success" or "failed"
@@ -67,6 +74,14 @@ type Post struct {
 	ExpiryMinutes      *int                      `bson:"expiryMinutes" json:"expiryMinutes"`
 	ExpiryInterval     *int                      `bson:"expiryInterval" json:"expiryInterval"`
 	ExpiryUnit         *string                   `bson:"expiryUnit" json:"expiryUnit"`
+	BrandID            *bson.ObjectID            `bson:"brandId,omitempty" json:"brandId,omitempty"`
+	ReviewStatus       string                    `bson:"reviewStatus,omitempty" json:"reviewStatus,omitempty"`
+	ReviewNotes        []ReviewNote              `bson:"reviewNotes,omitempty" json:"reviewNotes,omitempty"`
+	ApprovalToken      string                    `bson:"approvalToken,omitempty" json:"approvalToken,omitempty"`
+	ApprovedBy         *bson.ObjectID            `bson:"approvedBy,omitempty" json:"approvedBy,omitempty"`
+	ApprovedAt         *time.Time                `bson:"approvedAt,omitempty" json:"approvedAt,omitempty"`
+	FirstComment       string                    `bson:"firstComment,omitempty" json:"firstComment,omitempty"`
+	BestTimeScore      float64                   `bson:"bestTimeScore,omitempty" json:"bestTimeScore,omitempty"`
 	PlatformResponses  []PlatformPublishResponse `bson:"platformResponses" json:"platformResponses"`
 	AI                 *AISettings               `bson:"ai,omitempty" json:"ai,omitempty"`
 	CreatedAt          time.Time                 `bson:"createdAt" json:"createdAt"`
@@ -233,7 +248,14 @@ type UpdatePostInput struct {
 	RecurrenceInterval *int         `json:"recurrenceInterval"`
 	RecurrenceUnit     *string      `json:"recurrenceUnit"`
 	Status             *string      `json:"status"`
+	BrandID            *bson.ObjectID `json:"brandId"`
+	ReviewStatus       string       `json:"reviewStatus"`
+	ApprovalToken      string       `json:"approvalToken"`
+	FirstComment       string       `json:"firstComment"`
 }
+
+type CreatePostRequest = CreatePostInput
+type UpdatePostRequest = UpdatePostInput
 
 type PublishPostInput struct {
 	Platforms          []string `json:"platforms"`

@@ -296,3 +296,15 @@ func (r *PostRepository) PlatformStats(ctx context.Context, userID bson.ObjectID
 	}
 	return results, nil
 }
+
+func (r *PostRepository) FindByApprovalToken(ctx context.Context, token string) (*models.Post, error) {
+	var post models.Post
+	err := r.collection.FindOne(ctx, bson.M{"approvalToken": token}).Decode(&post)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &post, nil
+}

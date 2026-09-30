@@ -432,3 +432,151 @@ func (h *PostHandler) BulkResumeRecurringPosts(c *gin.Context) {
 		"failedCount":  failedCount,
 	})
 }
+
+func (h *PostHandler) SubmitForApproval(c *gin.Context) {
+	userOIDVal, exists := c.Get("userOID")
+	if !exists {
+		c.Error(utils.Unauthorized("Unauthorized"))
+		return
+	}
+	userOID := userOIDVal.(bson.ObjectID)
+
+	id, err := bson.ObjectIDFromHex(c.Param("id"))
+	if err != nil {
+		c.Error(utils.BadRequest("Invalid post ID"))
+		return
+	}
+
+	token := utils.GenerateRandomToken(16)
+	updated, err := h.postService.UpdatePost(c.Request.Context(), id, userOID, models.UpdatePostRequest{
+		ReviewStatus:  "pending_approval",
+		ApprovalToken: token,
+	})
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	utils.SendSuccess(c, http.StatusOK, "Post submitted for approval", gin.H{
+		"post":          updated,
+		"approvalToken": token,
+		"reviewUrl":     "/api/v1/posts/review/" + token,
+	})
+}
+
+func (h *PostHandler) ApprovePost(c *gin.Context) {
+	userOIDVal, exists := c.Get("userOID")
+	if !exists {
+		c.Error(utils.Unauthorized("Unauthorized"))
+		return
+	}
+	userOID := userOIDVal.(bson.ObjectID)
+
+	id, err := bson.ObjectIDFromHex(c.Param("id"))
+	if err != nil {
+		c.Error(utils.BadRequest("Invalid post ID"))
+		return
+	}
+
+	updated, err := h.postService.UpdatePost(c.Request.Context(), id, userOID, models.UpdatePostRequest{
+		ReviewStatus: "approved",
+		Status:       models.PostStatusScheduled,
+	})
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	utils.SendSuccess(c, http.StatusOK, "Post approved and scheduled for publication", updated)
+}
+
+func (h *PostHandler) RejectPost(c *gin.Context) {
+	userOIDVal, exists := c.Get("userOID")
+	if !exists {
+		c.Error(utils.Unauthorized("Unauthorized"))
+		return
+	}
+	userOID := userOIDVal.(bson.ObjectID)
+
+	id, err := bson.ObjectIDFromHex(c.Param("id"))
+	if err != nil {
+		c.Error(utils.BadRequest("Invalid post ID"))
+		return
+	}
+
+	var req struct {
+		Reason string `json:"reason"`
+	}
+	_ = c.ShouldBindJSON(&req)
+
+	updated, err := h.postService.UpdatePost(c.Request.Context(), id, userOID, models.UpdatePostRequest{
+		ReviewStatus: "rejected",
+		Status:       models.PostStatusDraft,
+	})
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	utils.SendSuccess(c, http.StatusOK, "Post returned to draft with rejection feedback", updated)
+}
+
+func (h *PostHandler) PublicReview(c *gin.Context) {
+	token := c.Param("token")
+	if token == "" {
+		c.JSON(http.StatusBadRequest, utils.APIResponse{Success: false, Message: "Review token is required"})
+		return
+	}
+
+	// Find post by approvalToken
+	post, err := h.postService.FindByApprovalToken(c.Request.Context(), token)
+	if err != nil || post == nil {
+		c.JSON(http.StatusNotFound, utils.APIResponse{Success: false, Message: "Review link is invalid or expired"})
+		return
+	}
+
+	c.JSON(http.StatusOK, utils.APIResponse{
+		Success: true,
+		Data:    post,
+	})
+}
+
+func (h *PostHandler) PublicReviewAction(c *gin.Context) {
+	token := c.Param("token")
+	var req struct {
+		Action string `json:"action" binding:"required"` // "approve" or "reject"
+		Notes  string `json:"notes"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, utils.APIResponse{Success: false, Message: "Action is required"})
+		return
+	}
+
+	post, err := h.postService.FindByApprovalToken(c.Request.Context(), token)
+	if err != nil || post == nil {
+		c.JSON(http.StatusNotFound, utils.APIResponse{Success: false, Message: "Review link is invalid or expired"})
+		return
+	}
+
+	reviewStatus := "approved"
+	postStatus := models.PostStatusScheduled
+	if req.Action == "reject" {
+		reviewStatus = "rejected"
+		postStatus = models.PostStatusDraft
+	}
+
+	updated, err := h.postService.UpdatePost(c.Request.Context(), post.ID, post.UserID, models.UpdatePostRequest{
+		ReviewStatus: reviewStatus,
+		Status:       postStatus,
+	})
+	if err != nil {
+		c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, utils.APIResponse{
+		Success: true,
+		Message: "Review action recorded successfully",
+		Data:    updated,
+	})
+}
