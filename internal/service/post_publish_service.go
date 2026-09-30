@@ -76,7 +76,7 @@ func (s *PostPublishService) PublishToPlatforms(
 			res, pubErr = s.linkedinService.PublishPost(ctx, post, freshHandle)
 			if res != nil && strings.Contains(strings.ToLower(res.Message), "revoked") {
 				// Delete revoked handle
-				_ = s.socialHandleRepo.DeleteByIDAndUserID(ctx, freshHandle.ID, userID)
+				_, _ = s.socialHandleRepo.DeleteByIDAndUserID(ctx, freshHandle.ID, userID)
 			}
 
 		default:

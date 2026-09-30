@@ -157,7 +157,7 @@ func (s *SocialService) RefreshPlatformToken(ctx context.Context, userID, social
 
 		refreshed, err := s.instagramService.RefreshToken(ctx, refreshCred)
 		if err != nil || refreshed == nil || refreshed.AccessToken == "" {
-			_ = s.socialHandleRepo.DeleteByIDAndUserID(ctx, social.ID, userID)
+			_, _ = s.socialHandleRepo.DeleteByIDAndUserID(ctx, social.ID, userID)
 			return nil, utils.BadRequest("Failed to refresh Instagram token")
 		}
 
@@ -181,7 +181,7 @@ func (s *SocialService) RefreshPlatformToken(ctx context.Context, userID, social
 
 		refreshed, err := s.linkedinService.RefreshToken(ctx, social.PlatformRefreshToken)
 		if err != nil || refreshed == nil || refreshed.AccessToken == "" {
-			_ = s.socialHandleRepo.DeleteByIDAndUserID(ctx, social.ID, userID)
+			_, _ = s.socialHandleRepo.DeleteByIDAndUserID(ctx, social.ID, userID)
 			return nil, utils.BadRequest("Failed to refresh LinkedIn token")
 		}
 
