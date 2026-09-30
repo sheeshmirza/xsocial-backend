@@ -7,10 +7,10 @@ all: build
 
 build:
 	@mkdir -p $(BUILD_DIR)
-	go build -o $(BUILD_DIR)/$(APP_NAME) ./cmd/server
+	go build -o $(BUILD_DIR)/$(APP_NAME) .
 
 run:
-	go run ./cmd/server
+	go run .
 
 test:
 	go test -v ./...
