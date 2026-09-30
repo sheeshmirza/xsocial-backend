@@ -33,21 +33,34 @@ func main() {
 	// 2. Connect Redis
 	redisClient := database.ConnectRedis(cfg)
 
-	// 3. Initialize Repositories
+	// 3. Initialize Core Repositories
 	userRepo := repository.NewUserRepository(mongoDB.Database)
 	rfRepo := repository.NewRefreshTokenRepository(mongoDB.Database)
 	handleRepo := repository.NewSocialHandleRepository(mongoDB.Database)
 	postRepo := repository.NewPostRepository(mongoDB.Database)
 	postActivityRepo := repository.NewPostActivityRepository(mongoDB.Database)
 
-	// 4. Initialize Dedicated Platform Services & Handlers
+	// 4. Initialize Metricool Repositories
+	apiKeyRepo := repository.NewApiKeyRepository(mongoDB.Database)
+	brandRepo := repository.NewBrandRepository(mongoDB.Database)
+	inboxRepo := repository.NewInboxRepository(mongoDB.Database)
+	smartLinkRepo := repository.NewSmartLinkRepository(mongoDB.Database)
+	autolistRepo := repository.NewAutolistRepository(mongoDB.Database)
+	competitorRepo := repository.NewCompetitorRepository(mongoDB.Database)
+	adCampaignRepo := repository.NewAdCampaignRepository(mongoDB.Database)
+	analyticsRepo := repository.NewAnalyticsRepository(mongoDB.Database)
+	reportRepo := repository.NewReportRepository(mongoDB.Database)
+	webhookRepo := repository.NewWebhookRepository(mongoDB.Database)
+	auditLogRepo := repository.NewAuditLogRepository(mongoDB.Database)
+
+	// 5. Initialize Dedicated Platform Services & Handlers
 	igService := instagram.NewService(cfg.Instagram)
 	igHandler := instagram.NewHandler(igService, cfg.JWTAccessSecret)
 
 	liService := linkedin.NewService(cfg.LinkedIn)
 	liHandler := linkedin.NewHandler(liService, cfg.JWTAccessSecret)
 
-	// 5. Initialize Core Domain Services
+	// 6. Initialize Core & Platform Domain Services
 	tokenService := service.NewTokenService(cfg, rfRepo)
 	authService := service.NewAuthService(cfg, userRepo, tokenService)
 	userService := service.NewUserService(cfg, userRepo, rfRepo)
@@ -68,32 +81,86 @@ func main() {
 		nil, // queue set below
 	)
 
-	// 6. Initialize Queue & Dispatcher
+	// 7. Initialize Metricool Services
+	apiKeyService := service.NewApiKeyService(apiKeyRepo, redisClient)
+	brandService := service.NewBrandService(brandRepo, userRepo)
+	inboxService := service.NewInboxService(inboxRepo, brandRepo, handleRepo)
+	smartLinkService := service.NewSmartLinkService(smartLinkRepo, brandRepo)
+	autolistService := service.NewAutolistService(autolistRepo, postRepo, postPublishService)
+	bestTimesService := service.NewBestTimesService(analyticsRepo, brandRepo)
+	competitorService := service.NewCompetitorService(competitorRepo)
+	adCampaignService := service.NewAdCampaignService(adCampaignRepo)
+	analyticsService := service.NewAnalyticsService(analyticsRepo, brandRepo)
+	reportService := service.NewReportService(reportRepo, brandRepo, analyticsRepo)
+	webhookService := service.NewWebhookService(webhookRepo)
+	auditLogService := service.NewAuditLogService(auditLogRepo)
+
+	// 8. Initialize Queue & Dispatcher
 	jobDispatcher := queue.CreateJobDispatcher(postService)
 	postQueue := queue.NewPostQueue(redisClient, jobDispatcher)
 	postService.SetQueue(postQueue)
 
-	// 7. Requeue Recurring Scheduled Posts on Startup
+	// 9. Requeue Recurring Scheduled Posts on Startup
 	ctxStartup, cancelStartup := context.WithTimeout(context.Background(), 10*time.Second)
 	postService.RequeueRecurringScheduledPostsOnStartup(ctxStartup)
 	cancelStartup()
 
-	// 8. Initialize HTTP Handlers
+	// 10. Initialize HTTP Handlers
 	authHandler := handler.NewAuthHandler(authService)
 	userHandler := handler.NewUserHandler(userService)
 	uploadHandler := handler.NewUploadHandler(uploadService)
 	socialHandler := handler.NewSocialHandler(socialService, igHandler, liHandler, cfg.JWTAccessSecret)
 	postHandler := handler.NewPostHandler(postService)
 
-	// 9. Setup Router
+	apiKeyHandler := handler.NewApiKeyHandler(apiKeyService)
+	brandHandler := handler.NewBrandHandler(brandService)
+	inboxHandler := handler.NewInboxHandler(inboxService)
+	smartLinkHandler := handler.NewSmartLinkHandler(smartLinkService)
+	autolistHandler := handler.NewAutolistHandler(autolistService)
+	bestTimesHandler := handler.NewBestTimesHandler(bestTimesService)
+	competitorHandler := handler.NewCompetitorHandler(competitorService)
+	adCampaignHandler := handler.NewAdCampaignHandler(adCampaignService)
+	analyticsHandler := handler.NewAnalyticsHandler(analyticsService)
+	reportHandler := handler.NewReportHandler(reportService)
+	webhookHandler := handler.NewWebhookHandler(webhookService)
+	auditLogHandler := handler.NewAuditLogHandler(auditLogService)
+
+	mcpHandler := handler.NewMCPHandler(
+		brandService,
+		analyticsService,
+		bestTimesService,
+		competitorService,
+		postService,
+		postPublishService,
+		inboxService,
+		smartLinkService,
+		adCampaignService,
+		reportService,
+	)
+
+	// 11. Setup Router with all dependencies
 	r := router.SetupRouter(&router.RouterDeps{
-		Config:        cfg,
-		UserRepo:      userRepo,
-		AuthHandler:   authHandler,
-		UserHandler:   userHandler,
-		UploadHandler: uploadHandler,
-		SocialHandler: socialHandler,
-		PostHandler:   postHandler,
+		Config:            cfg,
+		UserRepo:          userRepo,
+		ApiKeyService:     apiKeyService,
+		AuthHandler:       authHandler,
+		UserHandler:       userHandler,
+		UploadHandler:     uploadHandler,
+		SocialHandler:     socialHandler,
+		PostHandler:       postHandler,
+		ApiKeyHandler:     apiKeyHandler,
+		BrandHandler:      brandHandler,
+		InboxHandler:      inboxHandler,
+		SmartLinkHandler:  smartLinkHandler,
+		AutolistHandler:   autolistHandler,
+		BestTimesHandler:  bestTimesHandler,
+		CompetitorHandler: competitorHandler,
+		AdCampaignHandler: adCampaignHandler,
+		AnalyticsHandler:  analyticsHandler,
+		ReportHandler:     reportHandler,
+		WebhookHandler:    webhookHandler,
+		AuditLogHandler:   auditLogHandler,
+		MCPHandler:        mcpHandler,
 	})
 
 	srv := &http.Server{
@@ -101,26 +168,29 @@ func main() {
 		Handler: r,
 	}
 
+	// 12. Graceful Shutdown Listener
 	go func() {
-		log.Printf("XS-BE running on port %d", cfg.Port)
+		log.Printf("Metricool/XSocial Server listening on port %d (MCP: /mcp, API: %s)", cfg.Port, cfg.ApiPrefix)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Server error: %v", err)
+			log.Fatalf("Server failed: %v", err)
 		}
 	}()
 
-	// Graceful shutdown
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-	log.Println("Shutting down server...")
 
-	ctxShutdown, cancelShutdown := context.WithTimeout(context.Background(), 5*time.Second)
+	log.Println("Shutting down server gracefully...")
+	ctxShutdown, cancelShutdown := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancelShutdown()
 
 	if err := srv.Shutdown(ctxShutdown); err != nil {
 		log.Fatalf("Server forced to shutdown: %v", err)
 	}
 
-	postQueue.Close()
-	log.Println("Server exited cleanly")
+	if postQueue != nil {
+		postQueue.Close()
+	}
+
+	log.Println("Server exited cleanly.")
 }
