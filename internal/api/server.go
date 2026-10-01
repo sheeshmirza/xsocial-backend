@@ -583,11 +583,26 @@ func (s *Server) recordAuthSuccess(ip string) {
 // Middleware stack matching mailhost-backend
 func (s *Server) cors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		origin := strings.TrimRight(strings.TrimSpace(r.Header.Get("Origin")), "/")
+		allowed := false
+		for _, configured := range s.cfg.ClientOrigins {
+			if origin != "" && origin == strings.TrimRight(strings.TrimSpace(configured), "/") {
+				allowed = true
+				break
+			}
+		}
+		if allowed {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Vary", "Origin")
+		}
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, Idempotency-Key, X-Request-ID, X-API-Key, X-Brand-ID")
 		w.Header().Set("Access-Control-Max-Age", "86400")
 		if r.Method == http.MethodOptions {
+			if origin != "" && !allowed {
+				w.WriteHeader(http.StatusForbidden)
+				return
+			}
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
