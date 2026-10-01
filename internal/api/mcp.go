@@ -246,9 +246,28 @@ var metricoolMCPTools = []mcpTool{
 }
 
 func initMCPToolSecurity() {
+	readOnly := map[string]bool{
+		"get_profile": true,
+		"get_brands": true,
+		"get_brand_details": true,
+		"get_analytics": true,
+		"get_best_time_to_post": true,
+		"get_competitors": true,
+		"get_scheduled_posts": true,
+		"list_inbox_messages": true,
+		"get_smartlinks": true,
+	}
 	for i := range metricoolMCPTools {
 		if len(metricoolMCPTools[i].SecuritySchemes) == 0 {
-			metricoolMCPTools[i].SecuritySchemes = []any{map[string]any{"type":"oauth2","scopes":[]string{mcpOAuthScope}}}
+			metricoolMCPTools[i].SecuritySchemes = []any{map[string]any{"type": "oauth2", "scopes": []string{mcpOAuthScope}}}
+		}
+		metricoolMCPTools[i].Annotations = map[string]any{
+			"readOnlyHint":    readOnly[metricoolMCPTools[i].Name],
+			"destructiveHint": false,
+			"openWorldHint":   false,
+		}
+		if metricoolMCPTools[i].Name == "publish_post_now" || metricoolMCPTools[i].Name == "reply_inbox_message" {
+			metricoolMCPTools[i].Annotations["destructiveHint"] = true
 		}
 		if metricoolMCPTools[i].Meta == nil {
 			metricoolMCPTools[i].Meta = map[string]any{}
@@ -331,7 +350,7 @@ func (s *Server) handleMCP(w http.ResponseWriter, r *http.Request) {
 	case "tools/call":
 		userOID, ok := s.authenticateMCPBearer(r)
 		if !ok {
-			s.mcpAuthChallenge(w, r)
+			s.mcpAuthChallenge(w, r, req.ID)
 			return
 		}
 		var callParams struct {
