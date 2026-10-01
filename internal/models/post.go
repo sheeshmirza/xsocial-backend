@@ -53,6 +53,21 @@ type InstagramTrialSettings struct {
 	GraduationStrategy string `bson:"graduationStrategy,omitempty" json:"graduationStrategy,omitempty"` // "MANUAL" or "SS_PERFORMANCE"
 }
 
+type PollOption struct {
+	Text string `bson:"text" json:"text"`
+}
+
+type PollSettings struct {
+	Duration          string `bson:"duration" json:"duration"` // "ONE_DAY", "THREE_DAYS", "SEVEN_DAYS", "FOURTEEN_DAYS"
+	VoteSelectionType string `bson:"voteSelectionType,omitempty" json:"voteSelectionType,omitempty"` // "SINGLE_VOTE"
+}
+
+type PollData struct {
+	Question string       `bson:"question" json:"question"`
+	Options  []PollOption `bson:"options" json:"options"`
+	Settings PollSettings `bson:"settings" json:"settings"`
+}
+
 // Common Post Domain Model
 // Represents draft, scheduled (onetime / recurring), and published/posted states.
 type Post struct {
@@ -63,7 +78,8 @@ type Post struct {
 	Hashtags           []string                  `bson:"hashtags" json:"hashtags"`
 	Mentions           []string                  `bson:"mentions" json:"mentions"`
 	Media              []MediaItem               `bson:"media" json:"media"`
-	PostType           string                    `bson:"postType" json:"postType"` // "text", "image", "video", "gif", "mixed", "reel", "story", "carousel"
+	PostType           string                    `bson:"postType" json:"postType"` // "text", "image", "video", "gif", "mixed", "reel", "story", "carousel", "poll", "article"
+	Poll               *PollData                 `bson:"poll,omitempty" json:"poll,omitempty"`
 	Visibility         string                    `bson:"visibility" json:"visibility"` // "public", "private"
 	Timezone           string                    `bson:"timezone" json:"timezone"`
 	ScheduledTime      *time.Time                `bson:"scheduledTime" json:"scheduledTime"`
@@ -241,6 +257,7 @@ type CreatePostInput struct {
 	BrandID            *bson.ObjectID          `json:"brandId,omitempty"`
 	FirstComment       string                  `json:"firstComment,omitempty"`
 	InstagramTrial     *InstagramTrialSettings `json:"instagramTrial,omitempty"`
+	Poll               *PollData               `json:"poll,omitempty"`
 	AI                 *AISettings             `json:"ai"`
 }
 
@@ -267,6 +284,7 @@ type UpdatePostInput struct {
 	ApprovalToken      string                  `json:"approvalToken"`
 	FirstComment       string                  `json:"firstComment"`
 	InstagramTrial     *InstagramTrialSettings `json:"instagramTrial,omitempty"`
+	Poll               *PollData               `json:"poll,omitempty"`
 }
 
 type CreatePostRequest = CreatePostInput

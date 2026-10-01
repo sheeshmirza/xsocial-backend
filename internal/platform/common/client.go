@@ -57,14 +57,19 @@ func (c *HTTPClient) Get(ctx context.Context, requestURL string, params url.Valu
 }
 
 func (c *HTTPClient) PostJSON(ctx context.Context, requestURL string, body any, headers map[string]string) ([]byte, int, error) {
+	bytes, status, _, err := c.PostJSONWithRespHeaders(ctx, requestURL, body, headers)
+	return bytes, status, err
+}
+
+func (c *HTTPClient) PostJSONWithRespHeaders(ctx context.Context, requestURL string, body any, headers map[string]string) ([]byte, int, http.Header, error) {
 	jsonBytes, err := json.Marshal(body)
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, nil, err
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, requestURL, bytes.NewBuffer(jsonBytes))
 	if err != nil {
-		return nil, 0, err
+		return nil, 0, nil, err
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -72,7 +77,22 @@ func (c *HTTPClient) PostJSON(ctx context.Context, requestURL string, body any, 
 		req.Header.Set(k, v)
 	}
 
-	return c.do(req)
+	resp, err := c.client.Do(req)
+	if err != nil {
+		return nil, 0, nil, utils.BadGateway(fmt.Sprintf("Provider request failed: %v", err))
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, resp.StatusCode, resp.Header, err
+	}
+
+	if resp.StatusCode >= 400 {
+		log.Printf("[PlatformHTTP] Error %d on %s %s: %s", resp.StatusCode, req.Method, req.URL.String(), string(bodyBytes))
+	}
+
+	return bodyBytes, resp.StatusCode, resp.Header, nil
 }
 
 func (c *HTTPClient) PostForm(ctx context.Context, requestURL string, data url.Values, headers map[string]string) ([]byte, int, error) {

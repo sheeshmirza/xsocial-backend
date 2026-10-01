@@ -210,11 +210,110 @@ func (a *PublishAdapter) Publish(ctx context.Context, post *models.Post, handle 
 	videoPayloads := a.resolveVideos(ctx, post)
 
 	// Validate inputs
-	if caption == "" && len(imagePayloads) == 0 && len(videoPayloads) == 0 && postType != "article" && postType != "link" {
+	if caption == "" && len(imagePayloads) == 0 && len(videoPayloads) == 0 && postType != "article" && postType != "link" && postType != "poll" && post.Poll == nil {
 		return &models.PlatformPublishResponse{
 			Platform: "linkedin",
 			Status:   "failed",
-			Message:  "LinkedIn publishing requires caption, image, or video media",
+			Message:  "LinkedIn publishing requires caption, image, video, or poll content",
+		}, nil
+	}
+
+	// 0. Native LinkedIn Poll post
+	if (postType == "poll" || post.Poll != nil) && post.Poll != nil {
+		pollOptions := make([]map[string]any, 0, len(post.Poll.Options))
+		for _, opt := range post.Poll.Options {
+			pollOptions = append(pollOptions, map[string]any{
+				"text": opt.Text,
+			})
+		}
+		duration := post.Poll.Settings.Duration
+		if duration == "" {
+			duration = "THREE_DAYS"
+		}
+		voteSelectionType := post.Poll.Settings.VoteSelectionType
+		if voteSelectionType == "" {
+			voteSelectionType = "SINGLE_VOTE"
+		}
+
+		pollReqPayload := map[string]any{
+			"author": authorURN,
+			"commentary": caption,
+			"visibility": "PUBLIC",
+			"distribution": map[string]any{
+				"feedDistribution": "MAIN_FEED",
+				"targetEntities": []any{},
+				"thirdPartyDistributionChannels": []any{},
+			},
+			"lifecycleState": "PUBLISHED",
+			"isReshareDisabledByAuthor": false,
+			"content": map[string]any{
+				"poll": map[string]any{
+					"question": post.Poll.Question,
+					"options": pollOptions,
+					"settings": map[string]any{
+						"duration": duration,
+						"voteSelectionType": voteSelectionType,
+					},
+				},
+			},
+		}
+
+		headers := map[string]string{
+			"Authorization":             fmt.Sprintf("Bearer %s", token),
+			"X-Restli-Protocol-Version": "2.0.0",
+			"LinkedIn-Version":          a.version,
+		}
+
+		postsURL := fmt.Sprintf("%s/rest/posts", LinkedInAPIBase)
+		pBody, pStatus, pRespHeaders, pErr := a.http.PostJSONWithRespHeaders(ctx, postsURL, pollReqPayload, headers)
+		if pErr != nil || pStatus >= 400 {
+			var rawErr any
+			_ = json.Unmarshal(pBody, &rawErr)
+			return &models.PlatformPublishResponse{
+				Platform: "linkedin",
+				Status:   "failed",
+				Message:  fmt.Sprintf("LinkedIn poll publish failed: %s", string(pBody)),
+				Raw:      rawErr,
+			}, nil
+		}
+
+		postID := pRespHeaders.Get("x-restli-id")
+		if postID == "" {
+			loc := pRespHeaders.Get("Location")
+			if strings.Contains(loc, "urn") {
+				if unescaped, err := url.QueryUnescape(loc); err == nil {
+					parts := strings.Split(unescaped, "/posts/")
+					if len(parts) > 1 {
+						postID = parts[1]
+					}
+				}
+			}
+		}
+
+		var rawComment any
+		if postID != "" && strings.TrimSpace(post.FirstComment) != "" {
+			encodedURN := url.QueryEscape(postID)
+			commentURL := fmt.Sprintf("%s/v2/socialActions/%s/comments", LinkedInAPIBase, encodedURN)
+			commentPayload := map[string]any{
+				"actor": authorURN,
+				"message": map[string]any{
+					"text": strings.TrimSpace(post.FirstComment),
+				},
+			}
+			cBody, cStatus, cErr := a.http.PostJSON(ctx, commentURL, commentPayload, headers)
+			if cErr == nil && cStatus < 400 {
+				_ = json.Unmarshal(cBody, &rawComment)
+			}
+		}
+
+		return &models.PlatformPublishResponse{
+			Platform:       "linkedin",
+			Status:         "success",
+			PlatformPostID: postID,
+			Raw: map[string]any{
+				"response": map[string]any{"id": postID},
+				"comment":  rawComment,
+			},
 		}, nil
 	}
 
