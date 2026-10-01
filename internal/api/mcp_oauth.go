@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	mcpOAuthScope = "xsocial"
+	mcpOAuthScope           = "xsocial"
 	mcpOAuthDefaultResource = "https://xs-be-sa1e.onrender.com"
 	mcpOAuthDefaultIssuer   = "https://xs-be-sa1e.onrender.com"
 )
@@ -46,7 +46,7 @@ func (s *Server) mcpOAuthIssuer(r *http.Request) string {
 
 func validMCPClient(clientID string) bool {
 	return clientID == "https://chatgpt.com/oauth/client.json" ||
-		strings.HasPrefix(clientID, "https://chatgpt.com/oauth/") && strings.HasSuffix(clientID, "/client.json")
+		(strings.HasPrefix(clientID, "https://chatgpt.com/oauth/") && strings.HasSuffix(clientID, "/client.json"))
 }
 
 func validMCPRedirect(redirectURI string) bool {
@@ -68,24 +68,47 @@ func (s *Server) mcpProtectedResourceMetadata(w http.ResponseWriter, r *http.Req
 	resource := s.mcpOAuthResource(r)
 	issuer := s.mcpOAuthIssuer(r)
 	writeJSON(w, http.StatusOK, map[string]any{
-		"resource":             resource,
+		"resource":              resource,
 		"authorization_servers": []string{issuer},
-		"scopes_supported":     []string{mcpOAuthScope},
+		"scopes_supported":      []string{mcpOAuthScope},
 	})
 }
 
 func (s *Server) mcpAuthorizationServerMetadata(w http.ResponseWriter, r *http.Request) {
 	issuer := s.mcpOAuthIssuer(r)
 	writeJSON(w, http.StatusOK, map[string]any{
-		"issuer":                                  issuer,
+		"issuer":                                      issuer,
 		"authorization_response_iss_parameter_supported": true,
-		"authorization_endpoint":                  issuer + "/oauth/authorize",
-		"token_endpoint":                          issuer + "/oauth/token",
-		"client_id_metadata_document_supported":   true,
-		"token_endpoint_auth_methods_supported":   []string{"none"},
-		"code_challenge_methods_supported":        []string{"S256"},
-		"scopes_supported":                        []string{mcpOAuthScope},
+		"authorization_endpoint":                         issuer + "/oauth/authorize",
+		"token_endpoint":                                 issuer + "/oauth/token",
+		"client_id_metadata_document_supported":          true,
+		"token_endpoint_auth_methods_supported":          []string{"none"},
+		"code_challenge_methods_supported":               []string{"S256"},
+		"scopes_supported":                               []string{mcpOAuthScope},
+		"grant_types_supported":                          []string{"authorization_code", "refresh_token"},
+		"response_types_supported":                       []string{"code"},
 	})
+}
+
+func (s *Server) mcpAuthenticateUser(r *http.Request) (bson.ObjectID, bool) {
+	email, password, ok := r.BasicAuth()
+	if !ok || strings.TrimSpace(email) == "" || password == "" {
+		return bson.NilObjectID, false
+	}
+
+	ip := clientIP(r)
+	if blocked, _ := s.checkAuthRate(ip); blocked {
+		return bson.NilObjectID, false
+	}
+
+	result, err := s.authService.Login(r.Context(), email, password, "ChatGPT MCP OAuth", ip)
+	if err != nil || result == nil {
+		s.recordAuthFailure(ip)
+		return bson.NilObjectID, false
+	}
+
+	s.recordAuthSuccess(ip)
+	return result.User.ID, true
 }
 
 func (s *Server) mcpAuthorize(w http.ResponseWriter, r *http.Request) {
@@ -108,12 +131,6 @@ func (s *Server) mcpAuthorize(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userID := strings.TrimSpace(s.cfg.MCPOAuthUserID)
-	if _, err := bson.ObjectIDFromHex(userID); err != nil {
-		s.mcpOAuthError(w, r, q.Get("redirect_uri"), q.Get("state"), "server_error", "MCP OAuth is not configured with an xSocial user")
-		return
-	}
-
 	scope := mcpOAuthScope
 	if requested := strings.TrimSpace(q.Get("scope")); requested != "" {
 		for _, part := range strings.Fields(requested) {
@@ -124,25 +141,36 @@ func (s *Server) mcpAuthorize(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	userID, ok := s.mcpAuthenticateUser(r)
+	if !ok {
+		w.Header().Set("WWW-Authenticate", 'Basic realm="xSocial OAuth", charset="UTF-8"')
+		w.Header().Set("Cache-Control", "no-store")
+		http.Error(w, "xSocial authentication required", http.StatusUnauthorized)
+		return
+	}
+
 	jti, err := randomMCPString(24)
 	if err != nil {
 		s.mcpOAuthError(w, r, q.Get("redirect_uri"), q.Get("state"), "server_error", "could not create authorization code")
 		return
 	}
+
 	now := time.Now()
 	claims := jwt.MapClaims{
-		"mcp_code":      true,
-		"sub":           userID,
-		"client_id":     q.Get("client_id"),
-		"redirect_uri":  q.Get("redirect_uri"),
-		"resource":      resource,
-		"code_challenge": q.Get("code_challenge"),
-		"scope":         scope,
-		"jti":           jti,
-		"iat":           now.Unix(),
-		"exp":           now.Add(2 * time.Minute).Unix(),
-		"iss":           s.mcpOAuthIssuer(r),
+		"mcp_code":                 true,
+		"sub":                      userID.Hex(),
+		"client_id":                q.Get("client_id"),
+		"redirect_uri":             q.Get("redirect_uri"),
+		"resource":                 resource,
+		"code_challenge":           q.Get("code_challenge"),
+		"code_challenge_method":    "S256",
+		"scope":                    scope,
+		"jti":                      jti,
+		"iat":                      now.Unix(),
+		"exp":                      now.Add(2 * time.Minute).Unix(),
+		"iss":                      s.mcpOAuthIssuer(r),
 	}
+
 	code, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(s.cfg.JWTAccessSecret))
 	if err != nil {
 		s.mcpOAuthError(w, r, q.Get("redirect_uri"), q.Get("state"), "server_error", "could not sign authorization code")
@@ -165,8 +193,13 @@ func (s *Server) mcpToken(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_request"})
 		return
 	}
+
 	if r.Form.Get("grant_type") != "authorization_code" {
-		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "unsupported_grant_type"})
+		if r.Form.Get("grant_type") != "refresh_token" {
+			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "unsupported_grant_type"})
+			return
+		}
+		s.mcpRefreshToken(w, r)
 		return
 	}
 
@@ -175,11 +208,11 @@ func (s *Server) mcpToken(w http.ResponseWriter, r *http.Request) {
 	clientID := r.Form.Get("client_id")
 	verifier := r.Form.Get("code_verifier")
 	resource := r.Form.Get("resource")
-	if code == "" || redirectURI == "" || clientID == "" || verifier == "" {
+	if code == "" || redirectURI == "" || clientID == "" || verifier == "" || resource != s.mcpOAuthResource(r) {
 		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_request"})
 		return
 	}
-	if !validMCPClient(clientID) || !validMCPRedirect(redirectURI) || resource != s.mcpOAuthResource(r) {
+	if !validMCPClient(clientID) || !validMCPRedirect(redirectURI) {
 		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_request"})
 		return
 	}
@@ -194,22 +227,23 @@ func (s *Server) mcpToken(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_grant"})
 		return
 	}
+
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok || claims["mcp_code"] != true {
 		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_grant"})
 		return
 	}
-	if claims["iss"] != s.mcpOAuthIssuer(r) || claims["client_id"] != clientID ||
-		claims["redirect_uri"] != redirectURI || claims["resource"] != resource {
+	if claims["iss"] != s.mcpOAuthIssuer(r) ||
+		claims["client_id"] != clientID ||
+		claims["redirect_uri"] != redirectURI ||
+		claims["resource"] != resource ||
+		claims["code_challenge_method"] != "S256" {
 		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_grant"})
 		return
 	}
+
 	jti, _ := claims["jti"].(string)
 	if jti == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_grant"})
-		return
-	}
-	if _, loaded := usedMCPAuthCodes.LoadOrStore(jti, time.Now()); loaded {
 		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_grant"})
 		return
 	}
@@ -217,9 +251,21 @@ func (s *Server) mcpToken(w http.ResponseWriter, r *http.Request) {
 	challenge, _ := claims["code_challenge"].(string)
 	sum := sha256.Sum256([]byte(verifier))
 	if !strings.EqualFold(base64.RawURLEncoding.EncodeToString(sum[:]), challenge) {
-		usedMCPAuthCodes.Delete(jti)
 		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_grant"})
 		return
+	}
+
+	if s.redis != nil {
+		ok, err := s.redis.SetNX(r.Context(), "mcp:oauth:code:"+jti, "1", 2*time.Minute)
+		if err != nil || !ok {
+			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_grant"})
+			return
+		}
+	} else {
+		if _, loaded := usedMCPAuthCodes.LoadOrStore(jti, time.Now()); loaded {
+			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_grant"})
+			return
+		}
 	}
 
 	sub, _ := claims["sub"].(string)
@@ -230,10 +276,10 @@ func (s *Server) mcpToken(w http.ResponseWriter, r *http.Request) {
 
 	now := time.Now()
 	accessClaims := jwt.MapClaims{
-		"mcp":    true,
+		"mcp":   true,
 		"sub":   sub,
 		"aud":   resource,
-		"scope": mcpOAuthScope,
+		"scope": scopeFromMCPClaims(claims),
 		"iss":   s.mcpOAuthIssuer(r),
 		"iat":   now.Unix(),
 		"exp":   now.Add(time.Hour).Unix(),
@@ -243,11 +289,90 @@ func (s *Server) mcpToken(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "server_error"})
 		return
 	}
+
+	refreshClaims := jwt.MapClaims{
+		"mcp_refresh": true,
+		"sub":         sub,
+		"aud":         resource,
+		"scope":       scopeFromMCPClaims(claims),
+		"iss":         s.mcpOAuthIssuer(r),
+		"iat":         now.Unix(),
+		"exp":         now.Add(30 * 24 * time.Hour).Unix(),
+	}
+	refreshToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims).SignedString([]byte(s.cfg.JWTAccessSecret))
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "server_error"})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"access_token":  accessToken,
+		"refresh_token": refreshToken,
+		"token_type":    "Bearer",
+		"expires_in":    3600,
+		"scope":         scopeFromMCPClaims(claims),
+	})
+}
+
+func scopeFromMCPClaims(claims jwt.MapClaims) string {
+	scope, _ := claims["scope"].(string)
+	if scope == "" {
+		return mcpOAuthScope
+	}
+	return scope
+}
+
+func (s *Server) mcpRefreshToken(w http.ResponseWriter, r *http.Request) {
+	clientID := r.Form.Get("client_id")
+	resource := r.Form.Get("resource")
+	raw := strings.TrimSpace(r.Form.Get("refresh_token"))
+	if raw == "" || !validMCPClient(clientID) || resource != s.mcpOAuthResource(r) {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_request"})
+		return
+	}
+
+	token, err := jwt.Parse(raw, func(t *jwt.Token) (any, error) {
+		if t.Method != jwt.SigningMethodHS256 {
+			return nil, fmt.Errorf("unexpected signing method")
+		}
+		return []byte(s.cfg.JWTAccessSecret), nil
+	})
+	if err != nil || !token.Valid {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_grant"})
+		return
+	}
+
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok || claims["mcp_refresh"] != true ||
+		claims["iss"] != s.mcpOAuthIssuer(r) ||
+		claims["aud"] != s.mcpOAuthResource(r) {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_grant"})
+		return
+	}
+
+	sub, _ := claims["sub"].(string)
+	if _, err := bson.ObjectIDFromHex(sub); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_grant"})
+		return
+	}
+
+	scope := scopeFromMCPClaims(claims)
+	now := time.Now()
+	accessClaims := jwt.MapClaims{
+		"mcp": true, "sub": sub, "aud": resource, "scope": scope,
+		"iss": s.mcpOAuthIssuer(r), "iat": now.Unix(), "exp": now.Add(time.Hour).Unix(),
+	}
+	accessToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims).SignedString([]byte(s.cfg.JWTAccessSecret))
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "server_error"})
+		return
+	}
+
 	writeJSON(w, http.StatusOK, map[string]any{
 		"access_token": accessToken,
 		"token_type":   "Bearer",
 		"expires_in":   3600,
-		"scope":        mcpOAuthScope,
+		"scope":       scope,
 	})
 }
 
@@ -273,6 +398,7 @@ func (s *Server) authenticateMCPBearer(r *http.Request) (bson.ObjectID, bool) {
 	if !strings.HasPrefix(strings.ToLower(auth), "bearer ") {
 		return bson.NilObjectID, false
 	}
+
 	raw := strings.TrimSpace(auth[7:])
 	token, err := jwt.Parse(raw, func(t *jwt.Token) (any, error) {
 		if t.Method != jwt.SigningMethodHS256 {
@@ -283,14 +409,19 @@ func (s *Server) authenticateMCPBearer(r *http.Request) (bson.ObjectID, bool) {
 	if err != nil || !token.Valid {
 		return bson.NilObjectID, false
 	}
+
 	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok || claims["mcp"] != true || claims["iss"] != s.mcpOAuthIssuer(r) || claims["aud"] != s.mcpOAuthResource(r) {
+	if !ok || claims["mcp"] != true ||
+		claims["iss"] != s.mcpOAuthIssuer(r) ||
+		claims["aud"] != s.mcpOAuthResource(r) {
 		return bson.NilObjectID, false
 	}
+
 	scope, _ := claims["scope"].(string)
 	if !strings.Contains(" "+scope+" ", " "+mcpOAuthScope+" ") {
 		return bson.NilObjectID, false
 	}
+
 	sub, _ := claims["sub"].(string)
 	oid, err := bson.ObjectIDFromHex(sub)
 	if err != nil {
@@ -301,8 +432,15 @@ func (s *Server) authenticateMCPBearer(r *http.Request) (bson.ObjectID, bool) {
 
 func (s *Server) mcpAuthChallenge(w http.ResponseWriter, r *http.Request) {
 	resourceMeta := s.mcpOAuthResource(r) + "/.well-known/oauth-protected-resource"
-	w.Header().Set("WWW-Authenticate", fmt.Sprintf("Bearer resource_metadata=%q, scope=%q", resourceMeta, mcpOAuthScope))
-	writeJSON(w, http.StatusUnauthorized, map[string]any{"error": "unauthorized", "message": "OAuth authentication required", "_meta": map[string]any{"mcp/www_authenticate": fmt.Sprintf("Bearer resource_metadata=%q, scope=%q", resourceMeta, mcpOAuthScope)}})
+	challenge := fmt.Sprintf("Bearer resource_metadata=%q, scope=%q", resourceMeta, mcpOAuthScope)
+	w.Header().Set("WWW-Authenticate", challenge)
+	writeJSON(w, http.StatusUnauthorized, map[string]any{
+		"error":   "unauthorized",
+		"message": "OAuth authentication required",
+		"_meta": map[string]any{
+			"mcp/www_authenticate": challenge,
+		},
+	})
 }
 
 func mcpOAuthJSON(v any) string {
