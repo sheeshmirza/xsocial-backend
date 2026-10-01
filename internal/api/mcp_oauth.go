@@ -23,6 +23,7 @@ const (
 )
 
 var usedMCPAuthCodes sync.Map
+var usedMCPRefreshTokens sync.Map
 
 func (s *Server) mcpOAuthResource(r *http.Request) string {
 	if s.cfg.MCPOAuthResource != "" {
@@ -398,11 +399,17 @@ func (s *Server) mcpToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	refreshJTI, err := randomMCPString(24)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "server_error"})
+		return
+	}
 	refreshClaims := jwt.MapClaims{
 		"mcp_refresh": true,
 		"sub":         sub,
 		"aud":         resource,
 		"scope":       scopeFromMCPClaims(claims),
+		"jti":         refreshJTI,
 		"iss":         s.mcpOAuthIssuer(r),
 		"iat":         now.Unix(),
 		"exp":         now.Add(30 * 24 * time.Hour).Unix(),
@@ -411,6 +418,17 @@ func (s *Server) mcpToken(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "server_error"})
 		return
+	}
+
+	if s.redis != nil {
+		ok, err := s.redis.SetNX(r.Context(), "mcp:oauth:refresh:"+refreshJTI, sub, 30*24*time.Hour)
+		if err != nil || !ok {
+			writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "server_error"})
+			return
+		}
+	} else {
+		usedMCPRefreshTokens.Delete(refreshJTI)
+		usedMCPRefreshTokens.LoadOrStore(refreshJTI, sub)
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
@@ -458,10 +476,33 @@ func (s *Server) mcpRefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	refreshJTI, _ := claims["jti"].(string)
 	sub, _ := claims["sub"].(string)
+	if refreshJTI == "" || sub == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_grant"})
+		return
+	}
 	if _, err := bson.ObjectIDFromHex(sub); err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_grant"})
 		return
+	}
+
+	if s.redis != nil {
+		stored, err := s.redis.Get(r.Context(), "mcp:oauth:refresh:"+refreshJTI)
+		if err != nil || stored != sub {
+			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_grant"})
+			return
+		}
+		used, err := s.redis.SetNX(r.Context(), "mcp:oauth:refresh:"+refreshJTI+":used", "1", 30*24*time.Hour)
+		if err != nil || !used {
+			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_grant"})
+			return
+		}
+	} else {
+		if _, loaded := usedMCPRefreshTokens.LoadOrStore(refreshJTI, sub); loaded {
+			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_grant"})
+			return
+		}
 	}
 
 	scope := scopeFromMCPClaims(claims)
@@ -476,8 +517,33 @@ func (s *Server) mcpRefreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	newRefreshJTI, err := randomMCPString(24)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "server_error"})
+		return
+	}
+	newRefreshClaims := jwt.MapClaims{
+		"mcp_refresh": true, "sub": sub, "aud": resource, "scope": scope,
+		"jti": newRefreshJTI, "iss": s.mcpOAuthIssuer(r), "iat": now.Unix(), "exp": now.Add(30 * 24 * time.Hour).Unix(),
+	}
+	newRefreshToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, newRefreshClaims).SignedString([]byte(s.cfg.JWTAccessSecret))
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "server_error"})
+		return
+	}
+	if s.redis != nil {
+		ok, err := s.redis.SetNX(r.Context(), "mcp:oauth:refresh:"+newRefreshJTI, sub, 30*24*time.Hour)
+		if err != nil || !ok {
+			writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "server_error"})
+			return
+		}
+	} else {
+		usedMCPRefreshTokens.LoadOrStore(newRefreshJTI, sub)
+	}
+
 	writeJSON(w, http.StatusOK, map[string]any{
 		"access_token": accessToken,
+		"refresh_token": newRefreshToken,
 		"token_type":   "Bearer",
 		"expires_in":   3600,
 		"scope":        scope,
@@ -538,15 +604,19 @@ func (s *Server) authenticateMCPBearer(r *http.Request) (bson.ObjectID, bool) {
 	return oid, true
 }
 
-func (s *Server) mcpAuthChallenge(w http.ResponseWriter, r *http.Request) {
+func (s *Server) mcpAuthChallenge(w http.ResponseWriter, r *http.Request, id any) {
 	resourceMeta := s.mcpOAuthResource(r) + "/.well-known/oauth-protected-resource"
 	challenge := fmt.Sprintf("Bearer resource_metadata=%q, scope=%q, error=%q, error_description=%q", resourceMeta, mcpOAuthScope, "invalid_token", "OAuth authentication required")
 	w.Header().Set("WWW-Authenticate", challenge)
-	writeJSON(w, http.StatusUnauthorized, map[string]any{
-		"error":   "unauthorized",
-		"message": "OAuth authentication required",
-		"_meta": map[string]any{
-			"mcp/www_authenticate": []string{challenge},
+	writeJSON(w, http.StatusOK, mcpResponse{
+		JSONRPC: "2.0",
+		ID:      id,
+		Result: map[string]any{
+			"isError": true,
+			"content": []map[string]string{{"type": "text", "text": "OAuth authentication required."}},
+			"_meta": map[string]any{
+				"mcp/www_authenticate": []string{challenge},
+			},
 		},
 	})
 }
