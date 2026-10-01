@@ -202,6 +202,7 @@ func (s *Server) Handler() http.Handler {
 		"POST /v1/auth/refresh":         s.refreshToken,
 		"POST /v1/auth/forgot-password": s.forgotPassword,
 		"POST /v1/auth/reset-password":  s.resetPassword,
+		"POST /v1/auth/logout":          s.logoutUser,
 
 		// Public Bio Pages & Click Tracking
 		"GET /v1/bio/{slug}":                   s.publicBioPage,
@@ -227,6 +228,8 @@ func (s *Server) Handler() http.Handler {
 		if strings.Contains(pattern, " /v1/") {
 			aliasPattern := strings.Replace(pattern, " /v1/", " /", 1)
 			mux.HandleFunc(aliasPattern, h)
+			apiAliasPattern := strings.Replace(pattern, " /v1/", " /api/v1/", 1)
+			mux.HandleFunc(apiAliasPattern, h)
 		}
 	}
 
@@ -237,7 +240,6 @@ func (s *Server) Handler() http.Handler {
 		"GET /mcp":  s.handleMCP,
 
 		// Auth & User Management
-		"POST /v1/auth/logout":          s.logoutUser,
 		"GET /v1/users/me":              s.getCurrentUser,
 		"PUT /v1/users/me":              s.updateCurrentUser,
 		"PATCH /v1/users/me":            s.updateCurrentUser,
@@ -350,6 +352,8 @@ func (s *Server) Handler() http.Handler {
 		if strings.Contains(pattern, " /v1/") {
 			aliasPattern := strings.Replace(pattern, " /v1/", " /", 1)
 			mux.Handle(aliasPattern, s.authed(h))
+			apiAliasPattern := strings.Replace(pattern, " /v1/", " /api/v1/", 1)
+			mux.Handle(apiAliasPattern, s.authed(h))
 		}
 	}
 
@@ -369,17 +373,25 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 func (s *Server) authed(h http.HandlerFunc) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ip := clientIP(r)
-		if blocked, _ := s.checkAuthRate(ip); blocked {
-			w.Header().Set("Retry-After", "300")
-			writeError(w, http.StatusTooManyRequests, "too many failed authentication attempts; try again later")
-			return
-		}
 
-		tok, ok := strings.CutPrefix(r.Header.Get("Authorization"), "Bearer ")
-		if !ok || tok == "" {
+		authHeader := strings.TrimSpace(r.Header.Get("Authorization"))
+		var tok string
+		if authHeader != "" {
+			if strings.HasPrefix(strings.ToLower(authHeader), "bearer ") {
+				tok = strings.TrimSpace(authHeader[7:])
+			} else {
+				tok = authHeader
+			}
+		}
+		if tok == "" {
 			tok = strings.TrimSpace(r.Header.Get("X-API-Key"))
 		}
 		if tok == "" {
+			if blocked, _ := s.checkAuthRate(ip); blocked {
+				w.Header().Set("Retry-After", "300")
+				writeError(w, http.StatusTooManyRequests, "too many failed authentication attempts; try again later")
+				return
+			}
 			s.recordAuthFailure(ip)
 			writeError(w, http.StatusUnauthorized, "missing Authorization header")
 			return
@@ -389,6 +401,11 @@ func (s *Server) authed(h http.HandlerFunc) http.Handler {
 		if strings.HasPrefix(tok, "mc_live_") || strings.HasPrefix(tok, "xs_live_") {
 			key, err := s.apiKeyService.ValidateApiKey(r.Context(), tok)
 			if err != nil || key == nil {
+				if blocked, _ := s.checkAuthRate(ip); blocked {
+					w.Header().Set("Retry-After", "300")
+					writeError(w, http.StatusTooManyRequests, "too many failed authentication attempts; try again later")
+					return
+				}
 				s.recordAuthFailure(ip)
 				writeError(w, http.StatusUnauthorized, "invalid or expired API key")
 				return
@@ -413,6 +430,11 @@ func (s *Server) authed(h http.HandlerFunc) http.Handler {
 			return []byte(s.cfg.JWTAccessSecret), nil
 		})
 		if err != nil || !token.Valid {
+			if blocked, _ := s.checkAuthRate(ip); blocked {
+				w.Header().Set("Retry-After", "300")
+				writeError(w, http.StatusTooManyRequests, "too many failed authentication attempts; try again later")
+				return
+			}
 			s.recordAuthFailure(ip)
 			writeError(w, http.StatusUnauthorized, "invalid or expired token")
 			return
@@ -420,6 +442,11 @@ func (s *Server) authed(h http.HandlerFunc) http.Handler {
 
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
+			if blocked, _ := s.checkAuthRate(ip); blocked {
+				w.Header().Set("Retry-After", "300")
+				writeError(w, http.StatusTooManyRequests, "too many failed authentication attempts; try again later")
+				return
+			}
 			s.recordAuthFailure(ip)
 			writeError(w, http.StatusUnauthorized, "invalid token claims")
 			return
@@ -427,6 +454,11 @@ func (s *Server) authed(h http.HandlerFunc) http.Handler {
 
 		sub, _ := claims["sub"].(string)
 		if sub == "" {
+			if blocked, _ := s.checkAuthRate(ip); blocked {
+				w.Header().Set("Retry-After", "300")
+				writeError(w, http.StatusTooManyRequests, "too many failed authentication attempts; try again later")
+				return
+			}
 			s.recordAuthFailure(ip)
 			writeError(w, http.StatusUnauthorized, "invalid token user")
 			return
@@ -460,6 +492,9 @@ func currentUserOID(r *http.Request) (bson.ObjectID, bool) {
 func currentBrandID(r *http.Request) string {
 	if v, ok := r.Context().Value(brandIDKey{}).(string); ok && v != "" {
 		return v
+	}
+	if b := strings.TrimSpace(r.Header.Get("X-Brand-ID")); b != "" {
+		return b
 	}
 	return r.URL.Query().Get("brandId")
 }
@@ -532,7 +567,7 @@ func (s *Server) cors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, Idempotency-Key, X-Request-ID")
+		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, Idempotency-Key, X-Request-ID, X-API-Key, X-Brand-ID")
 		w.Header().Set("Access-Control-Max-Age", "86400")
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)

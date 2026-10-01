@@ -66,11 +66,14 @@ func (s *Server) loginUser(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, 0, &req) {
 		return
 	}
-	res, err := s.authService.Login(r.Context(), req.Email, req.Password, r.UserAgent(), clientIP(r))
+	ip := clientIP(r)
+	res, err := s.authService.Login(r.Context(), req.Email, req.Password, r.UserAgent(), ip)
 	if err != nil {
+		s.recordAuthFailure(ip)
 		writeApiError(w, err)
 		return
 	}
+	s.recordAuthSuccess(ip)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"success":      true,
 		"message":      "Logged in successfully",
@@ -87,11 +90,14 @@ func (s *Server) refreshToken(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, 0, &req) {
 		return
 	}
-	res, err := s.authService.Refresh(r.Context(), req.RefreshToken, r.UserAgent(), clientIP(r))
+	ip := clientIP(r)
+	res, err := s.authService.Refresh(r.Context(), req.RefreshToken, r.UserAgent(), ip)
 	if err != nil {
+		s.recordAuthFailure(ip)
 		writeApiError(w, err)
 		return
 	}
+	s.recordAuthSuccess(ip)
 	writeJSON(w, http.StatusOK, map[string]any{
 		"success":      true,
 		"data":         res,

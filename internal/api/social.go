@@ -115,9 +115,18 @@ func (s *Server) oauthCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if strings.Contains(r.Header.Get("Accept"), "application/json") || r.URL.Query().Get("format") == "json" {
+		writeJSON(w, http.StatusOK, map[string]any{
+			"success": true,
+			"message": fmt.Sprintf("%s account connected successfully", platform),
+			"data":    handle,
+		})
+		return
+	}
+
 	frontendURL := s.cfg.ClientURL
 	if frontendURL != "" {
-		http.Redirect(w, r, fmt.Sprintf("%s/dashboard/accounts?connected=%s", strings.TrimRight(frontendURL, "/"), platform), http.StatusTemporaryRedirect)
+		http.Redirect(w, r, fmt.Sprintf("%s/accounts?connected=%s", strings.TrimRight(frontendURL, "/"), platform), http.StatusTemporaryRedirect)
 		return
 	}
 
