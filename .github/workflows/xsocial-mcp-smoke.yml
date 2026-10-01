@@ -63,7 +63,7 @@ jobs:
           count="$(jq '.result.tools | length' tools.json)"
           test "$count" -eq 21
 
-          jq -e '.result.tools | map(.name) | sort == [
+          jq -e '.result.tools | map(.name) | sort == ( [
             "approve_post",
             "create_brand",
             "create_scheduled_post",
@@ -85,7 +85,7 @@ jobs:
             "reply_inbox_message",
             "send_scheduled_post_for_review",
             "update_scheduled_post"
-          ] | sort)' tools.json
+          ] | sort )' tools.json
 
           jq -e 'all(.result.tools[]; (.securitySchemes | length) > 0)' tools.json
           jq -e '.result.tools[] | select(.name == "get_profile") | ._meta["openai/profile"] == true' tools.json
