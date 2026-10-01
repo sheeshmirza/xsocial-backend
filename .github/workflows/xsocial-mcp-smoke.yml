@@ -96,7 +96,7 @@ jobs:
         run: |
           curl -sS -D auth-headers.txt             -X POST             -H 'Content-Type: application/json'             -H 'Accept: application/json, text/event-stream'             -H 'MCP-Protocol-Version: 2025-06-18'             https://xs-be-sa1e.onrender.com/mcp             --data '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"get_profile","arguments":{}}}'             | tee auth-body.json
 
-          grep -qi 'mcp/www_authenticate' auth-headers.txt
+          grep -qi '^WWW-Authenticate:' auth-headers.txt
           jq -e '.result.isError == true' auth-body.json
 
       - name: Invalid authorization code is rejected
