@@ -24,6 +24,7 @@ const (
 
 var usedMCPAuthCodes sync.Map
 var usedMCPRefreshTokens sync.Map
+var mcpRefreshTokenStore sync.Map
 
 func (s *Server) mcpOAuthResource(r *http.Request) string {
 	if s.cfg.MCPOAuthResource != "" {
@@ -427,8 +428,7 @@ func (s *Server) mcpToken(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		usedMCPRefreshTokens.Delete(refreshJTI)
-		usedMCPRefreshTokens.LoadOrStore(refreshJTI, sub)
+		mcpRefreshTokenStore.Store(refreshJTI, sub)
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
@@ -499,10 +499,16 @@ func (s *Server) mcpRefreshToken(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
+		stored, exists := mcpRefreshTokenStore.Load(refreshJTI)
+		if !exists || stored.(string) != sub {
+			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_grant"})
+			return
+		}
 		if _, loaded := usedMCPRefreshTokens.LoadOrStore(refreshJTI, sub); loaded {
 			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_grant"})
 			return
 		}
+		mcpRefreshTokenStore.Delete(refreshJTI)
 	}
 
 	scope := scopeFromMCPClaims(claims)
@@ -538,7 +544,7 @@ func (s *Server) mcpRefreshToken(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		usedMCPRefreshTokens.LoadOrStore(newRefreshJTI, sub)
+		mcpRefreshTokenStore.Store(newRefreshJTI, sub)
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
