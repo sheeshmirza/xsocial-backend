@@ -23,20 +23,17 @@ func (s *Server) getWebAnalytics(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "brandId is required")
 		return
 	}
-
 	days := 30
 	if d := r.URL.Query().Get("days"); d != "" {
 		if n, err := strconv.Atoi(d); err == nil && n > 0 {
 			days = n
 		}
 	}
-
 	overview, err := s.analyticsService.GetWebOverview(r.Context(), brandOID, days)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to get web analytics: "+err.Error())
 		return
 	}
-
 	writeJSON(w, http.StatusOK, overview)
 }
 
@@ -46,7 +43,6 @@ func (s *Server) getSocialAnalytics(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "brandId is required")
 		return
 	}
-
 	platform := r.URL.Query().Get("platform")
 	days := 30
 	if d := r.URL.Query().Get("days"); d != "" {
@@ -54,7 +50,6 @@ func (s *Server) getSocialAnalytics(w http.ResponseWriter, r *http.Request) {
 			days = n
 		}
 	}
-
 	metrics, err := s.analyticsService.GetSocialOverview(r.Context(), brandOID, platform, days)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to get social analytics: "+err.Error())
@@ -63,7 +58,6 @@ func (s *Server) getSocialAnalytics(w http.ResponseWriter, r *http.Request) {
 	if metrics == nil {
 		metrics = []models.SocialMetricRollup{}
 	}
-
 	writeJSON(w, http.StatusOK, map[string]any{
 		"data":  metrics,
 		"count": len(metrics),
@@ -79,7 +73,6 @@ func (s *Server) publicTrackerPixel(w http.ResponseWriter, r *http.Request) {
 		sessionID := r.URL.Query().Get("sid")
 		_ = s.analyticsService.RecordWebHit(r.Context(), brandOID, sessionID, url, path, ref, "", "desktop", "browser")
 	}
-
 	w.Header().Set("Content-Type", "image/gif")
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	w.WriteHeader(http.StatusOK)
@@ -100,18 +93,15 @@ func (s *Server) publicTrackerEvent(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, 0, &req) {
 		return
 	}
-
 	brandOID, err := bson.ObjectIDFromHex(req.BrandID)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid brand ID")
 		return
 	}
-
 	if err := s.analyticsService.RecordWebHit(r.Context(), brandOID, req.SessionID, req.URL, req.Path, req.Referrer, req.Country, req.Device, req.Browser); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to record analytics hit")
 		return
 	}
-
 	writeJSON(w, http.StatusOK, map[string]any{
 		"success": true,
 	})
@@ -123,18 +113,14 @@ func (s *Server) recordSocialRollup(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "brandId is required")
 		return
 	}
-
 	var rollup models.SocialMetricRollup
 	if !decode(w, r, 0, &rollup) {
 		return
 	}
-
 	rollup.BrandID = brandOID
 	if err := s.analyticsService.RecordSocialMetricRollup(r.Context(), &rollup); err != nil {
 		writeApiError(w, err)
 		return
 	}
-
 	writeJSON(w, http.StatusOK, map[string]any{"success": true})
 }
-
