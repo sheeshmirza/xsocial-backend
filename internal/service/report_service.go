@@ -144,7 +144,7 @@ func (s *ReportService) processReport(ctx context.Context, reportID, brandID bso
 		"scheduled": scheduledPosts,
 	}
 
-	fileURL := fmt.Sprintf("/api/v1/reports/%s/download", reportID.Hex())
+	fileURL := fmt.Sprintf("/v1/reports/%s/download", reportID.Hex())
 	_ = s.repo.UpdateWithMetrics(ctx, reportID, models.ReportStatusCompleted, fileURL, metrics)
 }
 

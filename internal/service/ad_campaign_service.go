@@ -71,8 +71,10 @@ func (s *AdCampaignService) CreateCampaign(ctx context.Context, brandID bson.Obj
 		cpm = (req.Spend / float64(req.Impressions)) * 1000
 	}
 	roas := 0.0
-	if req.Spend > 0 && req.Conversions > 0 {
-		roas = float64(req.Conversions*50) / req.Spend
+	if req.ROAS != nil {
+		roas = *req.ROAS
+	} else if req.ConversionValue != nil && req.Spend > 0 {
+		roas = *req.ConversionValue / req.Spend
 	}
 
 	dateRange := strings.TrimSpace(req.DateRange)
@@ -158,10 +160,7 @@ func (s *AdCampaignService) UpdateCampaign(ctx context.Context, id, brandID bson
 	if req.Spend != nil {
 		spend = *req.Spend
 	}
-	convs := existing.Conversions
-	if req.Conversions != nil {
-		convs = *req.Conversions
-	}
+
 
 	if impr > 0 {
 		update["ctr"] = (float64(clicks) / float64(impr)) * 100
@@ -170,8 +169,10 @@ func (s *AdCampaignService) UpdateCampaign(ctx context.Context, id, brandID bson
 	if clicks > 0 {
 		update["cpc"] = spend / float64(clicks)
 	}
-	if spend > 0 && convs > 0 {
-		update["roas"] = float64(convs*50) / spend
+	if req.ROAS != nil {
+		update["roas"] = *req.ROAS
+	} else if req.ConversionValue != nil && spend > 0 {
+		update["roas"] = *req.ConversionValue / spend
 	}
 
 	updated, err := s.repo.Update(ctx, id, brandID, update)

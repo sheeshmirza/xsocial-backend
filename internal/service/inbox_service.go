@@ -147,7 +147,7 @@ func (s *InboxService) DeleteCannedReply(ctx context.Context, id, brandID bson.O
 	return nil
 }
 
-// IngestExternalMessage simulates / ingests incoming webhook message from Meta / LinkedIn / etc.
+// IngestIncomingMessage records incoming message from Meta / LinkedIn / webhook events.
 func (s *InboxService) IngestIncomingMessage(ctx context.Context, brandID bson.ObjectID, platform, threadID, senderName, senderAvatar, senderHandle, text string, rating *int) error {
 	sentiment := analyzeSentiment(text)
 

@@ -56,7 +56,7 @@ func (s *Server) connectSocialPlatform(w http.ResponseWriter, r *http.Request) {
 		_ = json.NewDecoder(r.Body).Decode(&req)
 	}
 
-	if req.Code != "" && req.Code != "oauth_code_sample" && req.Code != "mock_code" {
+	if req.Code != "" {
 		state := req.State
 		if state == "" {
 			state = common.GenerateOAuthState(uid, s.cfg.JWTAccessSecret)

@@ -48,18 +48,22 @@ type CreateAdCampaignRequest struct {
 	Spend              float64 `json:"spend"`
 	Impressions        int64   `json:"impressions"`
 	Clicks             int64   `json:"clicks"`
-	Conversions        int64   `json:"conversions"`
-	DateRange          string  `json:"dateRange"`
+	Conversions        int64    `json:"conversions"`
+	ConversionValue    *float64 `json:"conversionValue,omitempty"`
+	ROAS               *float64 `json:"roas,omitempty"`
+	DateRange          string   `json:"dateRange"`
 }
 
 type UpdateAdCampaignRequest struct {
-	Name        *string  `json:"name"`
-	Status      *string  `json:"status"`
-	Objective   *string  `json:"objective"`
-	Budget      *float64 `json:"budget"`
-	Spend       *float64 `json:"spend"`
-	Impressions *int64   `json:"impressions"`
-	Clicks      *int64   `json:"clicks"`
-	Conversions *int64   `json:"conversions"`
-	DateRange   *string  `json:"dateRange"`
+	Name            *string  `json:"name"`
+	Status          *string  `json:"status"`
+	Objective       *string  `json:"objective"`
+	Budget          *float64 `json:"budget"`
+	Spend           *float64 `json:"spend"`
+	Impressions     *int64   `json:"impressions"`
+	Clicks          *int64   `json:"clicks"`
+	Conversions     *int64   `json:"conversions"`
+	ConversionValue *float64 `json:"conversionValue,omitempty"`
+	ROAS            *float64 `json:"roas,omitempty"`
+	DateRange       *string  `json:"dateRange"`
 }
