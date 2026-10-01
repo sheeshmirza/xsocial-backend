@@ -12,8 +12,20 @@ from pymongo import MongoClient
 
 LOG_FILE = "/Users/fc472024/Downloads/xsocial-backend/e2e_api_logs.txt"
 BASE_URL = "http://localhost:5000"
-MONGO_URI = "mongodb://127.0.0.1:27017"
-DB_NAME = "xsocial"
+
+# Parse .env if present
+env_file = "/Users/fc472024/Downloads/xsocial-backend/.env"
+env_config = {}
+if os.path.exists(env_file):
+    with open(env_file, "r") as ef:
+        for line in ef:
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
+                env_config[k.strip()] = v.strip().strip('"').strip("'")
+
+MONGO_URI = env_config.get("MONGODB_URI", os.environ.get("MONGODB_URI", "mongodb+srv://XEFORT:XEFORT%40%402025@cluster.dsm1ixd.mongodb.net/?appName=Cluster"))
+DB_NAME = env_config.get("MONGODB_DB_NAME", os.environ.get("MONGODB_DB_NAME", "XSOCIAL"))
 
 # Connect to MongoDB for state verification & relational fixtures
 mongo_client = MongoClient(MONGO_URI)
@@ -148,13 +160,20 @@ else:
     static_user_id = str(static_user["_id"])
     db.users.update_one({"_id": static_user["_id"]}, {"$set": {"password": pw_hash, "isVerified": True}})
 
-# Ensure real connected LinkedIn handle is bound to static developer user
+# Ensure real connected LinkedIn and Instagram handles are bound to static developer user
 linkedin_handle = db.socialhandles.find_one({"platform": "LINKEDIN"})
 if linkedin_handle:
     db.socialhandles.update_one({"_id": linkedin_handle["_id"]}, {"$set": {"userId": ObjectId(static_user_id)}})
     linkedin_handle_id = str(linkedin_handle["_id"])
 else:
     linkedin_handle_id = ""
+
+instagram_handle = db.socialhandles.find_one({"platform": "INSTAGRAM"})
+if instagram_handle:
+    db.socialhandles.update_one({"_id": instagram_handle["_id"]}, {"$set": {"userId": ObjectId(static_user_id)}})
+    instagram_handle_id = str(instagram_handle["_id"])
+else:
+    instagram_handle_id = ""
 
 # ==============================================================================
 # 1. Health Checks
@@ -248,9 +267,12 @@ brand_id = ""
 if isinstance(brand_res, dict):
     brand_id = brand_res.get("id", "")
 
-# Link the connected real LinkedIn handle to this brand
-if linkedin_handle_id and brand_id:
-    db.socialhandles.update_one({"_id": ObjectId(linkedin_handle_id)}, {"$set": {"brandId": ObjectId(brand_id)}})
+# Link the connected real LinkedIn and Instagram handles to this brand
+if brand_id:
+    if linkedin_handle_id:
+        db.socialhandles.update_one({"_id": ObjectId(linkedin_handle_id)}, {"$set": {"brandId": ObjectId(brand_id)}})
+    if instagram_handle_id:
+        db.socialhandles.update_one({"_id": ObjectId(instagram_handle_id)}, {"$set": {"brandId": ObjectId(brand_id)}})
 
 run_curl("GET", "/v1/brands", headers=auth_hdr, description="List All Brands for Static User")
 run_curl("GET", f"/v1/brands/{brand_id}", headers=auth_hdr, description="Get Brand Workspace Details")
@@ -319,25 +341,46 @@ if media_id:
     run_curl("GET", f"/v1/uploads/media/{media_id}", description="Fetch Uploaded Media Asset (Public)")
 
 # ==============================================================================
-# 6. Social Accounts & Live LinkedIn Connection
+# 6. Social Accounts & Live OAuth Connections (LinkedIn & Instagram)
 # ==============================================================================
-log_section("6. SOCIAL HANDLES & LINKEDIN OAUTH CONNECTION")
+log_section("6. SOCIAL HANDLES & OAUTH CONNECTIONS (LINKEDIN & INSTAGRAM)")
 
 # Connect LinkedIn Auth URL for the static user
-_, li_connect_res = run_curl("POST", "/v1/social/connect/linkedin", headers=auth_hdr, description="Generate LinkedIn OAuth Authorization URL for Static User")
-linkedin_auth_url = ""
-if isinstance(li_connect_res, dict):
-    linkedin_auth_url = li_connect_res.get("authUrl") or li_connect_res.get("url", "")
-
-# Also test GET /v1/social/connect/linkedin
+_, li_connect_res = run_curl("POST", "/v1/social/connect/linkedin", headers=auth_hdr, description="Generate LinkedIn OAuth Authorization URL (POST)")
 run_curl("GET", "/v1/social/connect/linkedin", headers=auth_hdr, description="Get LinkedIn OAuth URL via GET")
 
-# Check connected accounts (Verified with the real authorized LinkedIn account)
-run_curl("GET", "/v1/social/accounts", headers=auth_hdr, query=f"brandId={brand_id}", description="List Social Accounts for Brand (Includes Connected LinkedIn)")
+# Connect Instagram Auth URL for the static user
+_, ig_connect_res = run_curl("POST", "/v1/social/connect/instagram", headers=auth_hdr, description="Generate Instagram OAuth Authorization URL (POST)")
+run_curl("GET", "/v1/social/connect/instagram", headers=auth_hdr, description="Get Instagram OAuth URL via GET")
 
-# Refresh token test endpoint with real connected social handle
+# OAuth Callback verification (Public Callback Endpoint with json error format)
+run_curl("GET", "/v1/social/callback/linkedin?format=json", description="OAuth Callback Validation (LinkedIn)")
+run_curl("GET", "/v1/social/callback/instagram?format=json", description="OAuth Callback Validation (Instagram)")
+
+# Check connected accounts (Verified with the real authorized LinkedIn & Instagram accounts)
+run_curl("GET", "/v1/social/accounts", headers=auth_hdr, query=f"brandId={brand_id}", description="List Social Accounts for Brand (Includes Connected LinkedIn & Instagram)")
+
+# Refresh token test endpoints with real connected social handles
 if linkedin_handle_id:
-    run_curl("POST", "/v1/social/refresh-token", headers=auth_hdr, data={"socialId": linkedin_handle_id}, description="Refresh Social Account Token")
+    run_curl("POST", "/v1/social/refresh-token", headers=auth_hdr, data={"socialId": linkedin_handle_id}, description="Refresh LinkedIn Account Token")
+
+if instagram_handle_id:
+    run_curl("POST", "/v1/social/refresh-token", headers=auth_hdr, data={"socialId": instagram_handle_id}, description="Refresh Instagram Account Token")
+
+# Disconnect Social Account Test (Using an Ephemeral Probe Handle to protect live accounts)
+ephemeral_handle = db.socialhandles.insert_one({
+    "userId": ObjectId(static_user_id),
+    "brandId": ObjectId(brand_id) if brand_id else None,
+    "platform": "TWITTER",
+    "platformId": f"ephemeral_probe_{int(time.time())}",
+    "platformUsername": "ephemeral_probe",
+    "platformDisplayName": "Ephemeral Probe Account",
+    "platformAccessToken": "probe_access_token_xyz",
+    "createdAt": datetime.datetime.now(datetime.timezone.utc),
+    "updatedAt": datetime.datetime.now(datetime.timezone.utc)
+})
+ephemeral_handle_id = str(ephemeral_handle.inserted_id)
+run_curl("DELETE", f"/v1/social/{ephemeral_handle_id}", headers=auth_hdr, description="Disconnect Social Account (DELETE /v1/social/:id)")
 
 # ==============================================================================
 # 7. Comprehensive Post Types & Features (All Post Types, Comments, Reshare)
@@ -361,6 +404,99 @@ p_image = {
 }
 _, p_img_res = run_curl("POST", "/v1/posts", headers=auth_hdr, data=p_image, description="Create Post 1: Image Feed Post with First Comment")
 post_img_id = p_img_res.get("id", "") if isinstance(p_img_res, dict) else ""
+
+# 7.1b Post Type: Real Instagram Single Feed Image Post with First Comment
+p_ig_image = {
+    "brandId": brand_id,
+    "title": "Instagram Single Image Showcase",
+    "caption": "Exploring modern AI architectures with Xefort Solutions. Building scalable real-time systems! #xefort #engineering #ai",
+    "postType": "image",
+    "selectedPlatforms": ["instagram"],
+    "targetAccountIds": [instagram_handle_id] if instagram_handle_id else [],
+    "firstComment": "Follow @xefort.solutions for more architectural deep-dives! 🚀",
+    "media": [{
+        "type": "image",
+        "url": "https://fastly.picsum.photos/id/509/800/800.jpg?hmac=bU2L_YDcrRPmrPqxuGpls1Rt71RWJnKWMUJzap6SgU0"
+    }],
+    "status": "draft"
+}
+_, p_ig_img_res = run_curl("POST", "/v1/posts", headers=auth_hdr, data=p_ig_image, description="Create Instagram Single Image Feed Post with First Comment")
+post_ig_img_id = p_ig_img_res.get("id", "") if isinstance(p_ig_img_res, dict) else ""
+
+# 7.1c Post Type: Real Instagram Multi-Slide Carousel Post with First Comment
+p_ig_carousel = {
+    "brandId": brand_id,
+    "title": "Instagram Multi-Slide Carousel Experience",
+    "caption": "A deep dive into distributed systems resilience and microservices monitoring with Xefort Solutions. #cloud #microservices #scale",
+    "postType": "carousel",
+    "selectedPlatforms": ["instagram"],
+    "targetAccountIds": [instagram_handle_id] if instagram_handle_id else [],
+    "firstComment": "Swipe left to explore our full architectural blueprint! Let us know your thoughts in the comments. 💡",
+    "media": [
+        {"type": "image", "url": "https://fastly.picsum.photos/id/691/800/800.jpg?hmac=BKrzKFJpsg33zFrCtYWTw9knc1ikQQIElTfwrkcwwJw"},
+        {"type": "image", "url": "https://fastly.picsum.photos/id/355/800/800.jpg?hmac=G8Flfk4X1t9XK-DaFRrzpUmmMd2qfaAuET1B84yp-kQ"}
+    ],
+    "status": "draft"
+}
+_, p_ig_car_res = run_curl("POST", "/v1/posts", headers=auth_hdr, data=p_ig_carousel, description="Create Instagram Multi-Slide Carousel Post with First Comment")
+post_ig_car_id = p_ig_car_res.get("id", "") if isinstance(p_ig_car_res, dict) else ""
+
+# 7.1d Post Type: Real Instagram Reels Video Post with First Comment
+p_ig_reel = {
+    "brandId": brand_id,
+    "title": "Instagram Reels Technical Showcase",
+    "caption": "Discover high-performance streaming architectures with Xefort Solutions. Engineering excellence at scale! #reels #engineering #tech",
+    "postType": "reel",
+    "selectedPlatforms": ["instagram"],
+    "targetAccountIds": [instagram_handle_id] if instagram_handle_id else [],
+    "firstComment": "Drop a ❤️ if you want a detailed tutorial on video stream processing! #tutorial",
+    "media": [{
+        "type": "video",
+        "url": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
+    }],
+    "status": "draft"
+}
+_, p_ig_reel_res = run_curl("POST", "/v1/posts", headers=auth_hdr, data=p_ig_reel, description="Create Instagram Reels Video Post with First Comment")
+post_ig_reel_id = p_ig_reel_res.get("id", "") if isinstance(p_ig_reel_res, dict) else ""
+
+# 7.1e Post Type: Real Instagram Ephemeral Story Post
+p_ig_story = {
+    "brandId": brand_id,
+    "title": "Instagram Daily Story Broadcast",
+    "caption": "Live from the dev lab! #behindthescenes",
+    "postType": "story",
+    "selectedPlatforms": ["instagram"],
+    "targetAccountIds": [instagram_handle_id] if instagram_handle_id else [],
+    "media": [{
+        "type": "image",
+        "url": "https://fastly.picsum.photos/id/509/800/800.jpg?hmac=bU2L_YDcrRPmrPqxuGpls1Rt71RWJnKWMUJzap6SgU0"
+    }],
+    "status": "draft"
+}
+_, p_ig_story_res = run_curl("POST", "/v1/posts", headers=auth_hdr, data=p_ig_story, description="Create Instagram Ephemeral Story Post")
+post_ig_story_id = p_ig_story_res.get("id", "") if isinstance(p_ig_story_res, dict) else ""
+
+# 7.1f Post Type: Real Instagram Trial Reel Post
+p_ig_trial = {
+    "brandId": brand_id,
+    "title": "Instagram Trial Reel Test",
+    "caption": "Testing innovative algorithmic distribution algorithms with Xefort Solutions! #trialreels #algorithm",
+    "postType": "reel",
+    "selectedPlatforms": ["instagram"],
+    "targetAccountIds": [instagram_handle_id] if instagram_handle_id else [],
+    "firstComment": "Trial Reel test comment from Xefort Solutions engineering.",
+    "instagramTrial": {
+        "enabled": True,
+        "graduationStrategy": "MANUAL"
+    },
+    "media": [{
+        "type": "video",
+        "url": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
+    }],
+    "status": "draft"
+}
+_, p_ig_trial_res = run_curl("POST", "/v1/posts", headers=auth_hdr, data=p_ig_trial, description="Create Instagram Trial Reel Post")
+post_ig_trial_id = p_ig_trial_res.get("id", "") if isinstance(p_ig_trial_res, dict) else ""
 
 # 7.2 Post Type: Real LinkedIn Poll Post with Options & First Comment
 p_poll = {
@@ -559,6 +695,26 @@ run_curl("POST", f"/v1/posts/{post_li_fc_id}/publish", headers=auth_hdr, data={}
 # 7.11d Live Real Publishing to Connected LinkedIn Account (Article / Link Post)
 run_curl("POST", f"/v1/posts/{post_li_art_id}/publish", headers=auth_hdr, data={}, description="Publish Article Post Live to Connected LinkedIn Account")
 
+# 7.11e Live Real Publishing to Connected Instagram Account (Single Image Feed Post)
+if post_ig_img_id:
+    run_curl("POST", f"/v1/posts/{post_ig_img_id}/publish", headers=auth_hdr, data={}, description="Publish Single Image Post Live to Connected Instagram Account")
+
+# 7.11f Live Real Publishing to Connected Instagram Account (Multi-Image Carousel Post)
+if post_ig_car_id:
+    run_curl("POST", f"/v1/posts/{post_ig_car_id}/publish", headers=auth_hdr, data={}, description="Publish Carousel Post Live to Connected Instagram Account")
+
+# 7.11g Live Real Publishing to Connected Instagram Account (Reels Video Post)
+if post_ig_reel_id:
+    run_curl("POST", f"/v1/posts/{post_ig_reel_id}/publish", headers=auth_hdr, data={}, description="Publish Reels Video Post Live to Connected Instagram Account")
+
+# 7.11h Live Real Publishing to Connected Instagram Account (Ephemeral Story Post)
+if post_ig_story_id:
+    run_curl("POST", f"/v1/posts/{post_ig_story_id}/publish", headers=auth_hdr, data={}, description="Publish Ephemeral Story Post Live to Connected Instagram Account")
+
+# 7.11i Live Real Publishing to Connected Instagram Account (Trial Reel Post)
+if post_ig_trial_id:
+    run_curl("POST", f"/v1/posts/{post_ig_trial_id}/publish", headers=auth_hdr, data={}, description="Publish Trial Reel Post Live to Connected Instagram Account")
+
 # 7.12 Reshare Post on Connected LinkedIn Account
 reshare_payload = {
     "targetPlatforms": ["linkedin"],
@@ -578,6 +734,7 @@ run_curl("POST", "/v1/posts/bulk/resume-recurrence", headers=auth_hdr, data={"id
 # ==============================================================================
 log_section("8. PLANNER & BEST TIMES HEATMAPS")
 run_curl("GET", "/v1/planner/best-times", headers=auth_hdr, query=f"brandId={brand_id}&platform=linkedin", description="Get Best Times Heatmap for Connected LinkedIn Account")
+run_curl("GET", "/v1/planner/best-times", headers=auth_hdr, query=f"brandId={brand_id}&platform=instagram", description="Get Best Times Heatmap for Connected Instagram Account")
 
 # ==============================================================================
 # 9. Unified Inbox & Community Management
@@ -833,7 +990,8 @@ bulk_sched_targets = [post_sched_bulk_id] if post_sched_bulk_id else [post_car_i
 bulk_pub_targets = [post_pub_bulk_id] if post_pub_bulk_id else [post_li_car_id]
 run_curl("DELETE", "/v1/posts/bulk/scheduled", headers=auth_hdr, data={"ids": bulk_sched_targets}, description="Bulk Delete Scheduled Posts")
 run_curl("DELETE", "/v1/posts/bulk/published", headers=auth_hdr, data={"ids": bulk_pub_targets}, description="Bulk Delete Published Posts")
-run_curl("DELETE", "/v1/posts/bulk", headers=auth_hdr, data={"ids": [post_poll_id, post_car_id]}, description="Bulk Delete Posts")
+ig_post_ids = [pid for pid in [post_ig_img_id, post_ig_car_id, post_ig_reel_id, post_ig_story_id, post_ig_trial_id] if pid]
+run_curl("DELETE", "/v1/posts/bulk", headers=auth_hdr, data={"ids": [post_poll_id, post_car_id] + ig_post_ids}, description="Bulk Delete Posts (LinkedIn & Instagram)")
 
 # Delete Image post specifically via single delete endpoint
 if post_img_id:
@@ -891,6 +1049,7 @@ log("\n" + "=" * 80)
 log(f"All {step_num} End-to-End API Steps Executed and Verified with 100% Success Rate!")
 log(f"Static User Preserved: {STATIC_EMAIL}")
 log(f"LinkedIn Connected Handle: {linkedin_handle_id}")
+log(f"Instagram Connected Handle: {instagram_handle_id}")
 log(f"Logs successfully written to: {LOG_FILE}")
 log("=" * 80)
 log_f.close()
