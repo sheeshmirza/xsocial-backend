@@ -51,8 +51,10 @@ func (a *OAuthAdapter) BuildAuthorizeURL(state string, scopes []string) string {
 }
 
 func (a *OAuthAdapter) ExchangeCodeForToken(ctx context.Context, code string, customRedirectURI ...string) (*TokenResponse, error) {
+	cleanCode := strings.TrimSuffix(strings.TrimSpace(code), "#_")
+
 	redirectURI := a.config.RedirectURI
-	if len(customRedirectURI) > 0 && strings.TrimSpace(customRedirectURI[0]) != "" {
+	if redirectURI == "" && len(customRedirectURI) > 0 && strings.TrimSpace(customRedirectURI[0]) != "" {
 		redirectURI = strings.TrimSpace(customRedirectURI[0])
 	}
 
@@ -61,50 +63,33 @@ func (a *OAuthAdapter) ExchangeCodeForToken(ctx context.Context, code string, cu
 	data.Set("client_secret", a.config.ClientSecret)
 	data.Set("grant_type", "authorization_code")
 	data.Set("redirect_uri", redirectURI)
-	data.Set("code", code)
+	data.Set("code", cleanCode)
 
 	body, status, err := a.http.PostForm(ctx, InstagramAPIBase+"/oauth/access_token", data, nil)
 	if err != nil {
 		return nil, err
 	}
 	if status >= 400 {
-		// Fallback: try alternate common redirect URIs (e.g. backend callback vs frontend callback)
-		altURIs := []string{
-			"http://localhost:5000/v1/social/callback/instagram",
-			"http://localhost:3000/oauth/callback/instagram",
-			a.config.RedirectURI,
-		}
-		var lastBody []byte
-		var lastStatus int
-		retried := false
-		for _, alt := range altURIs {
-			if alt == "" || alt == redirectURI {
-				continue
+		var apiErr APIErrorResponse
+		_ = json.Unmarshal(body, &apiErr)
+		msg := apiErr.Error.Message
+		if msg == "" {
+			var altErr struct {
+				ErrorMessage string `json:"error_message"`
+				ErrorType    string `json:"error_type"`
 			}
-			data.Set("redirect_uri", alt)
-			b, s, e := a.http.PostForm(ctx, InstagramAPIBase+"/oauth/access_token", data, nil)
-			if e == nil && s < 400 {
-				body = b
-				status = s
-				retried = true
-				break
-			}
-			lastBody = b
-			lastStatus = s
-		}
-		if !retried {
-			if len(lastBody) > 0 {
-				body = lastBody
-				status = lastStatus
-			}
-			var apiErr APIErrorResponse
-			_ = json.Unmarshal(body, &apiErr)
-			msg := apiErr.Error.Message
-			if msg == "" {
+			if jsonErr := json.Unmarshal(body, &altErr); jsonErr == nil && altErr.ErrorMessage != "" {
+				msg = altErr.ErrorMessage
+			} else {
 				msg = string(body)
 			}
-			return nil, utils.BadRequest(fmt.Sprintf("Instagram token exchange failed: %s", msg))
 		}
+
+		if strings.Contains(msg, "Invalid platform app") {
+			msg = "Invalid platform app: please verify your Instagram App ID and App Secret in .env (ensure they are from Meta's Instagram product, not generic Facebook App credentials), and ensure your Instagram account is added as a Tester in the Meta Developer Console."
+		}
+
+		return nil, utils.BadRequest(fmt.Sprintf("Instagram token exchange failed: %s", msg))
 	}
 
 	var resp TokenResponse
