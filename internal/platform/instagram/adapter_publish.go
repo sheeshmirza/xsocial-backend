@@ -222,7 +222,13 @@ func (a *PublishAdapter) publishWithToken(ctx context.Context, igUserID, token s
 		}, nil
 	}
 
-	ready, sc := a.waitForContainerReady(ctx, token, containerID, 10, 2*time.Second)
+	maxAttempts := 15
+	delay := 2 * time.Second
+	if postType == "reel" || postType == "reels" || postType == "video" || (len(mediaList) > 0 && a.isVideo(mediaList[0])) {
+		maxAttempts = 35
+		delay = 3 * time.Second
+	}
+	ready, sc := a.waitForContainerReady(ctx, token, containerID, maxAttempts, delay)
 	if !ready {
 		return &models.PlatformPublishResponse{
 			Platform: "instagram",
