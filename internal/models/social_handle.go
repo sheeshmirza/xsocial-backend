@@ -1,6 +1,7 @@
 package models
 
 import (
+	"encoding/json"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -25,6 +26,23 @@ type SocialHandle struct {
 	// Non-persisted metadata for responses
 	LinkedPageCount int    `bson:"-" json:"linkedPageCount,omitempty"`
 	Warning         string `bson:"-" json:"warning,omitempty"`
+}
+
+type socialHandleAlias SocialHandle
+
+func (h SocialHandle) MarshalJSON() ([]byte, error) {
+	type Aux struct {
+		socialHandleAlias
+		IDHex string `json:"_id,omitempty"`
+	}
+	hex := ""
+	if !h.ID.IsZero() {
+		hex = h.ID.Hex()
+	}
+	return json.Marshal(Aux{
+		socialHandleAlias: socialHandleAlias(h),
+		IDHex:             hex,
+	})
 }
 
 func (h *SocialHandle) IsExpired() bool {

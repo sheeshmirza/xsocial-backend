@@ -50,12 +50,17 @@ func (a *OAuthAdapter) BuildAuthorizeURL(state string, scopes []string) string {
 	return fmt.Sprintf("https://www.instagram.com/oauth/authorize?%s", q.Encode())
 }
 
-func (a *OAuthAdapter) ExchangeCodeForToken(ctx context.Context, code string) (*TokenResponse, error) {
+func (a *OAuthAdapter) ExchangeCodeForToken(ctx context.Context, code string, customRedirectURI ...string) (*TokenResponse, error) {
+	redirectURI := a.config.RedirectURI
+	if len(customRedirectURI) > 0 && strings.TrimSpace(customRedirectURI[0]) != "" {
+		redirectURI = strings.TrimSpace(customRedirectURI[0])
+	}
+
 	data := url.Values{}
 	data.Set("client_id", a.config.ClientID)
 	data.Set("client_secret", a.config.ClientSecret)
 	data.Set("grant_type", "authorization_code")
-	data.Set("redirect_uri", a.config.RedirectURI)
+	data.Set("redirect_uri", redirectURI)
 	data.Set("code", code)
 
 	body, status, err := a.http.PostForm(ctx, InstagramAPIBase+"/oauth/access_token", data, nil)
@@ -63,13 +68,43 @@ func (a *OAuthAdapter) ExchangeCodeForToken(ctx context.Context, code string) (*
 		return nil, err
 	}
 	if status >= 400 {
-		var apiErr APIErrorResponse
-		_ = json.Unmarshal(body, &apiErr)
-		msg := apiErr.Error.Message
-		if msg == "" {
-			msg = string(body)
+		// Fallback: try alternate common redirect URIs (e.g. backend callback vs frontend callback)
+		altURIs := []string{
+			"http://localhost:5000/v1/social/callback/instagram",
+			"http://localhost:3000/oauth/callback/instagram",
+			a.config.RedirectURI,
 		}
-		return nil, utils.BadRequest(fmt.Sprintf("Instagram token exchange failed: %s", msg))
+		var lastBody []byte
+		var lastStatus int
+		retried := false
+		for _, alt := range altURIs {
+			if alt == "" || alt == redirectURI {
+				continue
+			}
+			data.Set("redirect_uri", alt)
+			b, s, e := a.http.PostForm(ctx, InstagramAPIBase+"/oauth/access_token", data, nil)
+			if e == nil && s < 400 {
+				body = b
+				status = s
+				retried = true
+				break
+			}
+			lastBody = b
+			lastStatus = s
+		}
+		if !retried {
+			if len(lastBody) > 0 {
+				body = lastBody
+				status = lastStatus
+			}
+			var apiErr APIErrorResponse
+			_ = json.Unmarshal(body, &apiErr)
+			msg := apiErr.Error.Message
+			if msg == "" {
+				msg = string(body)
+			}
+			return nil, utils.BadRequest(fmt.Sprintf("Instagram token exchange failed: %s", msg))
+		}
 	}
 
 	var resp TokenResponse

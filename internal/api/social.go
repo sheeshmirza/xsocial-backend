@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -61,7 +62,11 @@ func (s *Server) connectSocialPlatform(w http.ResponseWriter, r *http.Request) {
 		if state == "" {
 			state = common.GenerateOAuthState(uid, s.cfg.JWTAccessSecret)
 		}
-		handle, err := s.socialService.ConnectFromCallback(r.Context(), uid, platform, req.Code, state)
+		var customURIs []string
+		if req.RedirectURI != "" {
+			customURIs = append(customURIs, req.RedirectURI)
+		}
+		handle, err := s.socialService.ConnectFromCallback(r.Context(), uid, platform, req.Code, state, customURIs...)
 		if err != nil {
 			writeError(w, http.StatusBadRequest, fmt.Sprintf("OAuth connection failed: %v", err))
 			return
@@ -84,6 +89,11 @@ func (s *Server) connectSocialPlatform(w http.ResponseWriter, r *http.Request) {
 		"platform": platform,
 		"authUrl":  connectURL,
 		"url":      connectURL,
+		"data": map[string]any{
+			"platform": platform,
+			"authUrl":  connectURL,
+			"url":      connectURL,
+		},
 	})
 }
 
@@ -91,15 +101,40 @@ func (s *Server) oauthCallback(w http.ResponseWriter, r *http.Request) {
 	platform := strings.ToLower(r.PathValue("platform"))
 	code := r.URL.Query().Get("code")
 	state := r.URL.Query().Get("state")
+	errParam := r.URL.Query().Get("error")
+	errDesc := r.URL.Query().Get("error_description")
+
+	isJSON := strings.Contains(r.Header.Get("Accept"), "application/json") || r.URL.Query().Get("format") == "json"
+	frontendURL := strings.TrimRight(s.cfg.ClientURL, "/")
+	if frontendURL == "" {
+		frontendURL = "http://localhost:3000"
+	}
+
+	redirectError := func(errMsg string) {
+		if isJSON {
+			writeError(w, http.StatusBadRequest, errMsg)
+		} else {
+			http.Redirect(w, r, fmt.Sprintf("%s/accounts?connected=%s&status=error&message=%s", frontendURL, platform, url.QueryEscape(errMsg)), http.StatusTemporaryRedirect)
+		}
+	}
+
+	if errParam != "" {
+		msg := errDesc
+		if msg == "" {
+			msg = errParam
+		}
+		redirectError(msg)
+		return
+	}
 
 	if code == "" || state == "" {
-		writeError(w, http.StatusBadRequest, "code and state query parameters are required")
+		redirectError("code and state query parameters are required")
 		return
 	}
 
 	userID, err := common.ValidateOAuthState(state, s.cfg.JWTAccessSecret)
 	if err != nil || userID == "" {
-		writeError(w, http.StatusBadRequest, "invalid or expired oauth state parameter")
+		redirectError("invalid or expired oauth state parameter")
 		return
 	}
 
@@ -111,11 +146,11 @@ func (s *Server) oauthCallback(w http.ResponseWriter, r *http.Request) {
 
 	handle, err := s.socialService.ConnectFromCallback(r.Context(), userID, platform, code, state, currentCallbackURI)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, fmt.Sprintf("OAuth connection failed: %v", err))
+		redirectError(fmt.Sprintf("OAuth connection failed: %v", err))
 		return
 	}
 
-	if strings.Contains(r.Header.Get("Accept"), "application/json") || r.URL.Query().Get("format") == "json" {
+	if isJSON {
 		writeJSON(w, http.StatusOK, map[string]any{
 			"success": true,
 			"message": fmt.Sprintf("%s account connected successfully", platform),
@@ -124,17 +159,7 @@ func (s *Server) oauthCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	frontendURL := s.cfg.ClientURL
-	if frontendURL != "" {
-		http.Redirect(w, r, fmt.Sprintf("%s/accounts?connected=%s", strings.TrimRight(frontendURL, "/"), platform), http.StatusTemporaryRedirect)
-		return
-	}
-
-	writeJSON(w, http.StatusOK, map[string]any{
-		"success": true,
-		"message": fmt.Sprintf("%s account connected successfully", platform),
-		"data":    handle,
-	})
+	http.Redirect(w, r, fmt.Sprintf("%s/accounts?connected=%s&status=success", frontendURL, platform), http.StatusTemporaryRedirect)
 }
 
 func (s *Server) refreshSocialToken(w http.ResponseWriter, r *http.Request) {

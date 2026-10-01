@@ -65,7 +65,7 @@ func (s *SocialService) ConnectFromCallback(ctx context.Context, userIDStr, plat
 
 	switch norm {
 	case models.PlatformInstagram:
-		handle, err := s.instagramService.HandleCallback(ctx, code, state)
+		handle, err := s.instagramService.HandleCallback(ctx, code, state, customRedirectURI...)
 		if err != nil {
 			return nil, err
 		}
