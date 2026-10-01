@@ -1,6 +1,6 @@
 ################################################################################
 # XSocial Backend End-to-End API Test Logs
-# Executed: 2026-09-30 20:37:04 UTC
+# Executed: 2026-10-01 04:51:02 UTC
 # Target Base URL: http://localhost:5000
 ################################################################################
 
@@ -22,14 +22,14 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 6db20ca5-d1e8-4337-a7bc-eefa8ea5b282
-  Date: Wed, 30 Sep 2026 20:37:04 GMT
+  X-Request-Id: c4d94bd6-a378-4116-915d-a9f7cb7ac906
+  Date: Thu, 01 Oct 2026 04:51:02 GMT
   Content-Length: 79
 Body:
 {
   "service": "xsocial-backend",
   "status": "healthy",
-  "time": "2026-09-30T20:37:04Z"
+  "time": "2026-10-01T04:51:02Z"
 }
 
 --- [STEP 2] System Health Probe (alias) ---
@@ -46,14 +46,14 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 09cce1ab-030a-41d5-b5c4-0bacdb211c82
-  Date: Wed, 30 Sep 2026 20:37:04 GMT
+  X-Request-Id: bd01e1f9-3167-4dff-a729-509da31a1a75
+  Date: Thu, 01 Oct 2026 04:51:02 GMT
   Content-Length: 79
 Body:
 {
   "service": "xsocial-backend",
   "status": "healthy",
-  "time": "2026-09-30T20:37:04Z"
+  "time": "2026-10-01T04:51:02Z"
 }
 
 
@@ -65,7 +65,7 @@ Body:
 >> REQUEST:
 curl -X POST 'http://localhost:5000/v1/auth/signup' \
   -H 'Content-Type: application/json' \
-  -d '{"email": "e2e_master_1790800624@example.com", "password": "MasterPassword123!"}'
+  -d '{"email": "signup_probe_1790830262@example.com", "password": "ProbePassword123!"}'
 << RESPONSE:
 Status: HTTP/1.1 201 Created
 Headers:
@@ -77,30 +77,30 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 8946c001-0803-454a-8dee-e7b9a694b624
-  Date: Wed, 30 Sep 2026 20:37:05 GMT
-  Content-Length: 382
+  X-Request-Id: 56563dfd-ac0e-4d04-b1ab-b0f59b86f62c
+  Date: Thu, 01 Oct 2026 04:51:03 GMT
+  Content-Length: 384
 Body:
 {
   "data": {
-    "id": "6abd72f1e638e7a0510d58af",
-    "email": "e2e_master_1790800624@example.com",
+    "id": "6abde6b7461e49ce73221a69",
+    "email": "signup_probe_1790830262@example.com",
     "fullName": "New User",
     "isVerified": false,
     "timezone": "UTC",
-    "createdAt": "2026-10-01T02:07:05.178646+05:30",
-    "updatedAt": "2026-10-01T02:07:05.178646+05:30"
+    "createdAt": "2026-10-01T10:21:03.227859+05:30",
+    "updatedAt": "2026-10-01T10:21:03.227859+05:30"
   },
   "message": "User registered successfully",
   "success": true,
-  "verificationToken": "e9c64c3ccf889547a97793600ca08f6c87374e92d298166ec84036d80a0a2852"
+  "verificationToken": "e6c3e4fea9cd8e190735ef45ed2730eb2c94da1b2c0106d0960c776185d15e82"
 }
 
 --- [STEP 4] Verify User Email with Token ---
 >> REQUEST:
 curl -X POST 'http://localhost:5000/v1/auth/verify-email' \
   -H 'Content-Type: application/json' \
-  -d '{"token": "e9c64c3ccf889547a97793600ca08f6c87374e92d298166ec84036d80a0a2852"}'
+  -d '{"token": "e6c3e4fea9cd8e190735ef45ed2730eb2c94da1b2c0106d0960c776185d15e82"}'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -112,8 +112,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 314961b8-8c43-477c-adaa-278bb010436e
-  Date: Wed, 30 Sep 2026 20:37:05 GMT
+  X-Request-Id: 9e9835b5-ef2c-41d5-8b88-e07e7f655cf1
+  Date: Thu, 01 Oct 2026 04:51:03 GMT
   Content-Length: 57
 Body:
 {
@@ -121,11 +121,11 @@ Body:
   "success": true
 }
 
---- [STEP 5] User Login ---
+--- [STEP 5] Static User Login ---
 >> REQUEST:
 curl -X POST 'http://localhost:5000/v1/auth/login' \
   -H 'Content-Type: application/json' \
-  -d '{"email": "e2e_master_1790800624@example.com", "password": "MasterPassword123!"}'
+  -d '{"email": "developer@xsocial.com", "password": "StaticPassword123!"}'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -137,36 +137,36 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 8df404ff-01e8-4fc9-b94a-d9841a5834a1
-  Date: Wed, 30 Sep 2026 20:37:05 GMT
-  Content-Length: 853
+  X-Request-Id: bd616812-319b-47d9-9885-500037aa80d0
+  Date: Thu, 01 Oct 2026 04:51:03 GMT
+  Content-Length: 845
 Body:
 {
   "data": {
     "user": {
-      "id": "6abd72f1e638e7a0510d58af",
-      "email": "e2e_master_1790800624@example.com",
-      "fullName": "New User",
+      "id": "6abde64b880c64c1db97aea3",
+      "email": "developer@xsocial.com",
+      "fullName": "Static Developer",
       "timezone": "UTC",
       "isVerified": true,
-      "createdAt": "2026-09-30T20:37:05.178Z"
+      "createdAt": "0001-01-01T00:00:00Z"
     },
     "tokens": {
-      "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjUsImlhdCI6MTc5MDgwMDYyNSwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.dvcfDnZ7WNRsxw-4M_lNduIDMoGiTCdCn_FzM5Ygi-k",
-      "refreshToken": "5606c8b5850b1eaf227e01f5a1ba25306542ca262c7d17c90e2eff09c1e0d5d94605bc73ae7c2aa453ea75a338347fcc"
+      "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjMsImlhdCI6MTc5MDgzMDI2Mywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.gdKyKxRcmrIqYZQ3EpsOcOrZ1EK7GaMaSJ5NvzdGKJs",
+      "refreshToken": "8f5a89f4323425b31fdfba3aaa4aa7f3a8cd72d4b0a7d04a3255aa30d8ed704bcfbffeb32691198b1977b8311ec284b4"
     }
   },
   "message": "Logged in successfully",
-  "refreshToken": "5606c8b5850b1eaf227e01f5a1ba25306542ca262c7d17c90e2eff09c1e0d5d94605bc73ae7c2aa453ea75a338347fcc",
+  "refreshToken": "8f5a89f4323425b31fdfba3aaa4aa7f3a8cd72d4b0a7d04a3255aa30d8ed704bcfbffeb32691198b1977b8311ec284b4",
   "success": true,
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjUsImlhdCI6MTc5MDgwMDYyNSwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.dvcfDnZ7WNRsxw-4M_lNduIDMoGiTCdCn_FzM5Ygi-k"
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjMsImlhdCI6MTc5MDgzMDI2Mywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.gdKyKxRcmrIqYZQ3EpsOcOrZ1EK7GaMaSJ5NvzdGKJs"
 }
 
 --- [STEP 6] Refresh Access Token ---
 >> REQUEST:
 curl -X POST 'http://localhost:5000/v1/auth/refresh' \
   -H 'Content-Type: application/json' \
-  -d '{"refreshToken": "5606c8b5850b1eaf227e01f5a1ba25306542ca262c7d17c90e2eff09c1e0d5d94605bc73ae7c2aa453ea75a338347fcc"}'
+  -d '{"refreshToken": "8f5a89f4323425b31fdfba3aaa4aa7f3a8cd72d4b0a7d04a3255aa30d8ed704bcfbffeb32691198b1977b8311ec284b4"}'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -178,35 +178,35 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: d3074cdc-1e9a-4921-af45-01aad4b8acad
-  Date: Wed, 30 Sep 2026 20:37:05 GMT
-  Content-Length: 818
+  X-Request-Id: 6f193a1a-5022-4d40-9690-d7d5a840c4ca
+  Date: Thu, 01 Oct 2026 04:51:03 GMT
+  Content-Length: 810
 Body:
 {
   "data": {
     "user": {
-      "id": "6abd72f1e638e7a0510d58af",
-      "email": "e2e_master_1790800624@example.com",
-      "fullName": "New User",
+      "id": "6abde64b880c64c1db97aea3",
+      "email": "developer@xsocial.com",
+      "fullName": "Static Developer",
       "timezone": "UTC",
       "isVerified": true,
-      "createdAt": "2026-09-30T20:37:05.178Z"
+      "createdAt": "0001-01-01T00:00:00Z"
     },
     "tokens": {
-      "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjUsImlhdCI6MTc5MDgwMDYyNSwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.dvcfDnZ7WNRsxw-4M_lNduIDMoGiTCdCn_FzM5Ygi-k",
-      "refreshToken": "bcf1ab2e8c267f4d806a3bef3bf31d64f0776558f1db0ae57afb2d6dcf99938af2458b57146274b13659e24394901341"
+      "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjMsImlhdCI6MTc5MDgzMDI2Mywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.gdKyKxRcmrIqYZQ3EpsOcOrZ1EK7GaMaSJ5NvzdGKJs",
+      "refreshToken": "e46272e18287897d02d5ab5b7ab3bc6db02e13033577f757628fcc06a3bc240523b82f782022c496a4913a6b23bd4575"
     }
   },
-  "refreshToken": "bcf1ab2e8c267f4d806a3bef3bf31d64f0776558f1db0ae57afb2d6dcf99938af2458b57146274b13659e24394901341",
+  "refreshToken": "e46272e18287897d02d5ab5b7ab3bc6db02e13033577f757628fcc06a3bc240523b82f782022c496a4913a6b23bd4575",
   "success": true,
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjUsImlhdCI6MTc5MDgwMDYyNSwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.dvcfDnZ7WNRsxw-4M_lNduIDMoGiTCdCn_FzM5Ygi-k"
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjMsImlhdCI6MTc5MDgzMDI2Mywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.gdKyKxRcmrIqYZQ3EpsOcOrZ1EK7GaMaSJ5NvzdGKJs"
 }
 
 --- [STEP 7] Request Password Reset ---
 >> REQUEST:
 curl -X POST 'http://localhost:5000/v1/auth/forgot-password' \
   -H 'Content-Type: application/json' \
-  -d '{"email": "e2e_master_1790800624@example.com"}'
+  -d '{"email": "developer@xsocial.com"}'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -218,13 +218,13 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 4bde152e-7920-4e3f-b4e3-b6148f0f0cdf
-  Date: Wed, 30 Sep 2026 20:37:05 GMT
+  X-Request-Id: 9f2df194-3aaf-4ccc-ab59-5573b89e3d9a
+  Date: Thu, 01 Oct 2026 04:51:03 GMT
   Content-Length: 169
 Body:
 {
   "message": "If the account exists, a password reset email has been sent",
-  "resetToken": "09da7a3378bfd48deb790a2de2b37ebc824b21a987e0e5013eb4b8ce214dca85",
+  "resetToken": "9931702e1a5bb5bb9315ad95d09c6dffbaa313e8faa89508a2088b09c2f6eaaf",
   "success": true
 }
 
@@ -232,7 +232,7 @@ Body:
 >> REQUEST:
 curl -X POST 'http://localhost:5000/v1/auth/reset-password' \
   -H 'Content-Type: application/json' \
-  -d '{"token": "09da7a3378bfd48deb790a2de2b37ebc824b21a987e0e5013eb4b8ce214dca85", "newPassword": "ResetPassword123!"}'
+  -d '{"token": "9931702e1a5bb5bb9315ad95d09c6dffbaa313e8faa89508a2088b09c2f6eaaf", "newPassword": "StaticPassword123!"}'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -244,8 +244,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: fc4132c3-6b52-424f-b818-ecb21c61c135
-  Date: Wed, 30 Sep 2026 20:37:06 GMT
+  X-Request-Id: a99835ed-f0b9-441a-8c31-7b69f73bc731
+  Date: Thu, 01 Oct 2026 04:51:04 GMT
   Content-Length: 57
 Body:
 {
@@ -253,51 +253,10 @@ Body:
   "success": true
 }
 
---- [STEP 9] Re-login with Reset Password ---
->> REQUEST:
-curl -X POST 'http://localhost:5000/v1/auth/login' \
-  -H 'Content-Type: application/json' \
-  -d '{"email": "e2e_master_1790800624@example.com", "password": "ResetPassword123!"}'
-<< RESPONSE:
-Status: HTTP/1.1 200 OK
-Headers:
-  Access-Control-Allow-Headers: Authorization, Content-Type, Idempotency-Key, X-Request-ID
-  Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS
-  Access-Control-Allow-Origin: *
-  Access-Control-Max-Age: 86400
-  Content-Type: application/json
-  Referrer-Policy: strict-origin-when-cross-origin
-  X-Content-Type-Options: nosniff
-  X-Frame-Options: DENY
-  X-Request-Id: ab850bc3-630d-46ff-8660-f889209296b6
-  Date: Wed, 30 Sep 2026 20:37:06 GMT
-  Content-Length: 853
-Body:
-{
-  "data": {
-    "user": {
-      "id": "6abd72f1e638e7a0510d58af",
-      "email": "e2e_master_1790800624@example.com",
-      "fullName": "New User",
-      "timezone": "UTC",
-      "isVerified": true,
-      "createdAt": "2026-09-30T20:37:05.178Z"
-    },
-    "tokens": {
-      "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjYsImlhdCI6MTc5MDgwMDYyNiwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.8Zarlu1IhPtYFExEnDP7-hNQQUgnZlCPw94YHafW3cc",
-      "refreshToken": "f18bd74a992ae3b943c9a71305eb843a15532c2c8fe7b5cd495358ecd4c61a85195824a21ac42b730757fb2e65305015"
-    }
-  },
-  "message": "Logged in successfully",
-  "refreshToken": "f18bd74a992ae3b943c9a71305eb843a15532c2c8fe7b5cd495358ecd4c61a85195824a21ac42b730757fb2e65305015",
-  "success": true,
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjYsImlhdCI6MTc5MDgwMDYyNiwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.8Zarlu1IhPtYFExEnDP7-hNQQUgnZlCPw94YHafW3cc"
-}
-
---- [STEP 10] Get Current User Profile ---
+--- [STEP 9] Get Current Static User Profile ---
 >> REQUEST:
 curl -X GET 'http://localhost:5000/v1/users/me' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjYsImlhdCI6MTc5MDgwMDYyNiwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.8Zarlu1IhPtYFExEnDP7-hNQQUgnZlCPw94YHafW3cc'
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjMsImlhdCI6MTc5MDgzMDI2Mywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.gdKyKxRcmrIqYZQ3EpsOcOrZ1EK7GaMaSJ5NvzdGKJs'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -309,28 +268,28 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: fb719c4b-0396-412b-8efb-db18d2a41202
-  Date: Wed, 30 Sep 2026 20:37:06 GMT
-  Content-Length: 198
+  X-Request-Id: 712e5bf9-8fe8-443b-aeef-84cebbe84dcb
+  Date: Thu, 01 Oct 2026 04:51:04 GMT
+  Content-Length: 190
 Body:
 {
   "data": {
-    "id": "6abd72f1e638e7a0510d58af",
-    "email": "e2e_master_1790800624@example.com",
-    "fullName": "New User",
+    "id": "6abde64b880c64c1db97aea3",
+    "email": "developer@xsocial.com",
+    "fullName": "Static Developer",
     "timezone": "UTC",
     "isVerified": true,
-    "createdAt": "2026-09-30T20:37:05.178Z"
+    "createdAt": "0001-01-01T00:00:00Z"
   },
   "success": true
 }
 
---- [STEP 11] Update User Profile (PUT) ---
+--- [STEP 10] Update User Profile (PUT) ---
 >> REQUEST:
 curl -X PUT 'http://localhost:5000/v1/users/me' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjYsImlhdCI6MTc5MDgwMDYyNiwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.8Zarlu1IhPtYFExEnDP7-hNQQUgnZlCPw94YHafW3cc' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjMsImlhdCI6MTc5MDgzMDI2Mywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.gdKyKxRcmrIqYZQ3EpsOcOrZ1EK7GaMaSJ5NvzdGKJs' \
   -H 'Content-Type: application/json' \
-  -d '{"fullName": "E2E Master Tester", "timezone": "America/New_York"}'
+  -d '{"fullName": "Static Test Developer", "timezone": "America/New_York"}'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -342,29 +301,29 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: fa1f61d4-3040-438a-b2ba-58beaada37fc
-  Date: Wed, 30 Sep 2026 20:37:06 GMT
-  Content-Length: 261
+  X-Request-Id: f7b603c9-2074-4f04-8c9f-559c50e889a0
+  Date: Thu, 01 Oct 2026 04:51:04 GMT
+  Content-Length: 249
 Body:
 {
   "data": {
-    "id": "6abd72f1e638e7a0510d58af",
-    "email": "e2e_master_1790800624@example.com",
-    "fullName": "E2E Master Tester",
+    "id": "6abde64b880c64c1db97aea3",
+    "email": "developer@xsocial.com",
+    "fullName": "Static Test Developer",
     "timezone": "America/New_York",
     "isVerified": true,
-    "createdAt": "2026-09-30T20:37:05.178Z"
+    "createdAt": "0001-01-01T00:00:00Z"
   },
   "message": "Profile updated successfully",
   "success": true
 }
 
---- [STEP 12] Update User Profile (PATCH) ---
+--- [STEP 11] Update User Profile (PATCH) ---
 >> REQUEST:
 curl -X PATCH 'http://localhost:5000/v1/users/me' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjYsImlhdCI6MTc5MDgwMDYyNiwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.8Zarlu1IhPtYFExEnDP7-hNQQUgnZlCPw94YHafW3cc' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjMsImlhdCI6MTc5MDgzMDI2Mywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.gdKyKxRcmrIqYZQ3EpsOcOrZ1EK7GaMaSJ5NvzdGKJs' \
   -H 'Content-Type: application/json' \
-  -d '{"fullName": "E2E Senior Director", "timezone": "Europe/London"}'
+  -d '{"fullName": "Static Lead Developer", "timezone": "Europe/London"}'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -376,29 +335,29 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 1841fca0-13f5-4d88-86f2-d29284fa18d4
-  Date: Wed, 30 Sep 2026 20:37:06 GMT
-  Content-Length: 260
+  X-Request-Id: 94a9094c-2b7a-4e17-ab71-0036f7954f27
+  Date: Thu, 01 Oct 2026 04:51:04 GMT
+  Content-Length: 246
 Body:
 {
   "data": {
-    "id": "6abd72f1e638e7a0510d58af",
-    "email": "e2e_master_1790800624@example.com",
-    "fullName": "E2E Senior Director",
+    "id": "6abde64b880c64c1db97aea3",
+    "email": "developer@xsocial.com",
+    "fullName": "Static Lead Developer",
     "timezone": "Europe/London",
     "isVerified": true,
-    "createdAt": "2026-09-30T20:37:05.178Z"
+    "createdAt": "0001-01-01T00:00:00Z"
   },
   "message": "Profile updated successfully",
   "success": true
 }
 
---- [STEP 13] Change User Password ---
+--- [STEP 12] Change User Password ---
 >> REQUEST:
 curl -X PUT 'http://localhost:5000/v1/users/change-password' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjYsImlhdCI6MTc5MDgwMDYyNiwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.8Zarlu1IhPtYFExEnDP7-hNQQUgnZlCPw94YHafW3cc' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjMsImlhdCI6MTc5MDgzMDI2Mywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.gdKyKxRcmrIqYZQ3EpsOcOrZ1EK7GaMaSJ5NvzdGKJs' \
   -H 'Content-Type: application/json' \
-  -d '{"oldPassword": "ResetPassword123!", "newPassword": "ChangedPassword123!"}'
+  -d '{"oldPassword": "StaticPassword123!", "newPassword": "TempPassword999!"}'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -410,8 +369,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: d1957be9-7e09-4126-96a5-d5715a7e54cb
-  Date: Wed, 30 Sep 2026 20:37:07 GMT
+  X-Request-Id: 4ed714fd-2c47-4102-8da5-f396c1e4733e
+  Date: Thu, 01 Oct 2026 04:51:05 GMT
   Content-Length: 59
 Body:
 {
@@ -419,11 +378,11 @@ Body:
   "success": true
 }
 
---- [STEP 14] Re-login with Changed Password ---
+--- [STEP 13] Re-login with Temp Password ---
 >> REQUEST:
 curl -X POST 'http://localhost:5000/v1/auth/login' \
   -H 'Content-Type: application/json' \
-  -d '{"email": "e2e_master_1790800624@example.com", "password": "ChangedPassword123!"}'
+  -d '{"email": "developer@xsocial.com", "password": "TempPassword999!"}'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -435,29 +394,96 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 6d52b5b8-80a2-4b3a-a534-3a8eaa494d8e
-  Date: Wed, 30 Sep 2026 20:37:08 GMT
-  Content-Length: 874
+  X-Request-Id: 85e88d9f-e80a-4d8a-b35a-441f94e297e2
+  Date: Thu, 01 Oct 2026 04:51:05 GMT
+  Content-Length: 860
 Body:
 {
   "data": {
     "user": {
-      "id": "6abd72f1e638e7a0510d58af",
-      "email": "e2e_master_1790800624@example.com",
-      "fullName": "E2E Senior Director",
+      "id": "6abde64b880c64c1db97aea3",
+      "email": "developer@xsocial.com",
+      "fullName": "Static Lead Developer",
       "timezone": "Europe/London",
       "isVerified": true,
-      "createdAt": "2026-09-30T20:37:05.178Z"
+      "createdAt": "0001-01-01T00:00:00Z"
     },
     "tokens": {
-      "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU",
-      "refreshToken": "76a9a6efd4244f6473d0ba6374acf220f8e9bffcdecda3820e184b21c30895d31140de688ce711e34946ff5058cf00eb"
+      "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjUsImlhdCI6MTc5MDgzMDI2NSwic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.OZkAYKNePxv9YqKj6m3Hb447dFPdn3kt44qAKmPjW4o",
+      "refreshToken": "7d47374aa84309c92dcace65077828c5129dbb648d34aeac03488edbd5cff4eb0db215cbc1e59ceffaf62d853910581a"
     }
   },
   "message": "Logged in successfully",
-  "refreshToken": "76a9a6efd4244f6473d0ba6374acf220f8e9bffcdecda3820e184b21c30895d31140de688ce711e34946ff5058cf00eb",
+  "refreshToken": "7d47374aa84309c92dcace65077828c5129dbb648d34aeac03488edbd5cff4eb0db215cbc1e59ceffaf62d853910581a",
   "success": true,
-  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU"
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjUsImlhdCI6MTc5MDgzMDI2NSwic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.OZkAYKNePxv9YqKj6m3Hb447dFPdn3kt44qAKmPjW4o"
+}
+
+--- [STEP 14] Revert User Password to STATIC_PASSWORD ---
+>> REQUEST:
+curl -X PUT 'http://localhost:5000/v1/users/change-password' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjUsImlhdCI6MTc5MDgzMDI2NSwic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.OZkAYKNePxv9YqKj6m3Hb447dFPdn3kt44qAKmPjW4o' \
+  -H 'Content-Type: application/json' \
+  -d '{"oldPassword": "TempPassword999!", "newPassword": "StaticPassword123!"}'
+<< RESPONSE:
+Status: HTTP/1.1 200 OK
+Headers:
+  Access-Control-Allow-Headers: Authorization, Content-Type, Idempotency-Key, X-Request-ID
+  Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS
+  Access-Control-Allow-Origin: *
+  Access-Control-Max-Age: 86400
+  Content-Type: application/json
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  X-Request-Id: b2dc3bc5-9dc4-4699-b06a-559c26b76998
+  Date: Thu, 01 Oct 2026 04:51:06 GMT
+  Content-Length: 59
+Body:
+{
+  "message": "Password changed successfully",
+  "success": true
+}
+
+--- [STEP 15] Re-login with STATIC_PASSWORD ---
+>> REQUEST:
+curl -X POST 'http://localhost:5000/v1/auth/login' \
+  -H 'Content-Type: application/json' \
+  -d '{"email": "developer@xsocial.com", "password": "StaticPassword123!"}'
+<< RESPONSE:
+Status: HTTP/1.1 200 OK
+Headers:
+  Access-Control-Allow-Headers: Authorization, Content-Type, Idempotency-Key, X-Request-ID
+  Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS
+  Access-Control-Allow-Origin: *
+  Access-Control-Max-Age: 86400
+  Content-Type: application/json
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  X-Request-Id: 6090b559-9bcc-44a3-8703-6fa730c31d44
+  Date: Thu, 01 Oct 2026 04:51:07 GMT
+  Content-Length: 860
+Body:
+{
+  "data": {
+    "user": {
+      "id": "6abde64b880c64c1db97aea3",
+      "email": "developer@xsocial.com",
+      "fullName": "Static Lead Developer",
+      "timezone": "Europe/London",
+      "isVerified": true,
+      "createdAt": "0001-01-01T00:00:00Z"
+    },
+    "tokens": {
+      "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU",
+      "refreshToken": "d8ea80986a7ab350664661af0f7dd900c72d46bafb514297199a4023d7fde8ca0b49abfcf7d6fa3b1ca5794bf94d8292"
+    }
+  },
+  "message": "Logged in successfully",
+  "refreshToken": "d8ea80986a7ab350664661af0f7dd900c72d46bafb514297199a4023d7fde8ca0b49abfcf7d6fa3b1ca5794bf94d8292",
+  "success": true,
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU"
 }
 
 
@@ -465,10 +491,10 @@ Body:
 3. BRANDS & WORKSPACES
 ================================================================================
 
---- [STEP 15] Create Brand Workspace ---
+--- [STEP 16] Create Brand Workspace ---
 >> REQUEST:
 curl -X POST 'http://localhost:5000/v1/brands' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
   -d '{"name": "Acme Global Brands", "description": "Primary enterprise testing workspace", "timezone": "America/New_York", "currency": "USD"}'
 << RESPONSE:
@@ -482,27 +508,27 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 314522b5-e968-4f10-9b0f-79a39891836f
-  Date: Wed, 30 Sep 2026 20:37:08 GMT
+  X-Request-Id: 7d2f5a08-fdaf-43b2-a070-27034cd76cea
+  Date: Thu, 01 Oct 2026 04:51:07 GMT
   Content-Length: 322
 Body:
 {
-  "id": "6abd72f4e638e7a0510d58b4",
-  "ownerId": "6abd72f1e638e7a0510d58af",
+  "id": "6abde6bb461e49ce73221a6e",
+  "ownerId": "6abde64b880c64c1db97aea3",
   "name": "Acme Global Brands",
   "description": "Primary enterprise testing workspace",
   "logoUrl": "",
   "timezone": "America/New_York",
   "currency": "USD",
   "websiteUrl": "",
-  "createdAt": "2026-10-01T02:07:08.048082+05:30",
-  "updatedAt": "2026-10-01T02:07:08.048082+05:30"
+  "createdAt": "2026-10-01T10:21:07.273333+05:30",
+  "updatedAt": "2026-10-01T10:21:07.273333+05:30"
 }
 
---- [STEP 16] List All Brands for User ---
+--- [STEP 17] List All Brands for Static User ---
 >> REQUEST:
 curl -X GET 'http://localhost:5000/v1/brands' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -514,32 +540,32 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: c259a033-858c-4037-a99b-9437f0733257
-  Date: Wed, 30 Sep 2026 20:37:08 GMT
+  X-Request-Id: a0a7f6b4-66f3-49fe-81bb-5f262b6c13a4
+  Date: Thu, 01 Oct 2026 04:51:07 GMT
   Content-Length: 327
 Body:
 {
   "count": 1,
   "data": [
     {
-      "id": "6abd72f4e638e7a0510d58b4",
-      "ownerId": "6abd72f1e638e7a0510d58af",
+      "id": "6abde6bb461e49ce73221a6e",
+      "ownerId": "6abde64b880c64c1db97aea3",
       "name": "Acme Global Brands",
       "description": "Primary enterprise testing workspace",
       "logoUrl": "",
       "timezone": "America/New_York",
       "currency": "USD",
       "websiteUrl": "",
-      "createdAt": "2026-09-30T20:37:08.048Z",
-      "updatedAt": "2026-09-30T20:37:08.048Z"
+      "createdAt": "2026-10-01T04:51:07.273Z",
+      "updatedAt": "2026-10-01T04:51:07.273Z"
     }
   ]
 }
 
---- [STEP 17] Get Brand Workspace Details ---
+--- [STEP 18] Get Brand Workspace Details ---
 >> REQUEST:
-curl -X GET 'http://localhost:5000/v1/brands/6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X GET 'http://localhost:5000/v1/brands/6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -551,27 +577,27 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: a0674207-200b-4a63-ae9b-5bdec4a0b890
-  Date: Wed, 30 Sep 2026 20:37:08 GMT
+  X-Request-Id: a8275bb9-d40c-4e7e-a661-80bb0ec68b76
+  Date: Thu, 01 Oct 2026 04:51:07 GMT
   Content-Length: 306
 Body:
 {
-  "id": "6abd72f4e638e7a0510d58b4",
-  "ownerId": "6abd72f1e638e7a0510d58af",
+  "id": "6abde6bb461e49ce73221a6e",
+  "ownerId": "6abde64b880c64c1db97aea3",
   "name": "Acme Global Brands",
   "description": "Primary enterprise testing workspace",
   "logoUrl": "",
   "timezone": "America/New_York",
   "currency": "USD",
   "websiteUrl": "",
-  "createdAt": "2026-09-30T20:37:08.048Z",
-  "updatedAt": "2026-09-30T20:37:08.048Z"
+  "createdAt": "2026-10-01T04:51:07.273Z",
+  "updatedAt": "2026-10-01T04:51:07.273Z"
 }
 
---- [STEP 18] Update Brand Workspace (PUT) ---
+--- [STEP 19] Update Brand Workspace (PUT) ---
 >> REQUEST:
-curl -X PUT 'http://localhost:5000/v1/brands/6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+curl -X PUT 'http://localhost:5000/v1/brands/6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
   -d '{"name": "Acme Global Enterprises", "timezone": "America/Chicago"}'
 << RESPONSE:
@@ -585,27 +611,27 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: d4c20bbf-b2e7-4cf2-8f16-6c084c4def64
-  Date: Wed, 30 Sep 2026 20:37:08 GMT
+  X-Request-Id: d314bc43-02a3-4e74-9f81-ee2067123d1e
+  Date: Thu, 01 Oct 2026 04:51:07 GMT
   Content-Length: 310
 Body:
 {
-  "id": "6abd72f4e638e7a0510d58b4",
-  "ownerId": "6abd72f1e638e7a0510d58af",
+  "id": "6abde6bb461e49ce73221a6e",
+  "ownerId": "6abde64b880c64c1db97aea3",
   "name": "Acme Global Enterprises",
   "description": "Primary enterprise testing workspace",
   "logoUrl": "",
   "timezone": "America/Chicago",
   "currency": "USD",
   "websiteUrl": "",
-  "createdAt": "2026-09-30T20:37:08.048Z",
-  "updatedAt": "2026-09-30T20:37:08.155Z"
+  "createdAt": "2026-10-01T04:51:07.273Z",
+  "updatedAt": "2026-10-01T04:51:07.368Z"
 }
 
---- [STEP 19] Update Brand Workspace (PATCH) ---
+--- [STEP 20] Update Brand Workspace (PATCH) ---
 >> REQUEST:
-curl -X PATCH 'http://localhost:5000/v1/brands/6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+curl -X PATCH 'http://localhost:5000/v1/brands/6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
   -d '{"name": "Acme Global Holdings"}'
 << RESPONSE:
@@ -619,28 +645,28 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 9bf33697-adec-4ef0-8c38-5a9ae258b8cc
-  Date: Wed, 30 Sep 2026 20:37:08 GMT
-  Content-Length: 306
+  X-Request-Id: 146a17e6-112b-47fb-8eef-7c12b6f68a6d
+  Date: Thu, 01 Oct 2026 04:51:07 GMT
+  Content-Length: 307
 Body:
 {
-  "id": "6abd72f4e638e7a0510d58b4",
-  "ownerId": "6abd72f1e638e7a0510d58af",
+  "id": "6abde6bb461e49ce73221a6e",
+  "ownerId": "6abde64b880c64c1db97aea3",
   "name": "Acme Global Holdings",
   "description": "Primary enterprise testing workspace",
   "logoUrl": "",
   "timezone": "America/Chicago",
   "currency": "USD",
   "websiteUrl": "",
-  "createdAt": "2026-09-30T20:37:08.048Z",
-  "updatedAt": "2026-09-30T20:37:08.18Z"
+  "createdAt": "2026-10-01T04:51:07.273Z",
+  "updatedAt": "2026-10-01T04:51:07.399Z"
 }
 
---- [STEP 20] Register Secondary Member User ---
+--- [STEP 21] Register Secondary Member User ---
 >> REQUEST:
 curl -X POST 'http://localhost:5000/v1/auth/signup' \
   -H 'Content-Type: application/json' \
-  -d '{"email": "brand_member_1790800624@example.com", "password": "MemberPassword123!"}'
+  -d '{"email": "brand_member_1790830267@example.com", "password": "MemberPassword123!"}'
 << RESPONSE:
 Status: HTTP/1.1 201 Created
 Headers:
@@ -652,30 +678,30 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: da8c00cb-94e9-4318-9725-a27327e6b138
-  Date: Wed, 30 Sep 2026 20:37:08 GMT
+  X-Request-Id: f0a99d9b-e5c3-47c9-b2bb-70a13988c1b9
+  Date: Thu, 01 Oct 2026 04:51:07 GMT
   Content-Length: 384
 Body:
 {
   "data": {
-    "id": "6abd72f4e638e7a0510d58b9",
-    "email": "brand_member_1790800624@example.com",
+    "id": "6abde6bb461e49ce73221a73",
+    "email": "brand_member_1790830267@example.com",
     "fullName": "New User",
     "isVerified": false,
     "timezone": "UTC",
-    "createdAt": "2026-10-01T02:07:08.624419+05:30",
-    "updatedAt": "2026-10-01T02:07:08.624419+05:30"
+    "createdAt": "2026-10-01T10:21:07.872567+05:30",
+    "updatedAt": "2026-10-01T10:21:07.872567+05:30"
   },
   "message": "User registered successfully",
   "success": true,
-  "verificationToken": "6e4840b90515a6efeb42d1e7d3f8ae233c1432122dacbd6fd5af386b3e7956db"
+  "verificationToken": "8bce7e23df0ca5c8dfdcae2582f1372cb163d666e92c1181ce268a84689372b0"
 }
 
---- [STEP 21] Verify Secondary Member Email ---
+--- [STEP 22] Verify Secondary Member Email ---
 >> REQUEST:
 curl -X POST 'http://localhost:5000/v1/auth/verify-email' \
   -H 'Content-Type: application/json' \
-  -d '{"token": "6e4840b90515a6efeb42d1e7d3f8ae233c1432122dacbd6fd5af386b3e7956db"}'
+  -d '{"token": "8bce7e23df0ca5c8dfdcae2582f1372cb163d666e92c1181ce268a84689372b0"}'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -687,8 +713,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: a55ee38d-8a78-4b5b-b25a-faa9b0665fc7
-  Date: Wed, 30 Sep 2026 20:37:08 GMT
+  X-Request-Id: dc93f2dd-37a0-4215-92d0-34eaf201d594
+  Date: Thu, 01 Oct 2026 04:51:07 GMT
   Content-Length: 57
 Body:
 {
@@ -696,12 +722,12 @@ Body:
   "success": true
 }
 
---- [STEP 22] Add Member to Brand ---
+--- [STEP 23] Add Member to Brand ---
 >> REQUEST:
-curl -X POST 'http://localhost:5000/v1/brands/6abd72f4e638e7a0510d58b4/members' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+curl -X POST 'http://localhost:5000/v1/brands/6abde6bb461e49ce73221a6e/members' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
-  -d '{"email": "brand_member_1790800624@example.com", "role": "editor"}'
+  -d '{"email": "brand_member_1790830267@example.com", "role": "editor"}'
 << RESPONSE:
 Status: HTTP/1.1 201 Created
 Headers:
@@ -713,25 +739,25 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 9a55253c-c0ab-4d86-9e2b-72f39df52a49
-  Date: Wed, 30 Sep 2026 20:37:08 GMT
+  X-Request-Id: b66f5c18-cec5-4807-b5ff-0e8ee166c95a
+  Date: Thu, 01 Oct 2026 04:51:07 GMT
   Content-Length: 281
 Body:
 {
-  "id": "6abd72f4e638e7a0510d58ba",
-  "brandId": "6abd72f4e638e7a0510d58b4",
-  "userId": "6abd72f4e638e7a0510d58b9",
-  "email": "brand_member_1790800624@example.com",
+  "id": "6abde6bb461e49ce73221a74",
+  "brandId": "6abde6bb461e49ce73221a6e",
+  "userId": "6abde6bb461e49ce73221a73",
+  "email": "brand_member_1790830267@example.com",
   "name": "New User",
   "role": "editor",
-  "createdAt": "2026-10-01T02:07:08.675545+05:30",
-  "updatedAt": "2026-10-01T02:07:08.675545+05:30"
+  "createdAt": "2026-10-01T10:21:07.924418+05:30",
+  "updatedAt": "2026-10-01T10:21:07.924418+05:30"
 }
 
---- [STEP 23] List Brand Members ---
+--- [STEP 24] List Brand Members ---
 >> REQUEST:
-curl -X GET 'http://localhost:5000/v1/brands/6abd72f4e638e7a0510d58b4/members' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X GET 'http://localhost:5000/v1/brands/6abde6bb461e49ce73221a6e/members' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -743,40 +769,40 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 59f7313c-a11d-4bdb-8937-ffae85171f22
-  Date: Wed, 30 Sep 2026 20:37:08 GMT
+  X-Request-Id: 2c73e7f0-27b1-4c55-a644-bf69c016865d
+  Date: Thu, 01 Oct 2026 04:51:07 GMT
   Content-Length: 507
 Body:
 {
   "count": 2,
   "data": [
     {
-      "id": "6abd72f4e638e7a0510d58b5",
-      "brandId": "6abd72f4e638e7a0510d58b4",
-      "userId": "6abd72f1e638e7a0510d58af",
+      "id": "6abde6bb461e49ce73221a6f",
+      "brandId": "6abde6bb461e49ce73221a6e",
+      "userId": "6abde64b880c64c1db97aea3",
       "email": "",
       "name": "",
       "role": "owner",
-      "createdAt": "2026-09-30T20:37:08.048Z",
-      "updatedAt": "2026-09-30T20:37:08.048Z"
+      "createdAt": "2026-10-01T04:51:07.273Z",
+      "updatedAt": "2026-10-01T04:51:07.273Z"
     },
     {
-      "id": "6abd72f4e638e7a0510d58ba",
-      "brandId": "6abd72f4e638e7a0510d58b4",
-      "userId": "6abd72f4e638e7a0510d58b9",
-      "email": "brand_member_1790800624@example.com",
+      "id": "6abde6bb461e49ce73221a74",
+      "brandId": "6abde6bb461e49ce73221a6e",
+      "userId": "6abde6bb461e49ce73221a73",
+      "email": "brand_member_1790830267@example.com",
       "name": "New User",
       "role": "editor",
-      "createdAt": "2026-09-30T20:37:08.675Z",
-      "updatedAt": "2026-09-30T20:37:08.675Z"
+      "createdAt": "2026-10-01T04:51:07.924Z",
+      "updatedAt": "2026-10-01T04:51:07.924Z"
     }
   ]
 }
 
---- [STEP 24] Remove Member from Brand ---
+--- [STEP 25] Remove Member from Brand ---
 >> REQUEST:
-curl -X DELETE 'http://localhost:5000/v1/brands/6abd72f4e638e7a0510d58b4/members/6abd72f4e638e7a0510d58b9' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X DELETE 'http://localhost:5000/v1/brands/6abde6bb461e49ce73221a6e/members/6abde6bb461e49ce73221a73' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -788,8 +814,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: e7e710bf-49e3-4397-9f7e-490683dc4b47
-  Date: Wed, 30 Sep 2026 20:37:08 GMT
+  X-Request-Id: 70c9cf22-5f73-45ed-95a6-1f9a8b828fef
+  Date: Thu, 01 Oct 2026 04:51:07 GMT
   Content-Length: 57
 Body:
 {
@@ -802,12 +828,12 @@ Body:
 4. API KEYS (SCOPED PROGRAMMATIC ACCESS)
 ================================================================================
 
---- [STEP 25] Create Scoped API Key ---
+--- [STEP 26] Create Scoped API Key ---
 >> REQUEST:
 curl -X POST 'http://localhost:5000/v1/api-keys' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
-  -d '{"name": "Production Metricool & CI Integration Key", "brandId": "6abd72f4e638e7a0510d58b4", "permissions": ["posts:read", "posts:write", "analytics:read", "brands:read"], "expiresInDays": 90}'
+  -d '{"name": "Static Developer Metricool & CI Key", "brandId": "6abde6bb461e49ce73221a6e", "permissions": ["posts:read", "posts:write", "analytics:read", "brands:read"], "expiresInDays": 90}'
 << RESPONSE:
 Status: HTTP/1.1 201 Created
 Headers:
@@ -819,33 +845,33 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: ec5ccf50-6319-4715-adb8-fe2d20b4a50d
-  Date: Wed, 30 Sep 2026 20:37:08 GMT
-  Content-Length: 409
+  X-Request-Id: 38faed3b-b505-462c-bfce-24a86359085d
+  Date: Thu, 01 Oct 2026 04:51:08 GMT
+  Content-Length: 403
 Body:
 {
   "apiKey": {
-    "id": "6abd72f4e638e7a0510d58bd",
-    "name": "Production Metricool & CI Integration Key",
+    "id": "6abde6bb461e49ce73221a77",
+    "name": "Static Developer Metricool & CI Key",
     "prefix": "mc_live_",
-    "lastFour": "85ab",
+    "lastFour": "66d6",
     "permissions": [
       "posts:read",
       "posts:write",
       "analytics:read",
       "brands:read"
     ],
-    "brandId": "6abd72f4e638e7a0510d58b4",
-    "expiresAt": "2026-12-30T02:07:08.750842+05:30",
-    "createdAt": "2026-10-01T02:07:08.750844+05:30"
+    "brandId": "6abde6bb461e49ce73221a6e",
+    "expiresAt": "2026-12-30T10:21:07.997205+05:30",
+    "createdAt": "2026-10-01T10:21:07.997208+05:30"
   },
-  "key": "mc_live_a641fe2b89865c61e3c1a1bc2ea105f15ac61d3f2f5f85ab"
+  "key": "mc_live_140639d6aa5a09e0afe3d74ae3f1235e39a8e840833066d6"
 }
 
---- [STEP 26] List API Keys ---
+--- [STEP 27] List API Keys ---
 >> REQUEST:
 curl -X GET 'http://localhost:5000/v1/api-keys' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -857,27 +883,27 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: ae7f0ca7-e644-4e70-ade9-2d9c1dfe1576
-  Date: Wed, 30 Sep 2026 20:37:08 GMT
-  Content-Length: 336
+  X-Request-Id: e4d35ae1-4b1c-4c10-aee9-66c08998adce
+  Date: Thu, 01 Oct 2026 04:51:08 GMT
+  Content-Length: 332
 Body:
 {
   "count": 1,
   "data": [
     {
-      "id": "6abd72f4e638e7a0510d58bd",
-      "name": "Production Metricool & CI Integration Key",
+      "id": "6abde6bb461e49ce73221a77",
+      "name": "Static Developer Metricool & CI Key",
       "prefix": "mc_live_",
-      "lastFour": "85ab",
+      "lastFour": "66d6",
       "permissions": [
         "posts:read",
         "posts:write",
         "analytics:read",
         "brands:read"
       ],
-      "brandId": "6abd72f4e638e7a0510d58b4",
-      "expiresAt": "2026-12-29T20:37:08.75Z",
-      "createdAt": "2026-09-30T20:37:08.75Z"
+      "brandId": "6abde6bb461e49ce73221a6e",
+      "expiresAt": "2026-12-30T04:51:07.997Z",
+      "createdAt": "2026-10-01T04:51:07.997Z"
     }
   ]
 }
@@ -887,10 +913,10 @@ Body:
 5. MEDIA UPLOADS & ASSETS
 ================================================================================
 
---- [STEP 27] Upload Media Asset (PNG Image) ---
+--- [STEP 28] Upload Media Asset (PNG Image) ---
 >> REQUEST:
 curl -X POST 'http://localhost:5000/v1/uploads/media' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -F 'file=@/tmp/test_upload.png'
 << RESPONSE:
 Status: HTTP/1.1 201 Created
@@ -903,8 +929,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: a013e851-c3a5-4857-b3bc-930cf85662a3
-  Date: Wed, 30 Sep 2026 20:37:08 GMT
+  X-Request-Id: 6be3856d-1ac8-4bf5-b4c4-d663b780e6cd
+  Date: Thu, 01 Oct 2026 04:51:08 GMT
   Content-Length: 441
 Body:
 {
@@ -914,7 +940,7 @@ Body:
       "name": "test_upload.png",
       "mimeType": "image/png",
       "size": 67,
-      "url": "http://localhost:3000/api/v1/uploads/media/4d2bac5d-f903-4a8a-b14c-3e2154170eb5",
+      "url": "http://localhost:3000/api/v1/uploads/media/1d14199b-4d08-49ee-94fd-c4e73bf5adfa",
       "base64Data": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFWM0AAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==",
       "dataUri": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFWM0AAAACklEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg=="
     }
@@ -924,13 +950,13 @@ Body:
 
 
 ================================================================================
-6. SOCIAL HANDLES & ACCOUNTS
+6. SOCIAL HANDLES & LINKEDIN OAUTH CONNECTION
 ================================================================================
 
---- [STEP 28] List Social Accounts for Brand ---
+--- [STEP 29] Generate LinkedIn OAuth Authorization URL for Static User ---
 >> REQUEST:
-curl -X GET 'http://localhost:5000/v1/social/accounts?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X POST 'http://localhost:5000/v1/social/connect/linkedin' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -942,8 +968,65 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 616b9344-96fe-4e53-ab3b-1aae1069ea56
-  Date: Wed, 30 Sep 2026 20:37:08 GMT
+  X-Request-Id: b97e3158-6e1e-4bde-b30d-2bbf94d20027
+  Date: Thu, 01 Oct 2026 04:51:08 GMT
+  Content-Length: 664
+Body:
+{
+  "authUrl": "https://www.linkedin.com/oauth/v2/authorization?client_id=86hy095n1eyfxw&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Foauth%2Fcallback%2Flinkedin&response_type=code&scope=openid+profile+email+w_member_social&state=6abde64b880c64c1db97aea3%3A1790830268076%3Aa9365a2d9a065835d060809319940c4b",
+  "platform": "linkedin",
+  "url": "https://www.linkedin.com/oauth/v2/authorization?client_id=86hy095n1eyfxw&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Foauth%2Fcallback%2Flinkedin&response_type=code&scope=openid+profile+email+w_member_social&state=6abde64b880c64c1db97aea3%3A1790830268076%3Aa9365a2d9a065835d060809319940c4b"
+}
+
+
+********************************************************************************
+>>> LINKEDIN OAUTH AUTHORIZATION URL FOR STATIC USER:
+User: developer@xsocial.com (ID: 6abde64b880c64c1db97aea3)
+Auth URL: https://www.linkedin.com/oauth/v2/authorization?client_id=86hy095n1eyfxw&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Foauth%2Fcallback%2Flinkedin&response_type=code&scope=openid+profile+email+w_member_social&state=6abde64b880c64c1db97aea3%3A1790830268076%3Aa9365a2d9a065835d060809319940c4b
+********************************************************************************
+
+--- [STEP 30] Get LinkedIn OAuth URL via GET ---
+>> REQUEST:
+curl -X GET 'http://localhost:5000/v1/social/connect/linkedin' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
+<< RESPONSE:
+Status: HTTP/1.1 200 OK
+Headers:
+  Access-Control-Allow-Headers: Authorization, Content-Type, Idempotency-Key, X-Request-ID
+  Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS
+  Access-Control-Allow-Origin: *
+  Access-Control-Max-Age: 86400
+  Content-Type: application/json
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  X-Request-Id: 0d0a2f5f-f811-4458-96f8-7b3ab418f580
+  Date: Thu, 01 Oct 2026 04:51:08 GMT
+  Content-Length: 664
+Body:
+{
+  "authUrl": "https://www.linkedin.com/oauth/v2/authorization?client_id=86hy095n1eyfxw&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Foauth%2Fcallback%2Flinkedin&response_type=code&scope=openid+profile+email+w_member_social&state=6abde64b880c64c1db97aea3%3A1790830268098%3Ac83dda63388bbcf54f4c6ab95dbc0a1e",
+  "platform": "linkedin",
+  "url": "https://www.linkedin.com/oauth/v2/authorization?client_id=86hy095n1eyfxw&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Foauth%2Fcallback%2Flinkedin&response_type=code&scope=openid+profile+email+w_member_social&state=6abde64b880c64c1db97aea3%3A1790830268098%3Ac83dda63388bbcf54f4c6ab95dbc0a1e"
+}
+
+--- [STEP 31] List Social Accounts for Brand ---
+>> REQUEST:
+curl -X GET 'http://localhost:5000/v1/social/accounts?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
+<< RESPONSE:
+Status: HTTP/1.1 200 OK
+Headers:
+  Access-Control-Allow-Headers: Authorization, Content-Type, Idempotency-Key, X-Request-ID
+  Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS
+  Access-Control-Allow-Origin: *
+  Access-Control-Max-Age: 86400
+  Content-Type: application/json
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  X-Request-Id: 9ae531f3-3d92-4bcb-b3ed-470dbdd05c99
+  Date: Thu, 01 Oct 2026 04:51:08 GMT
   Content-Length: 22
 Body:
 {
@@ -951,66 +1034,9 @@ Body:
   "data": []
 }
 
---- [STEP 29] Connect Instagram Account (OAuth Exchange) ---
+--- [STEP 32] OAuth Callback (Error Handling Probe) ---
 >> REQUEST:
-curl -X POST 'http://localhost:5000/v1/social/connect/instagram' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
-  -H 'Content-Type: application/json' \
-  -d '{"code": "oauth_code_sample", "redirectUri": "http://localhost:3000/callback"}'
-<< RESPONSE:
-Status: HTTP/1.1 200 OK
-Headers:
-  Access-Control-Allow-Headers: Authorization, Content-Type, Idempotency-Key, X-Request-ID
-  Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS
-  Access-Control-Allow-Origin: *
-  Access-Control-Max-Age: 86400
-  Content-Type: application/json
-  Referrer-Policy: strict-origin-when-cross-origin
-  X-Content-Type-Options: nosniff
-  X-Frame-Options: DENY
-  X-Request-Id: 7ded01ff-52db-473f-9562-754b1f4f1f38
-  Date: Wed, 30 Sep 2026 20:37:08 GMT
-  Content-Length: 899
-Body:
-{
-  "authUrl": "https://www.instagram.com/oauth/authorize?client_id=&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Foauth%2Fcallback%2Finstagram&response_type=code&scope=instagram_business_basic%2Cinstagram_business_content_publish%2Cinstagram_business_manage_comments%2Cinstagram_business_manage_insights%2Cinstagram_business_manage_messages&state=6abd72f1e638e7a0510d58af%3A1790800628911%3A3170f364203b48af44ba87301bbc50a8",
-  "platform": "instagram",
-  "url": "https://www.instagram.com/oauth/authorize?client_id=&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Foauth%2Fcallback%2Finstagram&response_type=code&scope=instagram_business_basic%2Cinstagram_business_content_publish%2Cinstagram_business_manage_comments%2Cinstagram_business_manage_insights%2Cinstagram_business_manage_messages&state=6abd72f1e638e7a0510d58af%3A1790800628911%3A3170f364203b48af44ba87301bbc50a8"
-}
-
---- [STEP 30] Connect LinkedIn Account (OAuth Exchange) ---
->> REQUEST:
-curl -X POST 'http://localhost:5000/v1/social/connect/linkedin' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
-  -H 'Content-Type: application/json' \
-  -d '{"code": "oauth_code_sample", "redirectUri": "http://localhost:3000/callback"}'
-<< RESPONSE:
-Status: HTTP/1.1 200 OK
-Headers:
-  Access-Control-Allow-Headers: Authorization, Content-Type, Idempotency-Key, X-Request-ID
-  Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS
-  Access-Control-Allow-Origin: *
-  Access-Control-Max-Age: 86400
-  Content-Type: application/json
-  Referrer-Policy: strict-origin-when-cross-origin
-  X-Content-Type-Options: nosniff
-  X-Frame-Options: DENY
-  X-Request-Id: cf22cd1a-dbec-4def-ba60-e89300a8ecb9
-  Date: Wed, 30 Sep 2026 20:37:08 GMT
-  Content-Length: 998
-Body:
-{
-  "authUrl": "https://www.linkedin.com/oauth/v2/authorization?client_id=86hy095n1eyfxw&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Foauth%2Fcallback%2Flinkedin&response_type=code&scope=email+openid+profile+r_1st_connections_size+r_basicprofile+r_member_profileAnalytics+r_member_social+r_organization_admin+r_organization_social+rw_organization_admin+w_member_social+w_organization_social&state=6abd72f1e638e7a0510d58af%3A1790800628941%3A32973bba486782ddb4b729963c548e4d",
-  "platform": "linkedin",
-  "url": "https://www.linkedin.com/oauth/v2/authorization?client_id=86hy095n1eyfxw&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Foauth%2Fcallback%2Flinkedin&response_type=code&scope=email+openid+profile+r_1st_connections_size+r_basicprofile+r_member_profileAnalytics+r_member_social+r_organization_admin+r_organization_social+rw_organization_admin+w_member_social+w_organization_social&state=6abd72f1e638e7a0510d58af%3A1790800628941%3A32973bba486782ddb4b729963c548e4d"
-}
-
---- [STEP 31] Refresh Social Account Token ---
->> REQUEST:
-curl -X POST 'http://localhost:5000/v1/social/refresh-token' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
-  -H 'Content-Type: application/json' \
-  -d '{"platform": "instagram", "accountId": "ig_test_98765"}'
+curl -X GET 'http://localhost:5000/v1/social/callback/linkedin?code=test_mock_code&state=invalid_state'
 << RESPONSE:
 Status: HTTP/1.1 400 Bad Request
 Headers:
@@ -1022,32 +1048,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 6f28d835-89f4-424e-9dfd-7df7716eab5b
-  Date: Wed, 30 Sep 2026 20:37:08 GMT
-  Content-Length: 92
-Body:
-{
-  "error": "invalid social account ID",
-  "message": "invalid social account ID",
-  "success": false
-}
-
---- [STEP 32] OAuth Callback (Public Webhook/Redirect) ---
->> REQUEST:
-curl -X GET 'http://localhost:5000/v1/social/callback/instagram?code=auth_code_123&state=xyz'
-<< RESPONSE:
-Status: HTTP/1.1 400 Bad Request
-Headers:
-  Access-Control-Allow-Headers: Authorization, Content-Type, Idempotency-Key, X-Request-ID
-  Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS
-  Access-Control-Allow-Origin: *
-  Access-Control-Max-Age: 86400
-  Content-Type: application/json
-  Referrer-Policy: strict-origin-when-cross-origin
-  X-Content-Type-Options: nosniff
-  X-Frame-Options: DENY
-  X-Request-Id: a1c88ff6-e73e-4e9a-b55b-38b746913506
-  Date: Wed, 30 Sep 2026 20:37:08 GMT
+  X-Request-Id: aa35c5ac-e586-41d7-a2a9-5fbc7fbe5c03
+  Date: Thu, 01 Oct 2026 04:51:08 GMT
   Content-Length: 122
 Body:
 {
@@ -1056,12 +1058,14 @@ Body:
   "success": false
 }
 
---- [STEP 33] Disconnect Social Account ---
+--- [STEP 33] Refresh Social Account Token ---
 >> REQUEST:
-curl -X DELETE 'http://localhost:5000/v1/social/6abd72f40af7190af40b7b70' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X POST 'http://localhost:5000/v1/social/refresh-token' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
+  -H 'Content-Type: application/json' \
+  -d '{"platform": "linkedin", "accountId": "dummy_acc"}'
 << RESPONSE:
-Status: HTTP/1.1 404 Not Found
+Status: HTTP/1.1 400 Bad Request
 Headers:
   Access-Control-Allow-Headers: Authorization, Content-Type, Idempotency-Key, X-Request-ID
   Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS
@@ -1071,13 +1075,13 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: f6dbd3fd-d532-4871-ad2a-eebc9bc903b9
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
-  Content-Length: 90
+  X-Request-Id: e371eaf0-b251-4bae-924b-0fe4efe87838
+  Date: Thu, 01 Oct 2026 04:51:08 GMT
+  Content-Length: 92
 Body:
 {
-  "error": "Social account not found",
-  "message": "Social account not found",
+  "error": "invalid social account ID",
+  "message": "invalid social account ID",
   "success": false
 }
 
@@ -1089,9 +1093,9 @@ Body:
 --- [STEP 34] Create Post (Draft with IG Trial Reel Settings) ---
 >> REQUEST:
 curl -X POST 'http://localhost:5000/v1/posts' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
-  -d '{"brandId": "6abd72f4e638e7a0510d58b4", "title": "Q4 Product Launch Announcement", "caption": "Exciting product launch announcement! Check out our new platform features #launch #innovation", "hashtags": ["launch", "innovation"], "selectedPlatforms": ["instagram", "linkedin"], "media": [{"type": "image", "url": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"}], "postType": "reel", "visibility": "public", "timezone": "America/New_York", "status": "draft", "firstComment": "Leave your thoughts below! #community", "instagramTrial": {"enabled": true, "graduationStrategy": "SS_PERFORMANCE"}}'
+  -d '{"brandId": "6abde6bb461e49ce73221a6e", "title": "Q4 Product Launch Announcement", "caption": "Exciting product launch announcement! Check out our new platform features #launch #innovation", "hashtags": ["launch", "innovation"], "selectedPlatforms": ["instagram", "linkedin"], "media": [{"type": "image", "url": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"}], "postType": "reel", "visibility": "public", "timezone": "America/New_York", "status": "draft", "firstComment": "Leave your thoughts below! #community", "instagramTrial": {"enabled": true, "graduationStrategy": "SS_PERFORMANCE"}}'
 << RESPONSE:
 Status: HTTP/1.1 201 Created
 Headers:
@@ -1103,13 +1107,13 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 92bb05e9-bb0b-4558-bd2d-3dc4f2065ee0
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
+  X-Request-Id: 953951f5-cda7-40f0-b755-2914fac02dd1
+  Date: Thu, 01 Oct 2026 04:51:08 GMT
   Content-Length: 1027
 Body:
 {
-  "id": "6abd72f5e638e7a0510d58bf",
-  "userId": "6abd72f1e638e7a0510d58af",
+  "id": "6abde6bc461e49ce73221a79",
+  "userId": "6abde64b880c64c1db97aea3",
   "title": "Q4 Product Launch Announcement",
   "caption": "Exciting product launch announcement! Check out our new platform features #launch #innovation",
   "hashtags": [
@@ -1142,21 +1146,21 @@ Body:
   "expiryMinutes": null,
   "expiryInterval": null,
   "expiryUnit": null,
-  "brandId": "6abd72f4e638e7a0510d58b4",
+  "brandId": "6abde6bb461e49ce73221a6e",
   "firstComment": "Leave your thoughts below! #community",
   "instagramTrial": {
     "enabled": true,
     "graduationStrategy": "SS_PERFORMANCE"
   },
   "platformResponses": null,
-  "createdAt": "2026-10-01T02:07:09.040457+05:30",
-  "updatedAt": "2026-10-01T02:07:09.040457+05:30"
+  "createdAt": "2026-10-01T10:21:08.262568+05:30",
+  "updatedAt": "2026-10-01T10:21:08.262568+05:30"
 }
 
 --- [STEP 35] List Posts for Brand ---
 >> REQUEST:
-curl -X GET 'http://localhost:5000/v1/posts?brandId=6abd72f4e638e7a0510d58b4&limit=10' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X GET 'http://localhost:5000/v1/posts?brandId=6abde6bb461e49ce73221a6e&limit=10' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -1168,15 +1172,15 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: e1aae465-f508-4c5c-9548-4ebf088922bd
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
-  Content-Length: 1050
+  X-Request-Id: 437a95dc-ecc7-4879-8274-9a6993503628
+  Date: Thu, 01 Oct 2026 04:51:08 GMT
+  Content-Length: 1052
 Body:
 {
   "data": [
     {
-      "id": "6abd72f5e638e7a0510d58bf",
-      "userId": "6abd72f1e638e7a0510d58af",
+      "id": "6abde6bc461e49ce73221a79",
+      "userId": "6abde64b880c64c1db97aea3",
       "title": "Q4 Product Launch Announcement",
       "caption": "Exciting product launch announcement! Check out our new platform features #launch #innovation",
       "hashtags": [
@@ -1209,15 +1213,15 @@ Body:
       "expiryMinutes": null,
       "expiryInterval": null,
       "expiryUnit": null,
-      "brandId": "6abd72f4e638e7a0510d58b4",
+      "brandId": "6abde6bb461e49ce73221a6e",
       "firstComment": "Leave your thoughts below! #community",
       "instagramTrial": {
         "enabled": true,
         "graduationStrategy": "SS_PERFORMANCE"
       },
       "platformResponses": null,
-      "createdAt": "2026-09-30T20:37:09.04Z",
-      "updatedAt": "2026-09-30T20:37:09.04Z"
+      "createdAt": "2026-10-01T04:51:08.262Z",
+      "updatedAt": "2026-10-01T04:51:08.262Z"
     }
   ],
   "limit": 10,
@@ -1227,8 +1231,8 @@ Body:
 
 --- [STEP 36] Get Post Details by ID ---
 >> REQUEST:
-curl -X GET 'http://localhost:5000/v1/posts/6abd72f5e638e7a0510d58bf' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X GET 'http://localhost:5000/v1/posts/6abde6bc461e49ce73221a79' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -1240,13 +1244,13 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 88c1d2a5-104a-46b4-9d09-9b4ee361883b
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
-  Content-Length: 1009
+  X-Request-Id: 395b550a-bf00-4030-980b-c5e61e5ee435
+  Date: Thu, 01 Oct 2026 04:51:08 GMT
+  Content-Length: 1011
 Body:
 {
-  "id": "6abd72f5e638e7a0510d58bf",
-  "userId": "6abd72f1e638e7a0510d58af",
+  "id": "6abde6bc461e49ce73221a79",
+  "userId": "6abde64b880c64c1db97aea3",
   "title": "Q4 Product Launch Announcement",
   "caption": "Exciting product launch announcement! Check out our new platform features #launch #innovation",
   "hashtags": [
@@ -1279,23 +1283,23 @@ Body:
   "expiryMinutes": null,
   "expiryInterval": null,
   "expiryUnit": null,
-  "brandId": "6abd72f4e638e7a0510d58b4",
+  "brandId": "6abde6bb461e49ce73221a6e",
   "firstComment": "Leave your thoughts below! #community",
   "instagramTrial": {
     "enabled": true,
     "graduationStrategy": "SS_PERFORMANCE"
   },
   "platformResponses": null,
-  "createdAt": "2026-09-30T20:37:09.04Z",
-  "updatedAt": "2026-09-30T20:37:09.04Z"
+  "createdAt": "2026-10-01T04:51:08.262Z",
+  "updatedAt": "2026-10-01T04:51:08.262Z"
 }
 
 --- [STEP 37] Update Post Content (PUT) ---
 >> REQUEST:
-curl -X PUT 'http://localhost:5000/v1/posts/6abd72f5e638e7a0510d58bf' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+curl -X PUT 'http://localhost:5000/v1/posts/6abde6bc461e49ce73221a79' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
-  -d '{"brandId": "6abd72f4e638e7a0510d58b4", "title": "Q4 Product Launch v2", "caption": "Exciting product launch announcement v2! Check out updated features #launch", "selectedPlatforms": ["instagram", "linkedin"], "status": "draft"}'
+  -d '{"brandId": "6abde6bb461e49ce73221a6e", "title": "Q4 Product Launch v2", "caption": "Exciting product launch announcement v2! Check out updated features #launch", "selectedPlatforms": ["instagram", "linkedin"], "status": "draft"}'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -1307,13 +1311,13 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 2d6debd8-d6a0-45d7-b9f9-bafec1994374
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
+  X-Request-Id: 1dbfad44-8029-411e-916d-1d68d179aecc
+  Date: Thu, 01 Oct 2026 04:51:08 GMT
   Content-Length: 982
 Body:
 {
-  "id": "6abd72f5e638e7a0510d58bf",
-  "userId": "6abd72f1e638e7a0510d58af",
+  "id": "6abde6bc461e49ce73221a79",
+  "userId": "6abde64b880c64c1db97aea3",
   "title": "Q4 Product Launch v2",
   "caption": "Exciting product launch announcement v2! Check out updated features #launch",
   "hashtags": [
@@ -1346,21 +1350,21 @@ Body:
   "expiryMinutes": null,
   "expiryInterval": null,
   "expiryUnit": null,
-  "brandId": "6abd72f4e638e7a0510d58b4",
+  "brandId": "6abde6bb461e49ce73221a6e",
   "firstComment": "Leave your thoughts below! #community",
   "instagramTrial": {
     "enabled": true,
     "graduationStrategy": "SS_PERFORMANCE"
   },
   "platformResponses": null,
-  "createdAt": "2026-09-30T20:37:09.04Z",
-  "updatedAt": "2026-09-30T20:37:09.142Z"
+  "createdAt": "2026-10-01T04:51:08.262Z",
+  "updatedAt": "2026-10-01T04:51:08.53Z"
 }
 
 --- [STEP 38] Update Post Content (PATCH) ---
 >> REQUEST:
-curl -X PATCH 'http://localhost:5000/v1/posts/6abd72f5e638e7a0510d58bf' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+curl -X PATCH 'http://localhost:5000/v1/posts/6abde6bc461e49ce73221a79' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
   -d '{"caption": "Exciting product launch announcement v3! Official release is here #release"}'
 << RESPONSE:
@@ -1374,13 +1378,13 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 6cb279b7-22d4-4f13-8bbf-62c869891348
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
-  Content-Length: 981
+  X-Request-Id: 11944cc0-e4ae-4c2a-97fa-8e38d24ec3d1
+  Date: Thu, 01 Oct 2026 04:51:08 GMT
+  Content-Length: 982
 Body:
 {
-  "id": "6abd72f5e638e7a0510d58bf",
-  "userId": "6abd72f1e638e7a0510d58af",
+  "id": "6abde6bc461e49ce73221a79",
+  "userId": "6abde64b880c64c1db97aea3",
   "title": "Q4 Product Launch v2",
   "caption": "Exciting product launch announcement v3! Official release is here #release",
   "hashtags": [
@@ -1413,21 +1417,21 @@ Body:
   "expiryMinutes": null,
   "expiryInterval": null,
   "expiryUnit": null,
-  "brandId": "6abd72f4e638e7a0510d58b4",
+  "brandId": "6abde6bb461e49ce73221a6e",
   "firstComment": "Leave your thoughts below! #community",
   "instagramTrial": {
     "enabled": true,
     "graduationStrategy": "SS_PERFORMANCE"
   },
   "platformResponses": null,
-  "createdAt": "2026-09-30T20:37:09.04Z",
-  "updatedAt": "2026-09-30T20:37:09.166Z"
+  "createdAt": "2026-10-01T04:51:08.262Z",
+  "updatedAt": "2026-10-01T04:51:08.607Z"
 }
 
 --- [STEP 39] Submit Post for Approval Workflow ---
 >> REQUEST:
-curl -X POST 'http://localhost:5000/v1/posts/6abd72f5e638e7a0510d58bf/submit-approval' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X POST 'http://localhost:5000/v1/posts/6abde6bc461e49ce73221a79/submit-approval' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -1439,15 +1443,15 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 913b45de-283c-42cf-a446-5fde6ed3ebe3
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
-  Content-Length: 1208
+  X-Request-Id: bae5cf98-363c-4049-9323-c45e828806a1
+  Date: Thu, 01 Oct 2026 04:51:08 GMT
+  Content-Length: 1209
 Body:
 {
-  "approvalToken": "6c915de9-4c58-4725-a822-be724caad67c",
+  "approvalToken": "0b1e0ed0-f44c-4f3f-b6d0-b684c6054b1d",
   "post": {
-    "id": "6abd72f5e638e7a0510d58bf",
-    "userId": "6abd72f1e638e7a0510d58af",
+    "id": "6abde6bc461e49ce73221a79",
+    "userId": "6abde64b880c64c1db97aea3",
     "title": "Q4 Product Launch v2",
     "caption": "Exciting product launch announcement v3! Official release is here #release",
     "hashtags": [
@@ -1480,25 +1484,25 @@ Body:
     "expiryMinutes": null,
     "expiryInterval": null,
     "expiryUnit": null,
-    "brandId": "6abd72f4e638e7a0510d58b4",
+    "brandId": "6abde6bb461e49ce73221a6e",
     "reviewStatus": "pending",
-    "approvalToken": "6c915de9-4c58-4725-a822-be724caad67c",
+    "approvalToken": "0b1e0ed0-f44c-4f3f-b6d0-b684c6054b1d",
     "firstComment": "Leave your thoughts below! #community",
     "instagramTrial": {
       "enabled": true,
       "graduationStrategy": "SS_PERFORMANCE"
     },
     "platformResponses": null,
-    "createdAt": "2026-09-30T20:37:09.04Z",
-    "updatedAt": "2026-09-30T20:37:09.192Z"
+    "createdAt": "2026-10-01T04:51:08.262Z",
+    "updatedAt": "2026-10-01T04:51:08.659Z"
   },
-  "reviewUrl": "/v1/posts/review/6c915de9-4c58-4725-a822-be724caad67c",
+  "reviewUrl": "/v1/posts/review/0b1e0ed0-f44c-4f3f-b6d0-b684c6054b1d",
   "success": true
 }
 
 --- [STEP 40] Public External Post Review (Client Link) ---
 >> REQUEST:
-curl -X GET 'http://localhost:5000/v1/posts/review/6c915de9-4c58-4725-a822-be724caad67c'
+curl -X GET 'http://localhost:5000/v1/posts/review/0b1e0ed0-f44c-4f3f-b6d0-b684c6054b1d'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -1510,13 +1514,13 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: aa28eb40-0a06-4528-90a9-c56aeb30af33
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
-  Content-Length: 1061
+  X-Request-Id: 89777d6a-86ae-42f7-9e65-71415486805f
+  Date: Thu, 01 Oct 2026 04:51:08 GMT
+  Content-Length: 1062
 Body:
 {
-  "id": "6abd72f5e638e7a0510d58bf",
-  "userId": "6abd72f1e638e7a0510d58af",
+  "id": "6abde6bc461e49ce73221a79",
+  "userId": "6abde64b880c64c1db97aea3",
   "title": "Q4 Product Launch v2",
   "caption": "Exciting product launch announcement v3! Official release is here #release",
   "hashtags": [
@@ -1549,22 +1553,22 @@ Body:
   "expiryMinutes": null,
   "expiryInterval": null,
   "expiryUnit": null,
-  "brandId": "6abd72f4e638e7a0510d58b4",
+  "brandId": "6abde6bb461e49ce73221a6e",
   "reviewStatus": "pending",
-  "approvalToken": "6c915de9-4c58-4725-a822-be724caad67c",
+  "approvalToken": "0b1e0ed0-f44c-4f3f-b6d0-b684c6054b1d",
   "firstComment": "Leave your thoughts below! #community",
   "instagramTrial": {
     "enabled": true,
     "graduationStrategy": "SS_PERFORMANCE"
   },
   "platformResponses": null,
-  "createdAt": "2026-09-30T20:37:09.04Z",
-  "updatedAt": "2026-09-30T20:37:09.192Z"
+  "createdAt": "2026-10-01T04:51:08.262Z",
+  "updatedAt": "2026-10-01T04:51:08.659Z"
 }
 
 --- [STEP 41] Public External Post Review Action (Client Reject) ---
 >> REQUEST:
-curl -X POST 'http://localhost:5000/v1/posts/review/6c915de9-4c58-4725-a822-be724caad67c/action' \
+curl -X POST 'http://localhost:5000/v1/posts/review/0b1e0ed0-f44c-4f3f-b6d0-b684c6054b1d/action' \
   -H 'Content-Type: application/json' \
   -d '{"action": "reject", "reviewerName": "External Client Reviewer", "feedback": "Needs refined hashtag strategy"}'
 << RESPONSE:
@@ -1578,14 +1582,14 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 1fac799d-1dff-46fb-8266-75e4c4b410d8
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
-  Content-Length: 1257
+  X-Request-Id: 489bd702-69ea-4f4c-8276-e65d9f4280b5
+  Date: Thu, 01 Oct 2026 04:51:08 GMT
+  Content-Length: 1258
 Body:
 {
   "post": {
-    "id": "6abd72f5e638e7a0510d58bf",
-    "userId": "6abd72f1e638e7a0510d58af",
+    "id": "6abde6bc461e49ce73221a79",
+    "userId": "6abde64b880c64c1db97aea3",
     "title": "Q4 Product Launch v2",
     "caption": "Exciting product launch announcement v3! Official release is here #release",
     "hashtags": [
@@ -1618,33 +1622,33 @@ Body:
     "expiryMinutes": null,
     "expiryInterval": null,
     "expiryUnit": null,
-    "brandId": "6abd72f4e638e7a0510d58b4",
+    "brandId": "6abde6bb461e49ce73221a6e",
     "reviewStatus": "rejected",
     "reviewNotes": [
       {
         "userId": "000000000000000000000000",
         "userName": "External Client Reviewer",
         "note": "Needs refined hashtag strategy",
-        "createdAt": "2026-09-30T20:37:09.246Z"
+        "createdAt": "2026-10-01T04:51:08.761Z"
       }
     ],
-    "approvalToken": "6c915de9-4c58-4725-a822-be724caad67c",
+    "approvalToken": "0b1e0ed0-f44c-4f3f-b6d0-b684c6054b1d",
     "firstComment": "Leave your thoughts below! #community",
     "instagramTrial": {
       "enabled": true,
       "graduationStrategy": "SS_PERFORMANCE"
     },
     "platformResponses": null,
-    "createdAt": "2026-09-30T20:37:09.04Z",
-    "updatedAt": "2026-09-30T20:37:09.246Z"
+    "createdAt": "2026-10-01T04:51:08.262Z",
+    "updatedAt": "2026-10-01T04:51:08.761Z"
   },
   "success": true
 }
 
 --- [STEP 42] Reject Post (Internal) ---
 >> REQUEST:
-curl -X POST 'http://localhost:5000/v1/posts/6abd72f5e638e7a0510d58bf/reject' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+curl -X POST 'http://localhost:5000/v1/posts/6abde6bc461e49ce73221a79/reject' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
   -d '{"reason": "Internal review requested changes"}'
 << RESPONSE:
@@ -1658,14 +1662,14 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 843d2d4d-9d93-43c2-be2d-9bc82cbcf6be
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
-  Content-Length: 1399
+  X-Request-Id: ff51134e-09f0-4634-801b-c128d25a8a10
+  Date: Thu, 01 Oct 2026 04:51:08 GMT
+  Content-Length: 1400
 Body:
 {
   "post": {
-    "id": "6abd72f5e638e7a0510d58bf",
-    "userId": "6abd72f1e638e7a0510d58af",
+    "id": "6abde6bc461e49ce73221a79",
+    "userId": "6abde64b880c64c1db97aea3",
     "title": "Q4 Product Launch v2",
     "caption": "Exciting product launch announcement v3! Official release is here #release",
     "hashtags": [
@@ -1698,39 +1702,39 @@ Body:
     "expiryMinutes": null,
     "expiryInterval": null,
     "expiryUnit": null,
-    "brandId": "6abd72f4e638e7a0510d58b4",
+    "brandId": "6abde6bb461e49ce73221a6e",
     "reviewStatus": "rejected",
     "reviewNotes": [
       {
         "userId": "000000000000000000000000",
         "userName": "External Client Reviewer",
         "note": "Needs refined hashtag strategy",
-        "createdAt": "2026-09-30T20:37:09.246Z"
+        "createdAt": "2026-10-01T04:51:08.761Z"
       },
       {
-        "userId": "6abd72f1e638e7a0510d58af",
+        "userId": "6abde64b880c64c1db97aea3",
         "userName": "Reviewer",
         "note": "Internal review requested changes",
-        "createdAt": "2026-09-30T20:37:09.273Z"
+        "createdAt": "2026-10-01T04:51:08.808Z"
       }
     ],
-    "approvalToken": "6c915de9-4c58-4725-a822-be724caad67c",
+    "approvalToken": "0b1e0ed0-f44c-4f3f-b6d0-b684c6054b1d",
     "firstComment": "Leave your thoughts below! #community",
     "instagramTrial": {
       "enabled": true,
       "graduationStrategy": "SS_PERFORMANCE"
     },
     "platformResponses": null,
-    "createdAt": "2026-09-30T20:37:09.04Z",
-    "updatedAt": "2026-09-30T20:37:09.273Z"
+    "createdAt": "2026-10-01T04:51:08.262Z",
+    "updatedAt": "2026-10-01T04:51:08.808Z"
   },
   "success": true
 }
 
 --- [STEP 43] Approve Post (Internal) ---
 >> REQUEST:
-curl -X POST 'http://localhost:5000/v1/posts/6abd72f5e638e7a0510d58bf/approve' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+curl -X POST 'http://localhost:5000/v1/posts/6abde6bc461e49ce73221a79/approve' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
   -d '{"comment": "Approved for scheduled publishing"}'
 << RESPONSE:
@@ -1744,14 +1748,14 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 4940ce61-ac17-4a77-a26a-a19d0e3d72e7
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
-  Content-Length: 1615
+  X-Request-Id: 93392534-93b7-4518-a50d-53aaebb9f792
+  Date: Thu, 01 Oct 2026 04:51:08 GMT
+  Content-Length: 1622
 Body:
 {
   "post": {
-    "id": "6abd72f5e638e7a0510d58bf",
-    "userId": "6abd72f1e638e7a0510d58af",
+    "id": "6abde6bc461e49ce73221a79",
+    "userId": "6abde64b880c64c1db97aea3",
     "title": "Q4 Product Launch v2",
     "caption": "Exciting product launch announcement v3! Official release is here #release",
     "hashtags": [
@@ -1784,49 +1788,49 @@ Body:
     "expiryMinutes": null,
     "expiryInterval": null,
     "expiryUnit": null,
-    "brandId": "6abd72f4e638e7a0510d58b4",
+    "brandId": "6abde6bb461e49ce73221a6e",
     "reviewStatus": "approved",
     "reviewNotes": [
       {
         "userId": "000000000000000000000000",
         "userName": "External Client Reviewer",
         "note": "Needs refined hashtag strategy",
-        "createdAt": "2026-09-30T20:37:09.246Z"
+        "createdAt": "2026-10-01T04:51:08.761Z"
       },
       {
-        "userId": "6abd72f1e638e7a0510d58af",
+        "userId": "6abde64b880c64c1db97aea3",
         "userName": "Reviewer",
         "note": "Internal review requested changes",
-        "createdAt": "2026-09-30T20:37:09.273Z"
+        "createdAt": "2026-10-01T04:51:08.808Z"
       },
       {
-        "userId": "6abd72f1e638e7a0510d58af",
+        "userId": "6abde64b880c64c1db97aea3",
         "userName": "Approver",
         "note": "Approved for scheduled publishing",
-        "createdAt": "2026-09-30T20:37:09.3Z"
+        "createdAt": "2026-10-01T04:51:08.857Z"
       }
     ],
-    "approvalToken": "6c915de9-4c58-4725-a822-be724caad67c",
-    "approvedBy": "6abd72f1e638e7a0510d58af",
-    "approvedAt": "2026-09-30T20:37:09.3Z",
+    "approvalToken": "0b1e0ed0-f44c-4f3f-b6d0-b684c6054b1d",
+    "approvedBy": "6abde64b880c64c1db97aea3",
+    "approvedAt": "2026-10-01T04:51:08.857Z",
     "firstComment": "Leave your thoughts below! #community",
     "instagramTrial": {
       "enabled": true,
       "graduationStrategy": "SS_PERFORMANCE"
     },
     "platformResponses": null,
-    "createdAt": "2026-09-30T20:37:09.04Z",
-    "updatedAt": "2026-09-30T20:37:09.3Z"
+    "createdAt": "2026-10-01T04:51:08.262Z",
+    "updatedAt": "2026-10-01T04:51:08.857Z"
   },
   "success": true
 }
 
 --- [STEP 44] Reshare Post to Another Account/Platform ---
 >> REQUEST:
-curl -X POST 'http://localhost:5000/v1/posts/6abd72f5e638e7a0510d58bf/reshare' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+curl -X POST 'http://localhost:5000/v1/posts/6abde6bc461e49ce73221a79/reshare' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
-  -d '{"targetBrandId": "6abd72f4e638e7a0510d58b4", "targetPlatform": "linkedin", "additionalCommentary": "Resharing our core landmark release with our professional network!", "quoteRepost": true}'
+  -d '{"targetBrandId": "6abde6bb461e49ce73221a6e", "targetPlatform": "linkedin", "additionalCommentary": "Resharing our core landmark release with our professional network!", "quoteRepost": true}'
 << RESPONSE:
 Status: HTTP/1.1 400 Bad Request
 Headers:
@@ -1838,8 +1842,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 386bbfd1-a3b0-49de-8117-5d1166325940
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
+  X-Request-Id: 3b7b91b7-e0d7-4341-ad2c-f27caf906ec4
+  Date: Thu, 01 Oct 2026 04:51:08 GMT
   Content-Length: 178
 Body:
 {
@@ -1851,9 +1855,9 @@ Body:
 --- [STEP 45] Bulk Pause Recurring Posts ---
 >> REQUEST:
 curl -X POST 'http://localhost:5000/v1/posts/bulk/pause-recurrence' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
-  -d '{"ids": ["6abd72f5e638e7a0510d58bf"]}'
+  -d '{"ids": ["6abde6bc461e49ce73221a79"]}'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -1865,8 +1869,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 9648bc40-8b52-4fe3-b130-6191e28869e8
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
+  X-Request-Id: 7b6652b9-2433-4028-9c16-41ec9e1d1db2
+  Date: Thu, 01 Oct 2026 04:51:08 GMT
   Content-Length: 39
 Body:
 {
@@ -1878,9 +1882,9 @@ Body:
 --- [STEP 46] Bulk Resume Recurring Posts ---
 >> REQUEST:
 curl -X POST 'http://localhost:5000/v1/posts/bulk/resume-recurrence' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
-  -d '{"ids": ["6abd72f5e638e7a0510d58bf"]}'
+  -d '{"ids": ["6abde6bc461e49ce73221a79"]}'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -1892,8 +1896,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 0382c3f5-d377-4371-ac09-3400ea831609
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
+  X-Request-Id: c535319a-7202-470b-bea5-88c1a1d5abaa
+  Date: Thu, 01 Oct 2026 04:51:09 GMT
   Content-Length: 54
 Body:
 {
@@ -1910,8 +1914,8 @@ Body:
 
 --- [STEP 47] Get Best Times Heatmap for Instagram ---
 >> REQUEST:
-curl -X GET 'http://localhost:5000/v1/planner/best-times?brandId=6abd72f4e638e7a0510d58b4&platform=instagram' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X GET 'http://localhost:5000/v1/planner/best-times?brandId=6abde6bb461e49ce73221a6e&platform=instagram' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -1923,8 +1927,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 30b02e5a-b067-4034-b1d2-c310595b702d
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
+  X-Request-Id: 6ed9bae6-29a9-4ce6-8981-ad4afdd089db
+  Date: Thu, 01 Oct 2026 04:51:09 GMT
   Transfer-Encoding: chunked
 Body:
 {
@@ -2776,8 +2780,8 @@ Body:
 
 --- [STEP 48] Get Best Times Heatmap for LinkedIn ---
 >> REQUEST:
-curl -X GET 'http://localhost:5000/v1/planner/best-times?brandId=6abd72f4e638e7a0510d58b4&platform=linkedin' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X GET 'http://localhost:5000/v1/planner/best-times?brandId=6abde6bb461e49ce73221a6e&platform=linkedin' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -2789,8 +2793,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: c9e8e8ff-f53b-4d72-9f5b-b71e76aeb9dc
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
+  X-Request-Id: a07b1a95-288d-461c-9ca5-bcbb6be6272b
+  Date: Thu, 01 Oct 2026 04:51:09 GMT
   Transfer-Encoding: chunked
 Body:
 {
@@ -3647,8 +3651,8 @@ Body:
 
 --- [STEP 49] Create Canned Reply Template ---
 >> REQUEST:
-curl -X POST 'http://localhost:5000/v1/inbox/canned-replies?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+curl -X POST 'http://localhost:5000/v1/inbox/canned-replies?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
   -d '{"shortcut": "!welcome", "title": "Welcome Greeting", "content": "Thank you for reaching out! A specialist will get back to you shortly."}'
 << RESPONSE:
@@ -3662,23 +3666,23 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: dd4df6a3-cf0e-4b7b-ab66-4dfdbc3b9ad4
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
+  X-Request-Id: 14d8f843-9c93-4b39-bbb9-3ac2d307fd1d
+  Date: Thu, 01 Oct 2026 04:51:09 GMT
   Content-Length: 251
 Body:
 {
-  "id": "6abd72f5e638e7a0510d58c5",
-  "brandId": "6abd72f4e638e7a0510d58b4",
+  "id": "6abde6bd461e49ce73221a7f",
+  "brandId": "6abde6bb461e49ce73221a6e",
   "shortcut": "/!welcome",
   "title": "Welcome Greeting",
   "content": "Thank you for reaching out! A specialist will get back to you shortly.",
-  "createdAt": "2026-10-01T02:07:09.498811+05:30"
+  "createdAt": "2026-10-01T10:21:09.155815+05:30"
 }
 
 --- [STEP 50] List Brand Canned Replies ---
 >> REQUEST:
-curl -X GET 'http://localhost:5000/v1/inbox/canned-replies?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X GET 'http://localhost:5000/v1/inbox/canned-replies?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -3690,28 +3694,28 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 7909ced2-709a-4d20-9120-698c38abe6ca
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
+  X-Request-Id: de1f2ac5-37b5-423b-bffd-8b3a4ff1b12e
+  Date: Thu, 01 Oct 2026 04:51:09 GMT
   Content-Length: 264
 Body:
 {
   "count": 1,
   "data": [
     {
-      "id": "6abd72f5e638e7a0510d58c5",
-      "brandId": "6abd72f4e638e7a0510d58b4",
+      "id": "6abde6bd461e49ce73221a7f",
+      "brandId": "6abde6bb461e49ce73221a6e",
       "shortcut": "/!welcome",
       "title": "Welcome Greeting",
       "content": "Thank you for reaching out! A specialist will get back to you shortly.",
-      "createdAt": "2026-09-30T20:37:09.498Z"
+      "createdAt": "2026-10-01T04:51:09.155Z"
     }
   ]
 }
 
 --- [STEP 51] List Unified Inbox Conversations ---
 >> REQUEST:
-curl -X GET 'http://localhost:5000/v1/inbox?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X GET 'http://localhost:5000/v1/inbox?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -3723,23 +3727,23 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: baf826b2-7703-4652-9dcd-fc0e58f59024
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
-  Content-Length: 565
+  X-Request-Id: 87db17ce-e1b2-4dda-8154-044d2c1d61a8
+  Date: Thu, 01 Oct 2026 04:51:09 GMT
+  Content-Length: 564
 Body:
 {
   "data": [
     {
-      "id": "6abd72f50af7190af40b7b71",
-      "brandId": "6abd72f4e638e7a0510d58b4",
-      "platform": "instagram",
-      "socialHandleId": "6abd72f40af7190af40b7b70",
+      "id": "6abde6bdf2196ff383fed76c",
+      "brandId": "6abde6bb461e49ce73221a6e",
+      "platform": "linkedin",
+      "socialHandleId": "6abde6bdf2196ff383fed76d",
       "externalThreadId": "",
       "senderName": "Sarah Jenkins",
       "senderAvatar": "https://example.com/sarah.jpg",
       "senderHandle": "sarahj",
       "lastMessageText": "Hi! Do you offer enterprise support plans?",
-      "lastMessageAt": "2026-09-30T20:37:09.524Z",
+      "lastMessageAt": "2026-10-01T04:51:09.209Z",
       "status": "open",
       "unread": true,
       "tags": [
@@ -3747,8 +3751,8 @@ Body:
         "inquiry"
       ],
       "sentiment": "positive",
-      "createdAt": "2026-09-30T20:37:09.524Z",
-      "updatedAt": "2026-09-30T20:37:09.524Z"
+      "createdAt": "2026-10-01T04:51:09.209Z",
+      "updatedAt": "2026-10-01T04:51:09.209Z"
     }
   ],
   "limit": 20,
@@ -3758,8 +3762,8 @@ Body:
 
 --- [STEP 52] Get Inbox Conversation Detail ---
 >> REQUEST:
-curl -X GET 'http://localhost:5000/v1/inbox/6abd72f50af7190af40b7b71?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X GET 'http://localhost:5000/v1/inbox/6abde6bdf2196ff383fed76c?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -3771,22 +3775,22 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 625ad85a-78d5-449b-91dc-f37ab18a5702
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
-  Content-Length: 558
+  X-Request-Id: 0669f00d-a9bc-495e-ac19-b5f16c001bc5
+  Date: Thu, 01 Oct 2026 04:51:09 GMT
+  Content-Length: 557
 Body:
 {
   "conversation": {
-    "id": "6abd72f50af7190af40b7b71",
-    "brandId": "6abd72f4e638e7a0510d58b4",
-    "platform": "instagram",
-    "socialHandleId": "6abd72f40af7190af40b7b70",
+    "id": "6abde6bdf2196ff383fed76c",
+    "brandId": "6abde6bb461e49ce73221a6e",
+    "platform": "linkedin",
+    "socialHandleId": "6abde6bdf2196ff383fed76d",
     "externalThreadId": "",
     "senderName": "Sarah Jenkins",
     "senderAvatar": "https://example.com/sarah.jpg",
     "senderHandle": "sarahj",
     "lastMessageText": "Hi! Do you offer enterprise support plans?",
-    "lastMessageAt": "2026-09-30T20:37:09.524Z",
+    "lastMessageAt": "2026-10-01T04:51:09.209Z",
     "status": "open",
     "unread": false,
     "tags": [
@@ -3794,16 +3798,16 @@ Body:
       "inquiry"
     ],
     "sentiment": "positive",
-    "createdAt": "2026-09-30T20:37:09.524Z",
-    "updatedAt": "2026-09-30T20:37:09.524Z"
+    "createdAt": "2026-10-01T04:51:09.209Z",
+    "updatedAt": "2026-10-01T04:51:09.209Z"
   },
   "messages": null
 }
 
 --- [STEP 53] Reply to Inbox Conversation ---
 >> REQUEST:
-curl -X POST 'http://localhost:5000/v1/inbox/6abd72f50af7190af40b7b71/reply?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+curl -X POST 'http://localhost:5000/v1/inbox/6abde6bdf2196ff383fed76c/reply?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
   -d '{"messageText": "Hello Sarah, yes! We offer 24/7 dedicated enterprise SLA support plans."}'
 << RESPONSE:
@@ -3817,25 +3821,25 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 677b3043-60c8-4e60-ae7a-04382310aafa
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
+  X-Request-Id: 61a92d4b-4f1f-4aca-84c4-20fa6d53ee44
+  Date: Thu, 01 Oct 2026 04:51:09 GMT
   Content-Length: 254
 Body:
 {
-  "id": "6abd72f5e638e7a0510d58c6",
-  "conversationId": "6abd72f50af7190af40b7b71",
+  "id": "6abde6bd461e49ce73221a80",
+  "conversationId": "6abde6bdf2196ff383fed76c",
   "senderType": "user",
-  "senderId": "6abd72f1e638e7a0510d58af",
-  "senderName": "6abd72f1e638e7a0510d58af",
+  "senderId": "6abde64b880c64c1db97aea3",
+  "senderName": "6abde64b880c64c1db97aea3",
   "messageText": "",
   "mediaUrls": null,
-  "sentAt": "2026-10-01T02:07:09.597046+05:30"
+  "sentAt": "2026-10-01T10:21:09.348147+05:30"
 }
 
 --- [STEP 54] Update Inbox Conversation Status ---
 >> REQUEST:
-curl -X PATCH 'http://localhost:5000/v1/inbox/6abd72f50af7190af40b7b71/status?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+curl -X PATCH 'http://localhost:5000/v1/inbox/6abde6bdf2196ff383fed76c/status?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
   -d '{"status": "resolved"}'
 << RESPONSE:
@@ -3849,22 +3853,22 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: a5a29f5c-119e-473c-804c-a4ac0aa3c192
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
-  Content-Length: 511
+  X-Request-Id: e60db235-88b7-47d5-9cd2-ac09ee75fd32
+  Date: Thu, 01 Oct 2026 04:51:09 GMT
+  Content-Length: 510
 Body:
 {
   "data": {
-    "id": "6abd72f50af7190af40b7b71",
-    "brandId": "6abd72f4e638e7a0510d58b4",
-    "platform": "instagram",
-    "socialHandleId": "6abd72f40af7190af40b7b70",
+    "id": "6abde6bdf2196ff383fed76c",
+    "brandId": "6abde6bb461e49ce73221a6e",
+    "platform": "linkedin",
+    "socialHandleId": "6abde6bdf2196ff383fed76d",
     "externalThreadId": "",
     "senderName": "Sarah Jenkins",
     "senderAvatar": "https://example.com/sarah.jpg",
     "senderHandle": "sarahj",
     "lastMessageText": "",
-    "lastMessageAt": "2026-09-30T20:37:09.597Z",
+    "lastMessageAt": "2026-10-01T04:51:09.348Z",
     "status": "resolved",
     "unread": false,
     "tags": [
@@ -3872,8 +3876,8 @@ Body:
       "inquiry"
     ],
     "sentiment": "positive",
-    "createdAt": "2026-09-30T20:37:09.524Z",
-    "updatedAt": "2026-09-30T20:37:09.621Z"
+    "createdAt": "2026-10-01T04:51:09.209Z",
+    "updatedAt": "2026-10-01T04:51:09.399Z"
   },
   "success": true
 }
@@ -3885,10 +3889,10 @@ Body:
 
 --- [STEP 55] Create SmartLink Page ---
 >> REQUEST:
-curl -X POST 'http://localhost:5000/v1/smartlinks?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+curl -X POST 'http://localhost:5000/v1/smartlinks?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
-  -d '{"title": "Acme Global Official Links", "slug": "acme-links-1790800624", "description": "All our official links and social destinations in one place.", "theme": "dark", "buttons": [{"id": "btn_website", "title": "Visit Website", "url": "https://example.com", "isActive": true}, {"id": "btn_store", "title": "Online Store", "url": "https://store.example.com", "isActive": true}]}'
+  -d '{"title": "Acme Global Official Links", "slug": "acme-links-1790830267", "description": "All our official links and social destinations in one place.", "theme": "dark", "buttons": [{"id": "btn_website", "title": "Visit Website", "url": "https://example.com", "isActive": true}, {"id": "btn_store", "title": "Online Store", "url": "https://store.example.com", "isActive": true}]}'
 << RESPONSE:
 Status: HTTP/1.1 201 Created
 Headers:
@@ -3900,14 +3904,14 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: d758f84f-4d27-4f19-bfd3-4a0b82703148
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
+  X-Request-Id: 53b89ae7-b055-4da7-b1fd-165e0471ff50
+  Date: Thu, 01 Oct 2026 04:51:09 GMT
   Content-Length: 683
 Body:
 {
-  "id": "6abd72f5e638e7a0510d58c8",
-  "brandId": "6abd72f4e638e7a0510d58b4",
-  "slug": "acme-links-1790800624",
+  "id": "6abde6bd461e49ce73221a82",
+  "brandId": "6abde6bb461e49ce73221a6e",
+  "slug": "acme-links-1790830267",
   "title": "Acme Global Official Links",
   "bio": "",
   "avatarUrl": "",
@@ -3943,14 +3947,14 @@ Body:
   "totalViews": 0,
   "totalClicks": 0,
   "isActive": true,
-  "createdAt": "2026-10-01T02:07:09.643987+05:30",
-  "updatedAt": "2026-10-01T02:07:09.643987+05:30"
+  "createdAt": "2026-10-01T10:21:09.447143+05:30",
+  "updatedAt": "2026-10-01T10:21:09.447143+05:30"
 }
 
 --- [STEP 56] List SmartLinks for Brand ---
 >> REQUEST:
-curl -X GET 'http://localhost:5000/v1/smartlinks?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X GET 'http://localhost:5000/v1/smartlinks?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -3962,17 +3966,17 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 51003786-86e0-4692-b123-43774fee17ea
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
+  X-Request-Id: 1b33347a-8b8f-4a57-8fa5-9e50020f0abe
+  Date: Thu, 01 Oct 2026 04:51:09 GMT
   Content-Length: 688
 Body:
 {
   "count": 1,
   "data": [
     {
-      "id": "6abd72f5e638e7a0510d58c8",
-      "brandId": "6abd72f4e638e7a0510d58b4",
-      "slug": "acme-links-1790800624",
+      "id": "6abde6bd461e49ce73221a82",
+      "brandId": "6abde6bb461e49ce73221a6e",
+      "slug": "acme-links-1790830267",
       "title": "Acme Global Official Links",
       "bio": "",
       "avatarUrl": "",
@@ -4008,16 +4012,16 @@ Body:
       "totalViews": 0,
       "totalClicks": 0,
       "isActive": true,
-      "createdAt": "2026-09-30T20:37:09.643Z",
-      "updatedAt": "2026-09-30T20:37:09.643Z"
+      "createdAt": "2026-10-01T04:51:09.447Z",
+      "updatedAt": "2026-10-01T04:51:09.447Z"
     }
   ]
 }
 
 --- [STEP 57] Update SmartLink Page (PUT) ---
 >> REQUEST:
-curl -X PUT 'http://localhost:5000/v1/smartlinks/6abd72f5e638e7a0510d58c8?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+curl -X PUT 'http://localhost:5000/v1/smartlinks/6abde6bd461e49ce73221a82?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
   -d '{"title": "Acme Global Official Links (Updated)", "description": "Updated official destinations", "theme": "modern"}'
 << RESPONSE:
@@ -4031,14 +4035,14 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: f1f1dbab-e69c-4778-a4da-9c55940c56b3
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
+  X-Request-Id: 0bfc8a0a-5a97-400f-952d-6ac8dc77f58d
+  Date: Thu, 01 Oct 2026 04:51:09 GMT
   Content-Length: 679
 Body:
 {
-  "id": "6abd72f5e638e7a0510d58c8",
-  "brandId": "6abd72f4e638e7a0510d58b4",
-  "slug": "acme-links-1790800624",
+  "id": "6abde6bd461e49ce73221a82",
+  "brandId": "6abde6bb461e49ce73221a6e",
+  "slug": "acme-links-1790830267",
   "title": "Acme Global Official Links (Updated)",
   "bio": "",
   "avatarUrl": "",
@@ -4074,14 +4078,14 @@ Body:
   "totalViews": 0,
   "totalClicks": 0,
   "isActive": true,
-  "createdAt": "2026-09-30T20:37:09.643Z",
-  "updatedAt": "2026-09-30T20:37:09.694Z"
+  "createdAt": "2026-10-01T04:51:09.447Z",
+  "updatedAt": "2026-10-01T04:51:09.527Z"
 }
 
 --- [STEP 58] Update SmartLink Page (PATCH) ---
 >> REQUEST:
-curl -X PATCH 'http://localhost:5000/v1/smartlinks/6abd72f5e638e7a0510d58c8?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+curl -X PATCH 'http://localhost:5000/v1/smartlinks/6abde6bd461e49ce73221a82?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
   -d '{"title": "Acme Global Official Bio"}'
 << RESPONSE:
@@ -4095,14 +4099,14 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 20ca6db3-87ca-4797-8ed4-6e2221c88afb
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
+  X-Request-Id: 72cfef47-643e-4c8a-bf33-d4ca21207a7c
+  Date: Thu, 01 Oct 2026 04:51:09 GMT
   Content-Length: 667
 Body:
 {
-  "id": "6abd72f5e638e7a0510d58c8",
-  "brandId": "6abd72f4e638e7a0510d58b4",
-  "slug": "acme-links-1790800624",
+  "id": "6abde6bd461e49ce73221a82",
+  "brandId": "6abde6bb461e49ce73221a6e",
+  "slug": "acme-links-1790830267",
   "title": "Acme Global Official Bio",
   "bio": "",
   "avatarUrl": "",
@@ -4138,14 +4142,14 @@ Body:
   "totalViews": 0,
   "totalClicks": 0,
   "isActive": true,
-  "createdAt": "2026-09-30T20:37:09.643Z",
-  "updatedAt": "2026-09-30T20:37:09.718Z"
+  "createdAt": "2026-10-01T04:51:09.447Z",
+  "updatedAt": "2026-10-01T04:51:09.564Z"
 }
 
 --- [STEP 59] Get SmartLink Page Analytics ---
 >> REQUEST:
-curl -X GET 'http://localhost:5000/v1/smartlinks/6abd72f5e638e7a0510d58c8/analytics?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X GET 'http://localhost:5000/v1/smartlinks/6abde6bd461e49ce73221a82/analytics?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -4157,8 +4161,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 6392bc1e-9ba2-4e85-9d8a-9bb81376dac9
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
+  X-Request-Id: da4618ed-549f-46b8-8879-d4de724c6d04
+  Date: Thu, 01 Oct 2026 04:51:09 GMT
   Content-Length: 307
 Body:
 {
@@ -4179,15 +4183,15 @@ Body:
     }
   ],
   "ctr": 0,
-  "pageId": "6abd72f5e638e7a0510d58c8",
-  "slug": "acme-links-1790800624",
+  "pageId": "6abde6bd461e49ce73221a82",
+  "slug": "acme-links-1790830267",
   "totalClicks": 0,
   "totalViews": 0
 }
 
 --- [STEP 60] View Public Bio Page ---
 >> REQUEST:
-curl -X GET 'http://localhost:5000/v1/bio/acme-links-1790800624'
+curl -X GET 'http://localhost:5000/v1/bio/acme-links-1790830267'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -4199,14 +4203,14 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 212d52d0-56fe-4faf-99a6-1b4da30e8af5
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
+  X-Request-Id: 2eb4428c-f487-455e-8090-89ddcbd0a6b7
+  Date: Thu, 01 Oct 2026 04:51:09 GMT
   Content-Length: 667
 Body:
 {
-  "id": "6abd72f5e638e7a0510d58c8",
-  "brandId": "6abd72f4e638e7a0510d58b4",
-  "slug": "acme-links-1790800624",
+  "id": "6abde6bd461e49ce73221a82",
+  "brandId": "6abde6bb461e49ce73221a6e",
+  "slug": "acme-links-1790830267",
   "title": "Acme Global Official Bio",
   "bio": "",
   "avatarUrl": "",
@@ -4242,13 +4246,13 @@ Body:
   "totalViews": 0,
   "totalClicks": 0,
   "isActive": true,
-  "createdAt": "2026-09-30T20:37:09.643Z",
-  "updatedAt": "2026-09-30T20:37:09.718Z"
+  "createdAt": "2026-10-01T04:51:09.447Z",
+  "updatedAt": "2026-10-01T04:51:09.564Z"
 }
 
 --- [STEP 61] Track Button Click on Bio Page (Public) ---
 >> REQUEST:
-curl -X POST 'http://localhost:5000/v1/bio/acme-links-1790800624/click/btn_website'
+curl -X POST 'http://localhost:5000/v1/bio/acme-links-1790830267/click/btn_website'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -4260,8 +4264,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 0b239484-b44f-4721-a181-dd4487f4091e
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
+  X-Request-Id: d9820088-d516-481c-ad40-de0b53f5b821
+  Date: Thu, 01 Oct 2026 04:51:09 GMT
   Content-Length: 51
 Body:
 {
@@ -4276,8 +4280,8 @@ Body:
 
 --- [STEP 62] Create Autolist Evergreen Queue ---
 >> REQUEST:
-curl -X POST 'http://localhost:5000/v1/autolists?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+curl -X POST 'http://localhost:5000/v1/autolists?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
   -d '{"name": "Weekly Evergreen Tips", "schedule": ["Monday 09:00", "Wednesday 14:00", "Friday 11:00"], "isCircular": true, "isActive": true}'
 << RESPONSE:
@@ -4291,13 +4295,13 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 88ceaae2-d6b9-4b1c-9b41-ce7214de09ae
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
+  X-Request-Id: 321c0b0e-6159-4301-9494-99c86204606b
+  Date: Thu, 01 Oct 2026 04:51:09 GMT
   Content-Length: 298
 Body:
 {
-  "id": "6abd72f5e638e7a0510d58ca",
-  "brandId": "6abd72f4e638e7a0510d58b4",
+  "id": "6abde6bd461e49ce73221a84",
+  "brandId": "6abde6bb461e49ce73221a6e",
   "name": "Weekly Evergreen Tips",
   "description": "",
   "targetPlatforms": null,
@@ -4305,14 +4309,14 @@ Body:
   "posts": [],
   "isActive": true,
   "isCircular": true,
-  "createdAt": "2026-10-01T02:07:09.873812+05:30",
-  "updatedAt": "2026-10-01T02:07:09.873812+05:30"
+  "createdAt": "2026-10-01T10:21:09.680012+05:30",
+  "updatedAt": "2026-10-01T10:21:09.680012+05:30"
 }
 
 --- [STEP 63] List Autolists for Brand ---
 >> REQUEST:
-curl -X GET 'http://localhost:5000/v1/autolists?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X GET 'http://localhost:5000/v1/autolists?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -4324,16 +4328,16 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: a8d5a8b9-bcaf-4f88-87d3-6278554d4728
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
-  Content-Length: 303
+  X-Request-Id: b0f584e4-d1dd-442a-8588-eacd53d71407
+  Date: Thu, 01 Oct 2026 04:51:09 GMT
+  Content-Length: 301
 Body:
 {
   "count": 1,
   "data": [
     {
-      "id": "6abd72f5e638e7a0510d58ca",
-      "brandId": "6abd72f4e638e7a0510d58b4",
+      "id": "6abde6bd461e49ce73221a84",
+      "brandId": "6abde6bb461e49ce73221a6e",
       "name": "Weekly Evergreen Tips",
       "description": "",
       "targetPlatforms": null,
@@ -4341,16 +4345,16 @@ Body:
       "posts": [],
       "isActive": true,
       "isCircular": true,
-      "createdAt": "2026-09-30T20:37:09.873Z",
-      "updatedAt": "2026-09-30T20:37:09.873Z"
+      "createdAt": "2026-10-01T04:51:09.68Z",
+      "updatedAt": "2026-10-01T04:51:09.68Z"
     }
   ]
 }
 
 --- [STEP 64] Add Post to Autolist Queue ---
 >> REQUEST:
-curl -X POST 'http://localhost:5000/v1/autolists/6abd72f5e638e7a0510d58ca/posts?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+curl -X POST 'http://localhost:5000/v1/autolists/6abde6bd461e49ce73221a84/posts?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
   -d '{"content": "Evergreen tip #1: Consistent brand voice drives highest community engagement!"}'
 << RESPONSE:
@@ -4364,20 +4368,20 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 49766a02-89e8-4539-9ec7-e723378841b0
-  Date: Wed, 30 Sep 2026 20:37:09 GMT
-  Content-Length: 498
+  X-Request-Id: 4d28fccd-05a5-4834-bbc9-d9791c0f1616
+  Date: Thu, 01 Oct 2026 04:51:09 GMT
+  Content-Length: 497
 Body:
 {
-  "id": "6abd72f5e638e7a0510d58ca",
-  "brandId": "6abd72f4e638e7a0510d58b4",
+  "id": "6abde6bd461e49ce73221a84",
+  "brandId": "6abde6bb461e49ce73221a6e",
   "name": "Weekly Evergreen Tips",
   "description": "",
   "targetPlatforms": null,
   "timeSlots": null,
   "posts": [
     {
-      "id": "5e270e57-eb9a-4ebc-b273-2dc85ca4cdf1",
+      "id": "1c4106db-465f-4e97-bf2c-0b8ae09de5b2",
       "content": "Evergreen tip #1: Consistent brand voice drives highest community engagement!",
       "media": null,
       "status": "active",
@@ -4388,16 +4392,16 @@ Body:
   ],
   "isActive": true,
   "isCircular": true,
-  "createdAt": "2026-09-30T20:37:09.873Z",
-  "updatedAt": "2026-09-30T20:37:09.945Z"
+  "createdAt": "2026-10-01T04:51:09.68Z",
+  "updatedAt": "2026-10-01T04:51:09.736Z"
 }
 
 --- [STEP 65] Create RSS Feed Syndication ---
 >> REQUEST:
-curl -X POST 'http://localhost:5000/v1/rss-feeds?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+curl -X POST 'http://localhost:5000/v1/rss-feeds?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
-  -d '{"autolistId": "6abd72f5e638e7a0510d58ca", "feedUrl": "https://feeds.bbci.co.uk/news/technology/rss.xml", "name": "Tech News RSS Feed", "autoPublish": false, "prefix": "[Tech Digest]"}'
+  -d '{"autolistId": "6abde6bd461e49ce73221a84", "feedUrl": "https://feeds.bbci.co.uk/news/technology/rss.xml", "name": "Tech News RSS Feed", "autoPublish": false, "prefix": "[Tech Digest]"}'
 << RESPONSE:
 Status: HTTP/1.1 201 Created
 Headers:
@@ -4409,13 +4413,13 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: d8108ff7-dd66-42ca-b889-2988373120ec
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: b55bc125-a6b6-401d-beb7-3f62a5bcc998
+  Date: Thu, 01 Oct 2026 04:51:09 GMT
   Content-Length: 398
 Body:
 {
-  "id": "6abd72f6e638e7a0510d58cc",
-  "brandId": "6abd72f4e638e7a0510d58b4",
+  "id": "6abde6bd461e49ce73221a86",
+  "brandId": "6abde6bb461e49ce73221a6e",
   "feedUrl": "https://feeds.bbci.co.uk/news/technology/rss.xml",
   "targetPlatforms": null,
   "template": "{title} - {link}",
@@ -4424,14 +4428,14 @@ Body:
   "lastPostGuid": "",
   "autoPublish": false,
   "isActive": true,
-  "createdAt": "2026-10-01T02:07:10.039356+05:30",
-  "updatedAt": "2026-10-01T02:07:10.039356+05:30"
+  "createdAt": "2026-10-01T10:21:09.760784+05:30",
+  "updatedAt": "2026-10-01T10:21:09.760784+05:30"
 }
 
 --- [STEP 66] List RSS Feeds for Brand ---
 >> REQUEST:
-curl -X GET 'http://localhost:5000/v1/rss-feeds?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X GET 'http://localhost:5000/v1/rss-feeds?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -4443,16 +4447,16 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 8d2e3f07-97ff-4f6d-9814-669615c3d9a6
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
-  Content-Length: 403
+  X-Request-Id: 176e306c-6c8a-4407-8555-11bb392191ff
+  Date: Thu, 01 Oct 2026 04:51:09 GMT
+  Content-Length: 401
 Body:
 {
   "count": 1,
   "data": [
     {
-      "id": "6abd72f6e638e7a0510d58cc",
-      "brandId": "6abd72f4e638e7a0510d58b4",
+      "id": "6abde6bd461e49ce73221a86",
+      "brandId": "6abde6bb461e49ce73221a6e",
       "feedUrl": "https://feeds.bbci.co.uk/news/technology/rss.xml",
       "targetPlatforms": null,
       "template": "{title} - {link}",
@@ -4461,8 +4465,8 @@ Body:
       "lastPostGuid": "",
       "autoPublish": false,
       "isActive": true,
-      "createdAt": "2026-09-30T20:37:10.039Z",
-      "updatedAt": "2026-09-30T20:37:10.039Z"
+      "createdAt": "2026-10-01T04:51:09.76Z",
+      "updatedAt": "2026-10-01T04:51:09.76Z"
     }
   ]
 }
@@ -4474,8 +4478,8 @@ Body:
 
 --- [STEP 67] Add Competitor to Benchmark ---
 >> REQUEST:
-curl -X POST 'http://localhost:5000/v1/competitors?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+curl -X POST 'http://localhost:5000/v1/competitors?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
   -d '{"name": "Global Rival Corp", "platform": "instagram", "handle": "globalrivalcorp"}'
 << RESPONSE:
@@ -4489,13 +4493,13 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 113bb4aa-1a43-4f61-a54d-6995062d4108
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: 3ca9402d-a716-4f8f-9902-5f413c1d0a64
+  Date: Thu, 01 Oct 2026 04:51:09 GMT
   Content-Length: 398
 Body:
 {
-  "id": "6abd72f6e638e7a0510d58ce",
-  "brandId": "6abd72f4e638e7a0510d58b4",
+  "id": "6abde6bd461e49ce73221a88",
+  "brandId": "6abde6bb461e49ce73221a6e",
   "platform": "instagram",
   "handle": "globalrivalcorp",
   "name": "Global Rival Corp",
@@ -4506,15 +4510,15 @@ Body:
   "postsCount": 0,
   "engagementRate": 0,
   "history": [],
-  "lastSyncedAt": "2026-10-01T02:07:10.083593+05:30",
-  "createdAt": "2026-10-01T02:07:10.083593+05:30",
-  "updatedAt": "2026-10-01T02:07:10.083593+05:30"
+  "lastSyncedAt": "2026-10-01T10:21:09.829679+05:30",
+  "createdAt": "2026-10-01T10:21:09.829679+05:30",
+  "updatedAt": "2026-10-01T10:21:09.829679+05:30"
 }
 
 --- [STEP 68] List Competitors for Brand ---
 >> REQUEST:
-curl -X GET 'http://localhost:5000/v1/competitors?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X GET 'http://localhost:5000/v1/competitors?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -4526,16 +4530,16 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 12a2617c-6e8f-4d08-b96f-c4426a372663
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: eb636347-38fd-490a-bd0d-df7ca398e5cf
+  Date: Thu, 01 Oct 2026 04:51:09 GMT
   Content-Length: 395
 Body:
 {
   "count": 1,
   "data": [
     {
-      "id": "6abd72f6e638e7a0510d58ce",
-      "brandId": "6abd72f4e638e7a0510d58b4",
+      "id": "6abde6bd461e49ce73221a88",
+      "brandId": "6abde6bb461e49ce73221a6e",
       "platform": "instagram",
       "handle": "globalrivalcorp",
       "name": "Global Rival Corp",
@@ -4546,17 +4550,17 @@ Body:
       "postsCount": 0,
       "engagementRate": 0,
       "history": [],
-      "lastSyncedAt": "2026-09-30T20:37:10.083Z",
-      "createdAt": "2026-09-30T20:37:10.083Z",
-      "updatedAt": "2026-09-30T20:37:10.083Z"
+      "lastSyncedAt": "2026-10-01T04:51:09.829Z",
+      "createdAt": "2026-10-01T04:51:09.829Z",
+      "updatedAt": "2026-10-01T04:51:09.829Z"
     }
   ]
 }
 
 --- [STEP 69] Record Competitor Metrics Snapshot ---
 >> REQUEST:
-curl -X POST 'http://localhost:5000/v1/competitors/6abd72f6e638e7a0510d58ce/snapshots?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+curl -X POST 'http://localhost:5000/v1/competitors/6abde6bd461e49ce73221a88/snapshots?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
   -d '{"followers": 125000, "following": 850, "postsCount": 1420, "engagementRate": 3.85}'
 << RESPONSE:
@@ -4570,8 +4574,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: a5b294e9-368b-4201-b8b6-f0177a8a9e16
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: 738124f3-4332-4abb-894c-89e1ee51d162
+  Date: Thu, 01 Oct 2026 04:51:09 GMT
   Content-Length: 17
 Body:
 {
@@ -4580,8 +4584,8 @@ Body:
 
 --- [STEP 70] Trigger Competitor Sync ---
 >> REQUEST:
-curl -X POST 'http://localhost:5000/v1/competitors/6abd72f6e638e7a0510d58ce/sync?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X POST 'http://localhost:5000/v1/competitors/6abde6bd461e49ce73221a88/sync?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -4593,8 +4597,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: a16835d3-bf74-44ef-a6f8-524e9cf65d49
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: a78aac12-5ad7-44c3-9ae1-fc6c4f7d29f0
+  Date: Thu, 01 Oct 2026 04:51:10 GMT
   Content-Length: 61
 Body:
 {
@@ -4609,8 +4613,8 @@ Body:
 
 --- [STEP 71] Create Ad Campaign Record ---
 >> REQUEST:
-curl -X POST 'http://localhost:5000/v1/ads/campaigns?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+curl -X POST 'http://localhost:5000/v1/ads/campaigns?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
   -d '{"platform": "meta", "externalCampaignId": "cmp_meta_98765", "name": "Q4 Brand Awareness Drive", "status": "ACTIVE", "objective": "AWARENESS", "budget": 5000.0, "spend": 1240.5, "impressions": 485000, "clicks": 14200, "conversions": 630, "dateRange": "2026-Q4"}'
 << RESPONSE:
@@ -4624,13 +4628,13 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 091d6ef6-49ba-47a5-8392-93660dfecb8d
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: 4ec415b5-222a-4ec8-bd29-cde244395366
+  Date: Thu, 01 Oct 2026 04:51:10 GMT
   Content-Length: 491
 Body:
 {
   "id": "000000000000000000000000",
-  "brandId": "6abd72f4e638e7a0510d58b4",
+  "brandId": "6abde6bb461e49ce73221a6e",
   "platform": "meta",
   "externalCampaignId": "cmp_meta_98765",
   "name": "Q4 Brand Awareness Drive",
@@ -4647,13 +4651,13 @@ Body:
   "roas": 25.39298669891173,
   "dateRange": "2026-Q4",
   "createdAt": "0001-01-01T00:00:00Z",
-  "updatedAt": "2026-10-01T02:07:10.212884+05:30"
+  "updatedAt": "2026-10-01T10:21:10.135209+05:30"
 }
 
 --- [STEP 72] List Ad Campaigns for Brand ---
 >> REQUEST:
-curl -X GET 'http://localhost:5000/v1/ads/campaigns?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X GET 'http://localhost:5000/v1/ads/campaigns?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -4665,16 +4669,16 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 6ecf3354-40eb-4fed-affb-96d6149831fe
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: 65274db9-38a6-4f3f-92ea-2fa619072445
+  Date: Thu, 01 Oct 2026 04:51:10 GMT
   Content-Length: 508
 Body:
 {
   "count": 1,
   "data": [
     {
-      "id": "6abd72f6f594129b1ba0bb62",
-      "brandId": "6abd72f4e638e7a0510d58b4",
+      "id": "6abde6bef94d4e9ca4e4d1fc",
+      "brandId": "6abde6bb461e49ce73221a6e",
       "platform": "meta",
       "externalCampaignId": "cmp_meta_98765",
       "name": "Q4 Brand Awareness Drive",
@@ -4690,16 +4694,16 @@ Body:
       "cpm": 2.5577319587628864,
       "roas": 25.39298669891173,
       "dateRange": "2026-Q4",
-      "createdAt": "2026-09-30T20:37:10.212Z",
-      "updatedAt": "2026-09-30T20:37:10.212Z"
+      "createdAt": "2026-10-01T04:51:10.135Z",
+      "updatedAt": "2026-10-01T04:51:10.135Z"
     }
   ]
 }
 
 --- [STEP 73] Update Ad Campaign Performance (PUT) ---
 >> REQUEST:
-curl -X PUT 'http://localhost:5000/v1/ads/campaigns/000000000000000000000000?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+curl -X PUT 'http://localhost:5000/v1/ads/campaigns/000000000000000000000000?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
   -d '{"spend": 1850.75, "clicks": 19800, "conversions": 890}'
 << RESPONSE:
@@ -4713,8 +4717,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 817d964c-3e0a-4585-9569-3fec141bf715
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: 9a03854c-e2c6-4637-9d9c-11022f87ad63
+  Date: Thu, 01 Oct 2026 04:51:10 GMT
   Content-Length: 84
 Body:
 {
@@ -4725,8 +4729,8 @@ Body:
 
 --- [STEP 74] Update Ad Campaign Status (PATCH) ---
 >> REQUEST:
-curl -X PATCH 'http://localhost:5000/v1/ads/campaigns/000000000000000000000000?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+curl -X PATCH 'http://localhost:5000/v1/ads/campaigns/000000000000000000000000?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
   -d '{"status": "PAUSED"}'
 << RESPONSE:
@@ -4740,8 +4744,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 3e7dfbcd-4cf3-4500-afe4-cfb932f14b1a
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: bcaacaa8-298c-4c04-a194-b9b888e27eb2
+  Date: Thu, 01 Oct 2026 04:51:10 GMT
   Content-Length: 84
 Body:
 {
@@ -4752,8 +4756,8 @@ Body:
 
 --- [STEP 75] Get Multi-Channel Ad Spend Summary ---
 >> REQUEST:
-curl -X GET 'http://localhost:5000/v1/ads/summary?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X GET 'http://localhost:5000/v1/ads/summary?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -4765,8 +4769,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 85a96564-b6da-4673-9943-df88f1f90578
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: 194e2858-8dfa-4f0f-9790-32d8b962a33b
+  Date: Thu, 01 Oct 2026 04:51:10 GMT
   Content-Length: 188
 Body:
 {
@@ -4781,8 +4785,8 @@ Body:
 
 --- [STEP 76] Sync Ad Campaigns from Network API ---
 >> REQUEST:
-curl -X POST 'http://localhost:5000/v1/ads/sync?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+curl -X POST 'http://localhost:5000/v1/ads/sync?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
   -d '{"platform": "meta"}'
 << RESPONSE:
@@ -4796,8 +4800,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 1865cdd8-3ace-4d32-b19e-67cf5c927bb1
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: 47b28fb7-7745-4632-a696-c9c60e7ee4b7
+  Date: Thu, 01 Oct 2026 04:51:10 GMT
   Content-Length: 62
 Body:
 {
@@ -4812,7 +4816,7 @@ Body:
 
 --- [STEP 77] Public Web Tracking 1x1 Transparent Pixel ---
 >> REQUEST:
-curl -X GET 'http://localhost:5000/v1/tracker/pixel.png?brandId=6abd72f4e638e7a0510d58b4&page=/products'
+curl -X GET 'http://localhost:5000/v1/tracker/pixel.png?brandId=6abde6bb461e49ce73221a6e&page=/products'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -4825,8 +4829,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: ce81bcb5-7716-47f9-beeb-5ca342e4a441
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: c4091eba-4de0-4917-9192-916b2e3ba0d8
+  Date: Thu, 01 Oct 2026 04:51:10 GMT
   Content-Length: 43
 Body:
 <binary data: 43 bytes>
@@ -4835,7 +4839,7 @@ Body:
 >> REQUEST:
 curl -X POST 'http://localhost:5000/v1/tracker/event' \
   -H 'Content-Type: application/json' \
-  -d '{"brandId": "6abd72f4e638e7a0510d58b4", "eventName": "purchase_completed", "properties": {"orderValue": 99.0, "currency": "USD"}}'
+  -d '{"brandId": "6abde6bb461e49ce73221a6e", "eventName": "purchase_completed", "properties": {"orderValue": 99.0, "currency": "USD"}}'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -4847,8 +4851,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 5d704120-89d7-4e33-9850-a00982b90a7e
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: aff966f6-ae4d-43dd-8efa-f992770fc32b
+  Date: Thu, 01 Oct 2026 04:51:10 GMT
   Content-Length: 17
 Body:
 {
@@ -4857,8 +4861,8 @@ Body:
 
 --- [STEP 79] Get Aggregated Web Traffic Analytics ---
 >> REQUEST:
-curl -X GET 'http://localhost:5000/v1/analytics/web?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X GET 'http://localhost:5000/v1/analytics/web?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -4870,21 +4874,21 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 856e0714-f9c8-4431-a5d1-3dc7ce708f58
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: 07a5d677-97a9-45dc-bf32-35569695c09c
+  Date: Thu, 01 Oct 2026 04:51:10 GMT
   Content-Length: 111
 Body:
 {
-  "from": "2026-09-01T02:07:10.430593+05:30",
+  "from": "2026-09-01T10:21:10.627575+05:30",
   "pageviews": 2,
-  "to": "2026-10-01T02:07:10.430593+05:30",
+  "to": "2026-10-01T10:21:10.627575+05:30",
   "visitors": 1
 }
 
 --- [STEP 80] Record Social Analytics Rollup Metric ---
 >> REQUEST:
-curl -X POST 'http://localhost:5000/v1/analytics/social/rollups?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+curl -X POST 'http://localhost:5000/v1/analytics/social/rollups?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
   -d '{"platform": "instagram", "impressions": 54200, "reach": 41200, "engagements": 3890, "followersGained": 340, "period": "daily"}'
 << RESPONSE:
@@ -4898,8 +4902,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 01302865-8af7-4b4b-9229-3611f06319cc
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: ebbfcf0a-53ae-4052-bd22-c5ea4aa62547
+  Date: Thu, 01 Oct 2026 04:51:10 GMT
   Content-Length: 17
 Body:
 {
@@ -4908,8 +4912,8 @@ Body:
 
 --- [STEP 81] Get Social Performance Analytics ---
 >> REQUEST:
-curl -X GET 'http://localhost:5000/v1/analytics/social?brandId=6abd72f4e638e7a0510d58b4&platform=instagram' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X GET 'http://localhost:5000/v1/analytics/social?brandId=6abde6bb461e49ce73221a6e&platform=instagram' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -4921,16 +4925,16 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 2aa95e06-d56f-46d7-bce4-51ba72aaae31
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: 2ff97155-99bd-4fa5-bb30-1f46a941fe5e
+  Date: Thu, 01 Oct 2026 04:51:10 GMT
   Content-Length: 322
 Body:
 {
   "count": 1,
   "data": [
     {
-      "id": "6abd72f6f594129b1ba0bb63",
-      "brandId": "6abd72f4e638e7a0510d58b4",
+      "id": "6abde6bef94d4e9ca4e4d1fd",
+      "brandId": "6abde6bb461e49ce73221a6e",
       "platform": "instagram",
       "date": "2026-10-01",
       "followers": 0,
@@ -4942,7 +4946,7 @@ Body:
       "videoViews": 0,
       "postsCount": 0,
       "interactionsCount": 0,
-      "createdAt": "2026-09-30T20:37:10.457Z"
+      "createdAt": "2026-10-01T04:51:10.665Z"
     }
   ]
 }
@@ -4955,9 +4959,9 @@ Body:
 --- [STEP 82] Generate Analytics Executive Report ---
 >> REQUEST:
 curl -X POST 'http://localhost:5000/v1/reports/generate' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
-  -d '{"brandId": "6abd72f4e638e7a0510d58b4", "title": "Monthly Executive Social & Web Performance Report", "format": "csv", "startDate": "2026-09-01T00:00:00Z", "endDate": "2026-09-30T23:59:59Z"}'
+  -d '{"brandId": "6abde6bb461e49ce73221a6e", "title": "Monthly Executive Social & Web Performance Report", "format": "csv", "startDate": "2026-09-01T00:00:00Z", "endDate": "2026-09-30T23:59:59Z"}'
 << RESPONSE:
 Status: HTTP/1.1 201 Created
 Headers:
@@ -4969,18 +4973,18 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 19d7b186-f054-4871-8861-ff662a8a0ba0
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: d425a3db-c8c4-4449-a310-725faa970d14
+  Date: Thu, 01 Oct 2026 04:51:10 GMT
   Content-Length: 683
 Body:
 {
-  "id": "6abd72f6e638e7a0510d58d3",
-  "brandId": "6abd72f4e638e7a0510d58b4",
+  "id": "6abde6be461e49ce73221a8d",
+  "brandId": "6abde6bb461e49ce73221a6e",
   "title": "Monthly Executive Social & Web Performance Report",
-  "periodStart": "2026-08-31T20:37:10.532Z",
-  "periodEnd": "2026-09-30T20:37:10.532Z",
+  "periodStart": "2026-09-01T04:51:10.801Z",
+  "periodEnd": "2026-10-01T04:51:10.801Z",
   "format": "csv",
-  "fileUrl": "/api/v1/reports/6abd72f6e638e7a0510d58d3/download",
+  "fileUrl": "/api/v1/reports/6abde6be461e49ce73221a8d/download",
   "status": "completed",
   "whiteLabelLogo": "",
   "metrics": {
@@ -4990,27 +4994,27 @@ Body:
       "scheduled": 0
     },
     "social": {
+      "totalReach": 41200,
+      "totalEngagement": 0,
       "totalClicks": 0,
       "rollupsCount": 1,
-      "totalImpressions": 54200,
-      "totalReach": 41200,
-      "totalEngagement": 0
+      "totalImpressions": 54200
     },
     "web": {
-      "from": "2026-08-31T20:37:10.532Z",
-      "to": "2026-09-30T20:37:10.532Z",
       "pageviews": 2,
-      "visitors": 1
+      "visitors": 1,
+      "from": "2026-09-01T04:51:10.801Z",
+      "to": "2026-10-01T04:51:10.801Z"
     }
   },
-  "createdAt": "2026-09-30T20:37:10.533Z",
-  "completedAt": "2026-09-30T20:37:10.539Z"
+  "createdAt": "2026-10-01T04:51:10.801Z",
+  "completedAt": "2026-10-01T04:51:10.817Z"
 }
 
 --- [STEP 83] List Generated Reports ---
 >> REQUEST:
-curl -X GET 'http://localhost:5000/v1/reports?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X GET 'http://localhost:5000/v1/reports?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -5022,21 +5026,21 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 05df33a1-dd7d-49e0-9a86-f4ef1acab775
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: e6a3bfab-7985-4375-be70-838247389417
+  Date: Thu, 01 Oct 2026 04:51:10 GMT
   Content-Length: 704
 Body:
 {
   "count": 1,
   "data": [
     {
-      "id": "6abd72f6e638e7a0510d58d3",
-      "brandId": "6abd72f4e638e7a0510d58b4",
+      "id": "6abde6be461e49ce73221a8d",
+      "brandId": "6abde6bb461e49ce73221a6e",
       "title": "Monthly Executive Social & Web Performance Report",
-      "periodStart": "2026-08-31T20:37:10.532Z",
-      "periodEnd": "2026-09-30T20:37:10.532Z",
+      "periodStart": "2026-09-01T04:51:10.801Z",
+      "periodEnd": "2026-10-01T04:51:10.801Z",
       "format": "csv",
-      "fileUrl": "/api/v1/reports/6abd72f6e638e7a0510d58d3/download",
+      "fileUrl": "/api/v1/reports/6abde6be461e49ce73221a8d/download",
       "status": "completed",
       "whiteLabelLogo": "",
       "metrics": {
@@ -5046,29 +5050,29 @@ Body:
           "scheduled": 0
         },
         "social": {
+          "totalReach": 41200,
+          "totalEngagement": 0,
           "totalClicks": 0,
           "rollupsCount": 1,
-          "totalImpressions": 54200,
-          "totalReach": 41200,
-          "totalEngagement": 0
+          "totalImpressions": 54200
         },
         "web": {
-          "from": "2026-08-31T20:37:10.532Z",
-          "to": "2026-09-30T20:37:10.532Z",
           "pageviews": 2,
-          "visitors": 1
+          "visitors": 1,
+          "from": "2026-09-01T04:51:10.801Z",
+          "to": "2026-10-01T04:51:10.801Z"
         }
       },
-      "createdAt": "2026-09-30T20:37:10.533Z",
-      "completedAt": "2026-09-30T20:37:10.539Z"
+      "createdAt": "2026-10-01T04:51:10.801Z",
+      "completedAt": "2026-10-01T04:51:10.817Z"
     }
   ]
 }
 
 --- [STEP 84] Download Generated Report File ---
 >> REQUEST:
-curl -X GET 'http://localhost:5000/v1/reports/6abd72f6e638e7a0510d58d3/download' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X GET 'http://localhost:5000/v1/reports/6abde6be461e49ce73221a8d/download' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -5076,18 +5080,18 @@ Headers:
   Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS
   Access-Control-Allow-Origin: *
   Access-Control-Max-Age: 86400
-  Content-Disposition: attachment; filename="report-acme-global-holdings-6abd72f6.csv"
+  Content-Disposition: attachment; filename="report-acme-global-holdings-6abde6be.csv"
   Content-Type: text/csv
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: c77dc534-4835-465b-acde-2a6ebfa8a882
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: 0175c04d-069e-4d28-b16e-4cd4574c0246
+  Date: Thu, 01 Oct 2026 04:51:10 GMT
   Content-Length: 199
 Body:
 Category,Metric,Value,PeriodStart,PeriodEnd
-General,Brand Name,Acme Global Holdings,2026-08-31,2026-09-30
-General,Report Title,Monthly Executive Social & Web Performance Report,2026-08-31,2026-09-30
+General,Brand Name,Acme Global Holdings,2026-09-01,2026-10-01
+General,Report Title,Monthly Executive Social & Web Performance Report,2026-09-01,2026-10-01
 
 
 
@@ -5098,9 +5102,9 @@ General,Report Title,Monthly Executive Social & Web Performance Report,2026-08-3
 --- [STEP 85] Create Webhook Subscription ---
 >> REQUEST:
 curl -X POST 'http://localhost:5000/v1/webhooks' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
-  -d '{"brandId": "6abd72f4e638e7a0510d58b4", "url": "https://webhook.site/test-endpoint", "events": ["post.published", "post.failed", "inbox.message"], "secret": "whsec_supersecretkey123"}'
+  -d '{"brandId": "6abde6bb461e49ce73221a6e", "url": "https://webhook.site/test-endpoint", "events": ["post.published", "post.failed", "inbox.message"], "secret": "whsec_supersecretkey123"}'
 << RESPONSE:
 Status: HTTP/1.1 201 Created
 Headers:
@@ -5112,14 +5116,14 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 9a5652e5-29ec-4198-8b64-e5c436593041
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: e8b0cc66-ae4c-4c4c-bf0d-a33c91ebfc28
+  Date: Thu, 01 Oct 2026 04:51:10 GMT
   Content-Length: 320
 Body:
 {
-  "id": "6abd72f6e638e7a0510d58d5",
-  "userId": "6abd72f1e638e7a0510d58af",
-  "brandId": "6abd72f4e638e7a0510d58b4",
+  "id": "6abde6be461e49ce73221a8f",
+  "userId": "6abde64b880c64c1db97aea3",
+  "brandId": "6abde6bb461e49ce73221a6e",
   "url": "https://webhook.site/test-endpoint",
   "events": [
     "post.published",
@@ -5127,14 +5131,14 @@ Body:
     "inbox.message"
   ],
   "status": "active",
-  "createdAt": "2026-10-01T02:07:10.607336+05:30",
-  "updatedAt": "2026-10-01T02:07:10.607336+05:30"
+  "createdAt": "2026-10-01T10:21:10.921951+05:30",
+  "updatedAt": "2026-10-01T10:21:10.921951+05:30"
 }
 
 --- [STEP 86] List Active Webhook Subscriptions ---
 >> REQUEST:
-curl -X GET 'http://localhost:5000/v1/webhooks?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X GET 'http://localhost:5000/v1/webhooks?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -5146,17 +5150,17 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: af509e27-c04d-4a42-8a14-1e5127031b7d
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: 4dda1f6f-e78d-4c9a-82a7-092cfe09232f
+  Date: Thu, 01 Oct 2026 04:51:10 GMT
   Content-Length: 325
 Body:
 {
   "count": 1,
   "data": [
     {
-      "id": "6abd72f6e638e7a0510d58d5",
-      "userId": "6abd72f1e638e7a0510d58af",
-      "brandId": "6abd72f4e638e7a0510d58b4",
+      "id": "6abde6be461e49ce73221a8f",
+      "userId": "6abde64b880c64c1db97aea3",
+      "brandId": "6abde6bb461e49ce73221a6e",
       "url": "https://webhook.site/test-endpoint",
       "events": [
         "post.published",
@@ -5164,8 +5168,8 @@ Body:
         "inbox.message"
       ],
       "status": "active",
-      "createdAt": "2026-09-30T20:37:10.607Z",
-      "updatedAt": "2026-09-30T20:37:10.607Z"
+      "createdAt": "2026-10-01T04:51:10.921Z",
+      "updatedAt": "2026-10-01T04:51:10.921Z"
     }
   ]
 }
@@ -5177,8 +5181,8 @@ Body:
 
 --- [STEP 87] List Security and Activity Audit Logs ---
 >> REQUEST:
-curl -X GET 'http://localhost:5000/v1/audit-logs?brandId=6abd72f4e638e7a0510d58b4&limit=20' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X GET 'http://localhost:5000/v1/audit-logs?brandId=6abde6bb461e49ce73221a6e&limit=20' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -5190,228 +5194,228 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 10342b41-eede-4968-80fe-e84c6db83911
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: 6fa40cc0-cecf-429b-9013-f6db078c30bd
+  Date: Thu, 01 Oct 2026 04:51:10 GMT
   Transfer-Encoding: chunked
 Body:
 {
   "count": 18,
   "data": [
     {
-      "id": "6abd72f6e638e7a0510d58d6",
-      "userId": "6abd72f1e638e7a0510d58af",
-      "brandId": "6abd72f4e638e7a0510d58b4",
-      "actor": "6abd72f1e638e7a0510d58af",
+      "id": "6abde6be461e49ce73221a90",
+      "userId": "6abde64b880c64c1db97aea3",
+      "brandId": "6abde6bb461e49ce73221a6e",
+      "actor": "6abde64b880c64c1db97aea3",
       "action": "webhook.create",
       "resourceType": "webhook",
-      "resourceId": "6abd72f6e638e7a0510d58d5",
+      "resourceId": "6abde6be461e49ce73221a8f",
       "ipAddress": "::1",
       "userAgent": "curl/8.16.0",
-      "createdAt": "2026-09-30T20:37:10.608Z"
+      "createdAt": "2026-10-01T04:51:10.93Z"
     },
     {
-      "id": "6abd72f6e638e7a0510d58d4",
-      "userId": "6abd72f1e638e7a0510d58af",
-      "brandId": "6abd72f4e638e7a0510d58b4",
-      "actor": "6abd72f1e638e7a0510d58af",
+      "id": "6abde6be461e49ce73221a8e",
+      "userId": "6abde64b880c64c1db97aea3",
+      "brandId": "6abde6bb461e49ce73221a6e",
+      "actor": "6abde64b880c64c1db97aea3",
       "action": "report.generate",
       "resourceType": "report",
-      "resourceId": "6abd72f6e638e7a0510d58d3",
+      "resourceId": "6abde6be461e49ce73221a8d",
       "ipAddress": "::1",
       "userAgent": "curl/8.16.0",
-      "createdAt": "2026-09-30T20:37:10.54Z"
+      "createdAt": "2026-10-01T04:51:10.818Z"
     },
     {
-      "id": "6abd72f6e638e7a0510d58d0",
-      "userId": "6abd72f1e638e7a0510d58af",
-      "brandId": "6abd72f4e638e7a0510d58b4",
-      "actor": "6abd72f1e638e7a0510d58af",
+      "id": "6abde6be461e49ce73221a8a",
+      "userId": "6abde64b880c64c1db97aea3",
+      "brandId": "6abde6bb461e49ce73221a6e",
+      "actor": "6abde64b880c64c1db97aea3",
       "action": "ads.create",
       "resourceType": "campaign",
       "resourceId": "000000000000000000000000",
       "ipAddress": "::1",
       "userAgent": "curl/8.16.0",
-      "createdAt": "2026-09-30T20:37:10.215Z"
+      "createdAt": "2026-10-01T04:51:10.151Z"
     },
     {
-      "id": "6abd72f6e638e7a0510d58cf",
-      "userId": "6abd72f1e638e7a0510d58af",
-      "brandId": "6abd72f4e638e7a0510d58b4",
-      "actor": "6abd72f1e638e7a0510d58af",
+      "id": "6abde6bd461e49ce73221a89",
+      "userId": "6abde64b880c64c1db97aea3",
+      "brandId": "6abde6bb461e49ce73221a6e",
+      "actor": "6abde64b880c64c1db97aea3",
       "action": "competitor.add",
       "resourceType": "competitor",
-      "resourceId": "6abd72f6e638e7a0510d58ce",
+      "resourceId": "6abde6bd461e49ce73221a88",
       "ipAddress": "::1",
       "userAgent": "curl/8.16.0",
-      "createdAt": "2026-09-30T20:37:10.085Z"
+      "createdAt": "2026-10-01T04:51:09.881Z"
     },
     {
-      "id": "6abd72f6e638e7a0510d58cd",
-      "userId": "6abd72f1e638e7a0510d58af",
-      "brandId": "6abd72f4e638e7a0510d58b4",
-      "actor": "6abd72f1e638e7a0510d58af",
+      "id": "6abde6bd461e49ce73221a87",
+      "userId": "6abde64b880c64c1db97aea3",
+      "brandId": "6abde6bb461e49ce73221a6e",
+      "actor": "6abde64b880c64c1db97aea3",
       "action": "rss_feed.create",
       "resourceType": "rss_feed",
-      "resourceId": "6abd72f6e638e7a0510d58cc",
+      "resourceId": "6abde6bd461e49ce73221a86",
       "ipAddress": "::1",
       "userAgent": "curl/8.16.0",
-      "createdAt": "2026-09-30T20:37:10.04Z"
+      "createdAt": "2026-10-01T04:51:09.773Z"
     },
     {
-      "id": "6abd72f5e638e7a0510d58cb",
-      "userId": "6abd72f1e638e7a0510d58af",
-      "brandId": "6abd72f4e638e7a0510d58b4",
-      "actor": "6abd72f1e638e7a0510d58af",
+      "id": "6abde6bd461e49ce73221a85",
+      "userId": "6abde64b880c64c1db97aea3",
+      "brandId": "6abde6bb461e49ce73221a6e",
+      "actor": "6abde64b880c64c1db97aea3",
       "action": "autolist.create",
       "resourceType": "autolist",
-      "resourceId": "6abd72f5e638e7a0510d58ca",
+      "resourceId": "6abde6bd461e49ce73221a84",
       "ipAddress": "::1",
       "userAgent": "curl/8.16.0",
-      "createdAt": "2026-09-30T20:37:09.875Z"
+      "createdAt": "2026-10-01T04:51:09.687Z"
     },
     {
-      "id": "6abd72f5e638e7a0510d58c9",
-      "userId": "6abd72f1e638e7a0510d58af",
-      "brandId": "6abd72f4e638e7a0510d58b4",
-      "actor": "6abd72f1e638e7a0510d58af",
+      "id": "6abde6bd461e49ce73221a83",
+      "userId": "6abde64b880c64c1db97aea3",
+      "brandId": "6abde6bb461e49ce73221a6e",
+      "actor": "6abde64b880c64c1db97aea3",
       "action": "smartlink.create",
       "resourceType": "smartlink_page",
-      "resourceId": "6abd72f5e638e7a0510d58c8",
+      "resourceId": "6abde6bd461e49ce73221a82",
       "ipAddress": "::1",
       "userAgent": "curl/8.16.0",
-      "createdAt": "2026-09-30T20:37:09.644Z"
+      "createdAt": "2026-10-01T04:51:09.451Z"
     },
     {
-      "id": "6abd72f5e638e7a0510d58c7",
-      "userId": "6abd72f1e638e7a0510d58af",
-      "brandId": "6abd72f4e638e7a0510d58b4",
-      "actor": "6abd72f1e638e7a0510d58af",
+      "id": "6abde6bd461e49ce73221a81",
+      "userId": "6abde64b880c64c1db97aea3",
+      "brandId": "6abde6bb461e49ce73221a6e",
+      "actor": "6abde64b880c64c1db97aea3",
       "action": "inbox.reply",
       "resourceType": "inbox_conversation",
-      "resourceId": "6abd72f50af7190af40b7b71",
+      "resourceId": "6abde6bdf2196ff383fed76c",
       "ipAddress": "::1",
       "userAgent": "curl/8.16.0",
-      "createdAt": "2026-09-30T20:37:09.599Z"
+      "createdAt": "2026-10-01T04:51:09.361Z"
     },
     {
-      "id": "6abd72f5e638e7a0510d58c4",
-      "userId": "6abd72f1e638e7a0510d58af",
-      "brandId": "6abd72f4e638e7a0510d58b4",
-      "actor": "6abd72f1e638e7a0510d58af",
+      "id": "6abde6bc461e49ce73221a7e",
+      "userId": "6abde64b880c64c1db97aea3",
+      "brandId": "6abde6bb461e49ce73221a6e",
+      "actor": "6abde64b880c64c1db97aea3",
       "action": "post.approve",
       "resourceType": "post",
-      "resourceId": "6abd72f5e638e7a0510d58bf",
+      "resourceId": "6abde6bc461e49ce73221a79",
       "ipAddress": "::1",
       "userAgent": "curl/8.16.0",
-      "createdAt": "2026-09-30T20:37:09.3Z"
+      "createdAt": "2026-10-01T04:51:08.858Z"
     },
     {
-      "id": "6abd72f5e638e7a0510d58c3",
-      "userId": "6abd72f1e638e7a0510d58af",
-      "brandId": "6abd72f4e638e7a0510d58b4",
-      "actor": "6abd72f1e638e7a0510d58af",
+      "id": "6abde6bc461e49ce73221a7d",
+      "userId": "6abde64b880c64c1db97aea3",
+      "brandId": "6abde6bb461e49ce73221a6e",
+      "actor": "6abde64b880c64c1db97aea3",
       "action": "post.reject",
       "resourceType": "post",
-      "resourceId": "6abd72f5e638e7a0510d58bf",
+      "resourceId": "6abde6bc461e49ce73221a79",
       "ipAddress": "::1",
       "userAgent": "curl/8.16.0",
-      "createdAt": "2026-09-30T20:37:09.273Z"
+      "createdAt": "2026-10-01T04:51:08.81Z"
     },
     {
-      "id": "6abd72f5e638e7a0510d58c2",
-      "userId": "6abd72f1e638e7a0510d58af",
-      "brandId": "6abd72f4e638e7a0510d58b4",
-      "actor": "6abd72f1e638e7a0510d58af",
+      "id": "6abde6bc461e49ce73221a7c",
+      "userId": "6abde64b880c64c1db97aea3",
+      "brandId": "6abde6bb461e49ce73221a6e",
+      "actor": "6abde64b880c64c1db97aea3",
       "action": "post.update",
       "resourceType": "post",
-      "resourceId": "6abd72f5e638e7a0510d58bf",
+      "resourceId": "6abde6bc461e49ce73221a79",
       "ipAddress": "::1",
       "userAgent": "curl/8.16.0",
-      "createdAt": "2026-09-30T20:37:09.167Z"
+      "createdAt": "2026-10-01T04:51:08.609Z"
     },
     {
-      "id": "6abd72f5e638e7a0510d58c1",
-      "userId": "6abd72f1e638e7a0510d58af",
-      "brandId": "6abd72f4e638e7a0510d58b4",
-      "actor": "6abd72f1e638e7a0510d58af",
+      "id": "6abde6bc461e49ce73221a7b",
+      "userId": "6abde64b880c64c1db97aea3",
+      "brandId": "6abde6bb461e49ce73221a6e",
+      "actor": "6abde64b880c64c1db97aea3",
       "action": "post.update",
       "resourceType": "post",
-      "resourceId": "6abd72f5e638e7a0510d58bf",
+      "resourceId": "6abde6bc461e49ce73221a79",
       "ipAddress": "::1",
       "userAgent": "curl/8.16.0",
-      "createdAt": "2026-09-30T20:37:09.142Z"
+      "createdAt": "2026-10-01T04:51:08.532Z"
     },
     {
-      "id": "6abd72f5e638e7a0510d58c0",
-      "userId": "6abd72f1e638e7a0510d58af",
-      "brandId": "6abd72f4e638e7a0510d58b4",
-      "actor": "6abd72f1e638e7a0510d58af",
+      "id": "6abde6bc461e49ce73221a7a",
+      "userId": "6abde64b880c64c1db97aea3",
+      "brandId": "6abde6bb461e49ce73221a6e",
+      "actor": "6abde64b880c64c1db97aea3",
       "action": "post.create",
       "resourceType": "post",
-      "resourceId": "6abd72f5e638e7a0510d58bf",
+      "resourceId": "6abde6bc461e49ce73221a79",
       "ipAddress": "::1",
       "userAgent": "curl/8.16.0",
-      "createdAt": "2026-09-30T20:37:09.042Z"
+      "createdAt": "2026-10-01T04:51:08.277Z"
     },
     {
-      "id": "6abd72f4e638e7a0510d58bc",
-      "userId": "6abd72f1e638e7a0510d58af",
-      "brandId": "6abd72f4e638e7a0510d58b4",
-      "actor": "6abd72f1e638e7a0510d58af",
+      "id": "6abde6bb461e49ce73221a76",
+      "userId": "6abde64b880c64c1db97aea3",
+      "brandId": "6abde6bb461e49ce73221a6e",
+      "actor": "6abde64b880c64c1db97aea3",
       "action": "brand.member_remove",
       "resourceType": "brand_member",
-      "resourceId": "6abd72f4e638e7a0510d58b9",
+      "resourceId": "6abde6bb461e49ce73221a73",
       "ipAddress": "::1",
       "userAgent": "curl/8.16.0",
-      "createdAt": "2026-09-30T20:37:08.726Z"
+      "createdAt": "2026-10-01T04:51:07.974Z"
     },
     {
-      "id": "6abd72f4e638e7a0510d58bb",
-      "userId": "6abd72f1e638e7a0510d58af",
-      "brandId": "6abd72f4e638e7a0510d58b4",
-      "actor": "6abd72f1e638e7a0510d58af",
+      "id": "6abde6bb461e49ce73221a75",
+      "userId": "6abde64b880c64c1db97aea3",
+      "brandId": "6abde6bb461e49ce73221a6e",
+      "actor": "6abde64b880c64c1db97aea3",
       "action": "brand.member_add",
       "resourceType": "brand_member",
-      "resourceId": "6abd72f4e638e7a0510d58ba",
+      "resourceId": "6abde6bb461e49ce73221a74",
       "ipAddress": "::1",
       "userAgent": "curl/8.16.0",
-      "createdAt": "2026-09-30T20:37:08.676Z"
+      "createdAt": "2026-10-01T04:51:07.924Z"
     },
     {
-      "id": "6abd72f4e638e7a0510d58b8",
-      "userId": "6abd72f1e638e7a0510d58af",
-      "brandId": "6abd72f4e638e7a0510d58b4",
-      "actor": "6abd72f1e638e7a0510d58af",
+      "id": "6abde6bb461e49ce73221a72",
+      "userId": "6abde64b880c64c1db97aea3",
+      "brandId": "6abde6bb461e49ce73221a6e",
+      "actor": "6abde64b880c64c1db97aea3",
       "action": "brand.update",
       "resourceType": "brand",
-      "resourceId": "6abd72f4e638e7a0510d58b4",
+      "resourceId": "6abde6bb461e49ce73221a6e",
       "ipAddress": "::1",
       "userAgent": "curl/8.16.0",
-      "createdAt": "2026-09-30T20:37:08.18Z"
+      "createdAt": "2026-10-01T04:51:07.4Z"
     },
     {
-      "id": "6abd72f4e638e7a0510d58b7",
-      "userId": "6abd72f1e638e7a0510d58af",
-      "brandId": "6abd72f4e638e7a0510d58b4",
-      "actor": "6abd72f1e638e7a0510d58af",
+      "id": "6abde6bb461e49ce73221a71",
+      "userId": "6abde64b880c64c1db97aea3",
+      "brandId": "6abde6bb461e49ce73221a6e",
+      "actor": "6abde64b880c64c1db97aea3",
       "action": "brand.update",
       "resourceType": "brand",
-      "resourceId": "6abd72f4e638e7a0510d58b4",
+      "resourceId": "6abde6bb461e49ce73221a6e",
       "ipAddress": "::1",
       "userAgent": "curl/8.16.0",
-      "createdAt": "2026-09-30T20:37:08.156Z"
+      "createdAt": "2026-10-01T04:51:07.37Z"
     },
     {
-      "id": "6abd72f4e638e7a0510d58b6",
-      "userId": "6abd72f1e638e7a0510d58af",
-      "brandId": "6abd72f4e638e7a0510d58b4",
-      "actor": "6abd72f1e638e7a0510d58af",
+      "id": "6abde6bb461e49ce73221a70",
+      "userId": "6abde64b880c64c1db97aea3",
+      "brandId": "6abde6bb461e49ce73221a6e",
+      "actor": "6abde64b880c64c1db97aea3",
       "action": "brand.create",
       "resourceType": "brand",
-      "resourceId": "6abd72f4e638e7a0510d58b4",
+      "resourceId": "6abde6bb461e49ce73221a6e",
       "ipAddress": "::1",
       "userAgent": "curl/8.16.0",
-      "createdAt": "2026-09-30T20:37:08.049Z"
+      "createdAt": "2026-10-01T04:51:07.287Z"
     }
   ]
 }
@@ -5424,7 +5428,7 @@ Body:
 --- [STEP 88] MCP Server Metadata Discovery (GET /mcp) ---
 >> REQUEST:
 curl -X GET 'http://localhost:5000/mcp' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -5436,8 +5440,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: ba47a207-9e52-4ed0-aa19-d9c3d2690922
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: bca80688-0690-4466-9f60-ab13b4eff3a3
+  Date: Thu, 01 Oct 2026 04:51:11 GMT
   Content-Length: 71
 Body:
 {
@@ -5450,7 +5454,7 @@ Body:
 --- [STEP 89] MCP Protocol tools/list (Discover registered tools) ---
 >> REQUEST:
 curl -X POST 'http://localhost:5000/mcp' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
   -d '{"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}'
 << RESPONSE:
@@ -5464,8 +5468,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 3f31a2a2-7c65-4237-a21c-79456eff758d
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: d6e5c5cb-0c2c-4fe6-a850-6ff98a1f8a0b
+  Date: Thu, 01 Oct 2026 04:51:11 GMT
   Transfer-Encoding: chunked
 Body:
 {
@@ -5791,9 +5795,9 @@ Body:
 --- [STEP 90] MCP Protocol tools/call (Invoke list_posts tool) ---
 >> REQUEST:
 curl -X POST 'http://localhost:5000/mcp' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
-  -d '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "list_posts", "arguments": {"brandId": "6abd72f4e638e7a0510d58b4", "limit": 5}}}'
+  -d '{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": {"name": "list_posts", "arguments": {"brandId": "6abde6bb461e49ce73221a6e", "limit": 5}}}'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -5805,8 +5809,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 61442068-2691-427a-b229-822c8c0347e8
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: 6d17d088-3adc-493b-8b65-cfb3a3379af7
+  Date: Thu, 01 Oct 2026 04:51:11 GMT
   Content-Length: 120
 Body:
 {
@@ -5830,8 +5834,8 @@ Body:
 
 --- [STEP 91] Delete Scheduled Post ---
 >> REQUEST:
-curl -X DELETE 'http://localhost:5000/v1/posts/6abd72f5e638e7a0510d58bf/scheduled' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X DELETE 'http://localhost:5000/v1/posts/6abde6bc461e49ce73221a79/scheduled' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 400 Bad Request
 Headers:
@@ -5843,8 +5847,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: fd2b6e1c-ea07-42ec-8d41-1b474e69b68c
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: d6c46a43-fd56-41ab-885c-5c6d11e40d6a
+  Date: Thu, 01 Oct 2026 04:51:11 GMT
   Content-Length: 158
 Body:
 {
@@ -5855,8 +5859,8 @@ Body:
 
 --- [STEP 92] Delete Published Post ---
 >> REQUEST:
-curl -X DELETE 'http://localhost:5000/v1/posts/6abd72f5e638e7a0510d58bf/published' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X DELETE 'http://localhost:5000/v1/posts/6abde6bc461e49ce73221a79/published' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 400 Bad Request
 Headers:
@@ -5868,8 +5872,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 69749461-ed64-4cf4-b261-40ec555b52b6
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: c72102a2-46fc-4362-8e9f-c3d0b2dd682d
+  Date: Thu, 01 Oct 2026 04:51:11 GMT
   Content-Length: 158
 Body:
 {
@@ -5881,9 +5885,9 @@ Body:
 --- [STEP 93] Bulk Delete Scheduled Posts ---
 >> REQUEST:
 curl -X DELETE 'http://localhost:5000/v1/posts/bulk/scheduled' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
-  -d '{"ids": ["6abd72f5e638e7a0510d58bf"]}'
+  -d '{"ids": ["6abde6bc461e49ce73221a79"]}'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -5895,8 +5899,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 1b3db3ea-ab0a-4c42-9ff8-2e8031242a96
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: ab3ef2ef-3327-4671-9d07-1a605b98504d
+  Date: Thu, 01 Oct 2026 04:51:11 GMT
   Content-Length: 40
 Body:
 {
@@ -5908,9 +5912,9 @@ Body:
 --- [STEP 94] Bulk Delete Published Posts ---
 >> REQUEST:
 curl -X DELETE 'http://localhost:5000/v1/posts/bulk/published' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
-  -d '{"ids": ["6abd72f5e638e7a0510d58bf"]}'
+  -d '{"ids": ["6abde6bc461e49ce73221a79"]}'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -5922,8 +5926,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: a35fdf49-c135-4019-b7b0-03cdc1d0f309
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: 3613a7b2-4f1c-4fd5-b280-3f2094fb5304
+  Date: Thu, 01 Oct 2026 04:51:11 GMT
   Content-Length: 40
 Body:
 {
@@ -5935,9 +5939,9 @@ Body:
 --- [STEP 95] Bulk Delete Posts ---
 >> REQUEST:
 curl -X DELETE 'http://localhost:5000/v1/posts/bulk' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
   -H 'Content-Type: application/json' \
-  -d '{"ids": ["6abd72f5e638e7a0510d58bf"]}'
+  -d '{"ids": ["6abde6bc461e49ce73221a79"]}'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -5949,8 +5953,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 4ded8aa6-7b60-431d-b20b-7f1a57e87a53
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: 359d3ab4-9e14-4aa3-a9e8-1b7be07b0113
+  Date: Thu, 01 Oct 2026 04:51:11 GMT
   Content-Length: 29
 Body:
 {
@@ -5960,8 +5964,8 @@ Body:
 
 --- [STEP 96] Delete Post by ID ---
 >> REQUEST:
-curl -X DELETE 'http://localhost:5000/v1/posts/6abd72f5e638e7a0510d58bf' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X DELETE 'http://localhost:5000/v1/posts/6abde6bc461e49ce73221a79' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 404 Not Found
 Headers:
@@ -5973,8 +5977,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 04db925f-9a54-4ff0-8904-112f4aaef1a3
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: d370a4b6-37b4-48c2-923e-1dff58e79de8
+  Date: Thu, 01 Oct 2026 04:51:11 GMT
   Content-Length: 70
 Body:
 {
@@ -5985,8 +5989,8 @@ Body:
 
 --- [STEP 97] Delete SmartLink Page ---
 >> REQUEST:
-curl -X DELETE 'http://localhost:5000/v1/smartlinks/6abd72f5e638e7a0510d58c8?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X DELETE 'http://localhost:5000/v1/smartlinks/6abde6bd461e49ce73221a82?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -5998,8 +6002,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: c3b7a79e-f9fd-487a-8995-884a27681c26
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: 9eee63a5-9f06-46fd-ac5a-2a9e4f4fe95b
+  Date: Thu, 01 Oct 2026 04:51:11 GMT
   Content-Length: 60
 Body:
 {
@@ -6009,8 +6013,8 @@ Body:
 
 --- [STEP 98] Delete RSS Feed ---
 >> REQUEST:
-curl -X DELETE 'http://localhost:5000/v1/rss-feeds/6abd72f6e638e7a0510d58cc?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X DELETE 'http://localhost:5000/v1/rss-feeds/6abde6bd461e49ce73221a86?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -6022,8 +6026,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: fde96109-36c8-436f-9fe6-c9394d0de071
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: 18d46887-bac1-4a77-90c6-26cb31e40f21
+  Date: Thu, 01 Oct 2026 04:51:11 GMT
   Content-Length: 59
 Body:
 {
@@ -6033,8 +6037,8 @@ Body:
 
 --- [STEP 99] Delete Autolist ---
 >> REQUEST:
-curl -X DELETE 'http://localhost:5000/v1/autolists/6abd72f5e638e7a0510d58ca?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X DELETE 'http://localhost:5000/v1/autolists/6abde6bd461e49ce73221a84?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -6046,8 +6050,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 6773c1e3-542e-4cee-9427-48d2cc94ba7d
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: e4aae4d7-42c3-45fd-9ddd-048e34ba41bc
+  Date: Thu, 01 Oct 2026 04:51:11 GMT
   Content-Length: 59
 Body:
 {
@@ -6057,8 +6061,8 @@ Body:
 
 --- [STEP 100] Delete Competitor ---
 >> REQUEST:
-curl -X DELETE 'http://localhost:5000/v1/competitors/6abd72f6e638e7a0510d58ce?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X DELETE 'http://localhost:5000/v1/competitors/6abde6bd461e49ce73221a88?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -6070,8 +6074,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 7e212350-5f9b-41e1-a9dc-3036ebbaca96
-  Date: Wed, 30 Sep 2026 20:37:10 GMT
+  X-Request-Id: d246c67e-e82a-45ec-a85d-7b5e013793d5
+  Date: Thu, 01 Oct 2026 04:51:11 GMT
   Content-Length: 61
 Body:
 {
@@ -6081,8 +6085,8 @@ Body:
 
 --- [STEP 101] Delete Ad Campaign ---
 >> REQUEST:
-curl -X DELETE 'http://localhost:5000/v1/ads/campaigns/000000000000000000000000?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X DELETE 'http://localhost:5000/v1/ads/campaigns/000000000000000000000000?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 404 Not Found
 Headers:
@@ -6094,8 +6098,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 8f480748-bddd-413d-be50-77cd34739f0c
-  Date: Wed, 30 Sep 2026 20:37:11 GMT
+  X-Request-Id: 8524f01b-d294-4da8-a8e6-8cc9a17c0b87
+  Date: Thu, 01 Oct 2026 04:51:11 GMT
   Content-Length: 84
 Body:
 {
@@ -6106,8 +6110,8 @@ Body:
 
 --- [STEP 102] Delete Webhook ---
 >> REQUEST:
-curl -X DELETE 'http://localhost:5000/v1/webhooks/6abd72f6e638e7a0510d58d5' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X DELETE 'http://localhost:5000/v1/webhooks/6abde6be461e49ce73221a8f' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -6119,8 +6123,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 99fef06e-f731-48ef-9bf5-8d41ac3819c1
-  Date: Wed, 30 Sep 2026 20:37:11 GMT
+  X-Request-Id: 3bece608-5a89-4d19-af72-d84181b649ee
+  Date: Thu, 01 Oct 2026 04:51:11 GMT
   Content-Length: 58
 Body:
 {
@@ -6130,8 +6134,8 @@ Body:
 
 --- [STEP 103] Delete Canned Reply ---
 >> REQUEST:
-curl -X DELETE 'http://localhost:5000/v1/inbox/canned-replies/6abd72f5e638e7a0510d58c5?brandId=6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X DELETE 'http://localhost:5000/v1/inbox/canned-replies/6abde6bd461e49ce73221a7f?brandId=6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -6143,8 +6147,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: a2e69461-14ce-4976-a3cf-55e82bc39a56
-  Date: Wed, 30 Sep 2026 20:37:11 GMT
+  X-Request-Id: 5773ffbe-4fa7-48e3-86ac-e509de155d11
+  Date: Thu, 01 Oct 2026 04:51:11 GMT
   Content-Length: 63
 Body:
 {
@@ -6154,8 +6158,8 @@ Body:
 
 --- [STEP 104] Revoke / Delete API Key ---
 >> REQUEST:
-curl -X DELETE 'http://localhost:5000/v1/api-keys/6abd72f4e638e7a0510d58bd' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X DELETE 'http://localhost:5000/v1/api-keys/6abde6bb461e49ce73221a77' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -6167,8 +6171,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: a1475ed6-bc48-4b3c-8f91-b3973c363ce9
-  Date: Wed, 30 Sep 2026 20:37:11 GMT
+  X-Request-Id: 49f62114-9175-4f46-8e3e-3fcaf36fd8cd
+  Date: Thu, 01 Oct 2026 04:51:11 GMT
   Content-Length: 58
 Body:
 {
@@ -6178,8 +6182,8 @@ Body:
 
 --- [STEP 105] Delete Brand Workspace ---
 >> REQUEST:
-curl -X DELETE 'http://localhost:5000/v1/brands/6abd72f4e638e7a0510d58b4' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X DELETE 'http://localhost:5000/v1/brands/6abde6bb461e49ce73221a6e' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -6191,8 +6195,8 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 3dda53ce-4070-4794-b887-3ce6d6e4bf6b
-  Date: Wed, 30 Sep 2026 20:37:11 GMT
+  X-Request-Id: da2a5237-d5ae-4ee8-8ef0-87ce2f588c5a
+  Date: Thu, 01 Oct 2026 04:51:11 GMT
   Content-Length: 56
 Body:
 {
@@ -6200,12 +6204,46 @@ Body:
   "success": true
 }
 
---- [STEP 106] User Logout ---
+--- [STEP 106] Create Ephemeral User for Account Deletion Test ---
 >> REQUEST:
-curl -X POST 'http://localhost:5000/v1/auth/logout' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU' \
+curl -X POST 'http://localhost:5000/v1/auth/signup' \
   -H 'Content-Type: application/json' \
-  -d '{"refreshToken": "76a9a6efd4244f6473d0ba6374acf220f8e9bffcdecda3820e184b21c30895d31140de688ce711e34946ff5058cf00eb"}'
+  -d '{"email": "ephemeral_probe_1790830271@example.com", "password": "ProbePassword123!"}'
+<< RESPONSE:
+Status: HTTP/1.1 201 Created
+Headers:
+  Access-Control-Allow-Headers: Authorization, Content-Type, Idempotency-Key, X-Request-ID
+  Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS
+  Access-Control-Allow-Origin: *
+  Access-Control-Max-Age: 86400
+  Content-Type: application/json
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  X-Request-Id: 61bd0412-d8cb-4eb9-a095-062e64549d0e
+  Date: Thu, 01 Oct 2026 04:51:12 GMT
+  Content-Length: 387
+Body:
+{
+  "data": {
+    "id": "6abde6c0461e49ce73221a94",
+    "email": "ephemeral_probe_1790830271@example.com",
+    "fullName": "New User",
+    "isVerified": false,
+    "timezone": "UTC",
+    "createdAt": "2026-10-01T10:21:12.130987+05:30",
+    "updatedAt": "2026-10-01T10:21:12.130987+05:30"
+  },
+  "message": "User registered successfully",
+  "success": true,
+  "verificationToken": "5460b657285f663f034456b6e3344fe85fabc3735e49ae7eced621216c179e1d"
+}
+
+--- [STEP 107] Verify Ephemeral User Email ---
+>> REQUEST:
+curl -X POST 'http://localhost:5000/v1/auth/verify-email' \
+  -H 'Content-Type: application/json' \
+  -d '{"token": "5460b657285f663f034456b6e3344fe85fabc3735e49ae7eced621216c179e1d"}'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -6217,19 +6255,20 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: 43b680ab-9751-405b-bbf4-627e3341dc97
-  Date: Wed, 30 Sep 2026 20:37:11 GMT
-  Content-Length: 53
+  X-Request-Id: 189ed00b-ec15-41d4-bcda-b1b2c5dd8a6e
+  Date: Thu, 01 Oct 2026 04:51:12 GMT
+  Content-Length: 57
 Body:
 {
-  "message": "Logged out successfully",
+  "message": "Email verified successfully",
   "success": true
 }
 
---- [STEP 107] Delete Current User Account ---
+--- [STEP 108] Login as Ephemeral User ---
 >> REQUEST:
-curl -X DELETE 'http://localhost:5000/v1/users/me' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MDE1MjgsImlhdCI6MTc5MDgwMDYyOCwic3ViIjoiNmFiZDcyZjFlNjM4ZTdhMDUxMGQ1OGFmIn0.3HGg1aiaBqZBm5r_ByLdeBqkVcMi8MjX6zVJb26BgsU'
+curl -X POST 'http://localhost:5000/v1/auth/login' \
+  -H 'Content-Type: application/json' \
+  -d '{"email": "ephemeral_probe_1790830271@example.com", "password": "ProbePassword123!"}'
 << RESPONSE:
 Status: HTTP/1.1 200 OK
 Headers:
@@ -6241,8 +6280,48 @@ Headers:
   Referrer-Policy: strict-origin-when-cross-origin
   X-Content-Type-Options: nosniff
   X-Frame-Options: DENY
-  X-Request-Id: a20419bf-dd50-4597-a4e5-0b472d6f7123
-  Date: Wed, 30 Sep 2026 20:37:11 GMT
+  X-Request-Id: a4cbcfa6-29f4-4224-ac2a-79b97077cdf4
+  Date: Thu, 01 Oct 2026 04:51:12 GMT
+  Content-Length: 857
+Body:
+{
+  "data": {
+    "user": {
+      "id": "6abde6c0461e49ce73221a94",
+      "email": "ephemeral_probe_1790830271@example.com",
+      "fullName": "New User",
+      "timezone": "UTC",
+      "isVerified": true,
+      "createdAt": "2026-10-01T04:51:12.13Z"
+    },
+    "tokens": {
+      "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNzIsImlhdCI6MTc5MDgzMDI3Miwic3ViIjoiNmFiZGU2YzA0NjFlNDljZTczMjIxYTk0In0.Lhcuu2bqYOCY3qG3mq5vN0jHhK8FqQua5euCb0Iyb0M",
+      "refreshToken": "e2693cccf6e322099447cd45d53d50cb4afb9ec249c5094fd463e4642597ec18fccb9275aa1ac3b8dea1069412324dec"
+    }
+  },
+  "message": "Logged in successfully",
+  "refreshToken": "e2693cccf6e322099447cd45d53d50cb4afb9ec249c5094fd463e4642597ec18fccb9275aa1ac3b8dea1069412324dec",
+  "success": true,
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNzIsImlhdCI6MTc5MDgzMDI3Miwic3ViIjoiNmFiZGU2YzA0NjFlNDljZTczMjIxYTk0In0.Lhcuu2bqYOCY3qG3mq5vN0jHhK8FqQua5euCb0Iyb0M"
+}
+
+--- [STEP 109] Delete Ephemeral User Account (Verifying DELETE /me) ---
+>> REQUEST:
+curl -X DELETE 'http://localhost:5000/v1/users/me' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNzIsImlhdCI6MTc5MDgzMDI3Miwic3ViIjoiNmFiZGU2YzA0NjFlNDljZTczMjIxYTk0In0.Lhcuu2bqYOCY3qG3mq5vN0jHhK8FqQua5euCb0Iyb0M'
+<< RESPONSE:
+Status: HTTP/1.1 200 OK
+Headers:
+  Access-Control-Allow-Headers: Authorization, Content-Type, Idempotency-Key, X-Request-ID
+  Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS
+  Access-Control-Allow-Origin: *
+  Access-Control-Max-Age: 86400
+  Content-Type: application/json
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  X-Request-Id: d87ec848-1544-41bd-aa3e-4cbcdce9ef05
+  Date: Thu, 01 Oct 2026 04:51:12 GMT
   Content-Length: 58
 Body:
 {
@@ -6250,8 +6329,36 @@ Body:
   "success": true
 }
 
+--- [STEP 110] Static User Logout ---
+>> REQUEST:
+curl -X POST 'http://localhost:5000/v1/auth/logout' \
+  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3OTA4MzExNjcsImlhdCI6MTc5MDgzMDI2Nywic3ViIjoiNmFiZGU2NGI4ODBjNjRjMWRiOTdhZWEzIn0.XNmo6q6ZDNV13CMLk23DgO6GeTQPDBNn2MjrRwloZgU' \
+  -H 'Content-Type: application/json' \
+  -d '{"refreshToken": "d8ea80986a7ab350664661af0f7dd900c72d46bafb514297199a4023d7fde8ca0b49abfcf7d6fa3b1ca5794bf94d8292"}'
+<< RESPONSE:
+Status: HTTP/1.1 200 OK
+Headers:
+  Access-Control-Allow-Headers: Authorization, Content-Type, Idempotency-Key, X-Request-ID
+  Access-Control-Allow-Methods: GET, POST, PUT, PATCH, DELETE, OPTIONS
+  Access-Control-Allow-Origin: *
+  Access-Control-Max-Age: 86400
+  Content-Type: application/json
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  X-Request-Id: fbea38d9-d8f8-4953-90ee-f8ffcc7bcffa
+  Date: Thu, 01 Oct 2026 04:51:12 GMT
+  Content-Length: 53
+Body:
+{
+  "message": "Logged out successfully",
+  "success": true
+}
+
 
 ================================================================================
-All 107 End-to-End API Steps Executed and Verified!
+All 110 End-to-End API Steps Executed and Verified!
+Static User Preserved: developer@xsocial.com
+LinkedIn Auth URL: https://www.linkedin.com/oauth/v2/authorization?client_id=86hy095n1eyfxw&redirect_uri=http%3A%2F%2Flocalhost%3A3000%2Foauth%2Fcallback%2Flinkedin&response_type=code&scope=openid+profile+email+w_member_social&state=6abde64b880c64c1db97aea3%3A1790830268076%3Aa9365a2d9a065835d060809319940c4b
 Logs successfully written to: /Users/fc472024/Downloads/xsocial-backend/e2e_api_logs.txt
 ================================================================================

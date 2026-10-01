@@ -14,6 +14,7 @@ type OAuthPlatformConfig struct {
 	ClientSecret string
 	RedirectURI  string
 	Version      string
+	Scopes       string
 }
 
 type Config struct {
@@ -151,6 +152,7 @@ func LoadConfig() *Config {
 			ClientSecret: cleanEnvValue(os.Getenv("LINKEDIN_CLIENT_SECRET")),
 			RedirectURI:  cleanEnvValue(os.Getenv("LINKEDIN_REDIRECT_URI")),
 			Version:      linkedInVersion,
+			Scopes:       cleanEnvValue(os.Getenv("LINKEDIN_SCOPES")),
 		},
 	}
 }

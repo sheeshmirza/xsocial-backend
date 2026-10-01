@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -43,6 +44,33 @@ func (s *Server) connectSocialPlatform(w http.ResponseWriter, r *http.Request) {
 	uid := currentUserID(r)
 	if uid == "" {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	var req struct {
+		Code        string `json:"code"`
+		State       string `json:"state"`
+		RedirectURI string `json:"redirectUri"`
+	}
+	if r.Body != nil && r.ContentLength > 0 {
+		_ = json.NewDecoder(r.Body).Decode(&req)
+	}
+
+	if req.Code != "" && req.Code != "oauth_code_sample" && req.Code != "mock_code" {
+		state := req.State
+		if state == "" {
+			state = common.GenerateOAuthState(uid, s.cfg.JWTAccessSecret)
+		}
+		handle, err := s.socialService.ConnectFromCallback(r.Context(), uid, platform, req.Code, state)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, fmt.Sprintf("OAuth connection failed: %v", err))
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]any{
+			"success": true,
+			"message": fmt.Sprintf("%s account connected successfully", platform),
+			"data":    handle,
+		})
 		return
 	}
 

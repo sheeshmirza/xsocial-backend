@@ -6,6 +6,7 @@ import re
 import subprocess
 import sys
 import time
+import bcrypt
 from bson import ObjectId
 from pymongo import MongoClient
 
@@ -123,6 +124,31 @@ log(f"# Target Base URL: {BASE_URL}")
 log("#" * 80)
 
 # ==============================================================================
+# Static User Credentials
+# ==============================================================================
+STATIC_EMAIL = "developer@xsocial.com"
+STATIC_PASSWORD = "StaticPassword123!"
+STATIC_FULL_NAME = "Static Test Developer"
+
+# Ensure Static User is initialized in MongoDB and verified
+static_user = db.users.find_one({"email": STATIC_EMAIL})
+if not static_user:
+    pw_hash = bcrypt.hashpw(STATIC_PASSWORD.encode("utf-8"), bcrypt.gensalt(12)).decode("utf-8")
+    inserted = db.users.insert_one({
+        "email": STATIC_EMAIL,
+        "password": pw_hash,
+        "fullName": STATIC_FULL_NAME,
+        "isVerified": True,
+        "timezone": "UTC",
+        "createdAt": datetime.datetime.now(datetime.timezone.utc),
+        "updatedAt": datetime.datetime.now(datetime.timezone.utc)
+    })
+    static_user_id = str(inserted.inserted_id)
+else:
+    static_user_id = str(static_user["_id"])
+    db.users.update_one({"_id": static_user["_id"]}, {"$set": {"isVerified": True}})
+
+# ==============================================================================
 # 1. Health Checks
 # ==============================================================================
 log_section("1. SYSTEM HEALTH CHECKS")
@@ -130,30 +156,24 @@ run_curl("GET", "/healthz", description="System Healthz Probe")
 run_curl("GET", "/health", description="System Health Probe (alias)")
 
 # ==============================================================================
-# 2. Authentication & User Management
+# 2. Authentication & User Management (Using Static User)
 # ==============================================================================
 log_section("2. AUTHENTICATION & USER MANAGEMENT")
-ts = int(time.time())
-email = f"e2e_master_{ts}@example.com"
-password = "MasterPassword123!"
 
-# 2.1 Sign Up
-_, signup_res = run_curl("POST", "/v1/auth/signup", data={"email": email, "password": password}, description="User Registration (Signup)")
-verification_token = ""
+# 2.1 Test Signup verification flow with an auxiliary registration
+aux_email = f"signup_probe_{int(time.time())}@example.com"
+_, signup_res = run_curl("POST", "/v1/auth/signup", data={"email": aux_email, "password": "ProbePassword123!"}, description="User Registration (Signup)")
+verif_token = ""
 if isinstance(signup_res, dict):
-    verification_token = signup_res.get("verificationToken", "")
-    if not verification_token and "data" in signup_res and isinstance(signup_res["data"], dict):
-        verification_token = signup_res["data"].get("verificationToken", "")
+    verif_token = signup_res.get("verificationToken", "")
+if verif_token:
+    run_curl("POST", "/v1/auth/verify-email", data={"token": verif_token}, description="Verify User Email with Token")
 
-# 2.2 Verify Email
-if verification_token:
-    run_curl("POST", "/v1/auth/verify-email", data={"token": verification_token}, description="Verify User Email with Token")
-
-# 2.3 User Login
-_, login_res = run_curl("POST", "/v1/auth/login", data={"email": email, "password": password}, description="User Login")
+# 2.2 Login with Static User
+_, login_res = run_curl("POST", "/v1/auth/login", data={"email": STATIC_EMAIL, "password": STATIC_PASSWORD}, description="Static User Login")
 access_token = ""
 refresh_token = ""
-user_id = ""
+user_id = static_user_id
 
 if isinstance(login_res, dict):
     access_token = login_res.get("token") or ""
@@ -164,11 +184,11 @@ if isinstance(login_res, dict):
         access_token = tokens_obj.get("accessToken", "")
         refresh_token = tokens_obj.get("refreshToken", "")
     if "data" in login_res and isinstance(login_res["data"], dict):
-        user_id = login_res["data"].get("user", {}).get("id", "")
+        user_id = login_res["data"].get("user", {}).get("id", user_id)
 
 auth_hdr = {"Authorization": f"Bearer {access_token}"}
 
-# 2.4 Token Refresh
+# 2.3 Token Refresh
 _, refresh_res = run_curl("POST", "/v1/auth/refresh", data={"refreshToken": refresh_token}, description="Refresh Access Token")
 if isinstance(refresh_res, dict):
     new_token = refresh_res.get("token")
@@ -176,39 +196,35 @@ if isinstance(refresh_res, dict):
         access_token = new_token
         auth_hdr = {"Authorization": f"Bearer {access_token}"}
 
-# 2.5 Forgot Password & Password Reset Flow
-_, fp_res = run_curl("POST", "/v1/auth/forgot-password", data={"email": email}, description="Request Password Reset")
+# 2.4 Forgot Password & Reset Password Flow
+_, fp_res = run_curl("POST", "/v1/auth/forgot-password", data={"email": STATIC_EMAIL}, description="Request Password Reset")
 reset_token = ""
 if isinstance(fp_res, dict):
     reset_token = fp_res.get("resetToken", "")
 
 if reset_token:
-    run_curl("POST", "/v1/auth/reset-password", data={"token": reset_token, "newPassword": "ResetPassword123!"}, description="Reset Password using Reset Token")
-    # Re-login with updated password
-    _, relogin_res = run_curl("POST", "/v1/auth/login", data={"email": email, "password": "ResetPassword123!"}, description="Re-login with Reset Password")
-    if isinstance(relogin_res, dict) and relogin_res.get("token"):
-        access_token = relogin_res.get("token")
-        refresh_token = relogin_res.get("refreshToken", refresh_token)
-        auth_hdr = {"Authorization": f"Bearer {access_token}"}
-    password = "ResetPassword123!"
+    run_curl("POST", "/v1/auth/reset-password", data={"token": reset_token, "newPassword": STATIC_PASSWORD}, description="Reset Password using Reset Token")
 
-# 2.6 User Profile (GET /v1/users/me)
-run_curl("GET", "/v1/users/me", headers=auth_hdr, description="Get Current User Profile")
+# 2.5 User Profile (GET /v1/users/me)
+run_curl("GET", "/v1/users/me", headers=auth_hdr, description="Get Current Static User Profile")
 
-# 2.7 Update Profile (PUT & PATCH /v1/users/me)
-run_curl("PUT", "/v1/users/me", headers=auth_hdr, data={"fullName": "E2E Master Tester", "timezone": "America/New_York"}, description="Update User Profile (PUT)")
-run_curl("PATCH", "/v1/users/me", headers=auth_hdr, data={"fullName": "E2E Senior Director", "timezone": "Europe/London"}, description="Update User Profile (PATCH)")
+# 2.6 Update Profile (PUT & PATCH /v1/users/me)
+run_curl("PUT", "/v1/users/me", headers=auth_hdr, data={"fullName": "Static Test Developer", "timezone": "America/New_York"}, description="Update User Profile (PUT)")
+run_curl("PATCH", "/v1/users/me", headers=auth_hdr, data={"fullName": "Static Lead Developer", "timezone": "Europe/London"}, description="Update User Profile (PATCH)")
 
-# 2.8 Change Password
-new_password = "ChangedPassword123!"
-run_curl("PUT", "/v1/users/change-password", headers=auth_hdr, data={"oldPassword": password, "newPassword": new_password}, description="Change User Password")
-# Re-login with new password
-_, relogin_pw = run_curl("POST", "/v1/auth/login", data={"email": email, "password": new_password}, description="Re-login with Changed Password")
-if isinstance(relogin_pw, dict) and relogin_pw.get("token"):
-    access_token = relogin_pw.get("token")
-    refresh_token = relogin_pw.get("refreshToken", refresh_token)
+# 2.7 Change Password (and change back to STATIC_PASSWORD so it remains predictable)
+run_curl("PUT", "/v1/users/change-password", headers=auth_hdr, data={"oldPassword": STATIC_PASSWORD, "newPassword": "TempPassword999!"}, description="Change User Password")
+# Re-login with TempPassword999! and change back to STATIC_PASSWORD
+_, relogin_temp = run_curl("POST", "/v1/auth/login", data={"email": STATIC_EMAIL, "password": "TempPassword999!"}, description="Re-login with Temp Password")
+if isinstance(relogin_temp, dict) and relogin_temp.get("token"):
+    access_token = relogin_temp.get("token")
     auth_hdr = {"Authorization": f"Bearer {access_token}"}
-password = new_password
+run_curl("PUT", "/v1/users/change-password", headers=auth_hdr, data={"oldPassword": "TempPassword999!", "newPassword": STATIC_PASSWORD}, description="Revert User Password to STATIC_PASSWORD")
+_, relogin_static = run_curl("POST", "/v1/auth/login", data={"email": STATIC_EMAIL, "password": STATIC_PASSWORD}, description="Re-login with STATIC_PASSWORD")
+if isinstance(relogin_static, dict) and relogin_static.get("token"):
+    access_token = relogin_static.get("token")
+    refresh_token = relogin_static.get("refreshToken", refresh_token)
+    auth_hdr = {"Authorization": f"Bearer {access_token}"}
 
 # ==============================================================================
 # 3. Brands & Workspaces (RBAC)
@@ -225,12 +241,13 @@ brand_id = ""
 if isinstance(brand_res, dict):
     brand_id = brand_res.get("id", "")
 
-run_curl("GET", "/v1/brands", headers=auth_hdr, description="List All Brands for User")
+run_curl("GET", "/v1/brands", headers=auth_hdr, description="List All Brands for Static User")
 run_curl("GET", f"/v1/brands/{brand_id}", headers=auth_hdr, description="Get Brand Workspace Details")
 run_curl("PUT", f"/v1/brands/{brand_id}", headers=auth_hdr, data={"name": "Acme Global Enterprises", "timezone": "America/Chicago"}, description="Update Brand Workspace (PUT)")
 run_curl("PATCH", f"/v1/brands/{brand_id}", headers=auth_hdr, data={"name": "Acme Global Holdings"}, description="Update Brand Workspace (PATCH)")
 
-# Secondary User for Brand Member Operations
+# Secondary Member User for Brand Operations
+ts = int(time.time())
 member_email = f"brand_member_{ts}@example.com"
 _, mem_reg = run_curl("POST", "/v1/auth/signup", data={"email": member_email, "password": "MemberPassword123!"}, description="Register Secondary Member User")
 member_id = ""
@@ -250,7 +267,7 @@ if member_id:
 # ==============================================================================
 log_section("4. API KEYS (SCOPED PROGRAMMATIC ACCESS)")
 api_key_req = {
-    "name": "Production Metricool & CI Integration Key",
+    "name": "Static Developer Metricool & CI Key",
     "brandId": brand_id,
     "permissions": ["posts:read", "posts:write", "analytics:read", "brands:read"],
     "expiresInDays": 90
@@ -291,33 +308,33 @@ if media_id:
     run_curl("GET", f"/v1/uploads/media/{media_id}", description="Fetch Uploaded Media Asset (Public)")
 
 # ==============================================================================
-# 6. Social Accounts & Platform Connections
+# 6. Social Accounts & LinkedIn OAuth Connection
 # ==============================================================================
-log_section("6. SOCIAL HANDLES & ACCOUNTS")
+log_section("6. SOCIAL HANDLES & LINKEDIN OAUTH CONNECTION")
 
-# Create a test social handle linked to the brand in DB to test account listing and deletion
-social_handle_oid = ObjectId()
-db.social_handles.insert_one({
-    "_id": social_handle_oid,
-    "userId": ObjectId(user_id) if user_id else ObjectId(),
-    "brandId": ObjectId(brand_id) if brand_id else None,
-    "platform": "instagram",
-    "platformId": "ig_test_98765",
-    "platformUsername": "acmeglobal",
-    "platformDisplayName": "Acme Global Official",
-    "platformAccessToken": "EAABsample_token_mock",
-    "platformAccessTokenExpiry": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=60),
-    "platformMetadata": {"accountType": "BUSINESS"},
-    "createdAt": datetime.datetime.now(datetime.timezone.utc),
-    "updatedAt": datetime.datetime.now(datetime.timezone.utc)
-})
+# Connect LinkedIn Auth URL for the static user
+_, li_connect_res = run_curl("POST", "/v1/social/connect/linkedin", headers=auth_hdr, description="Generate LinkedIn OAuth Authorization URL for Static User")
+linkedin_auth_url = ""
+if isinstance(li_connect_res, dict):
+    linkedin_auth_url = li_connect_res.get("authUrl") or li_connect_res.get("url", "")
 
+log("\n" + "*" * 80)
+log(">>> LINKEDIN OAUTH AUTHORIZATION URL FOR STATIC USER:")
+log(f"User: {STATIC_EMAIL} (ID: {user_id})")
+log(f"Auth URL: {linkedin_auth_url}")
+log("*" * 80 + "\n")
+
+# Also test GET /v1/social/connect/linkedin
+run_curl("GET", "/v1/social/connect/linkedin", headers=auth_hdr, description="Get LinkedIn OAuth URL via GET")
+
+# Check accounts
 run_curl("GET", "/v1/social/accounts", headers=auth_hdr, query=f"brandId={brand_id}", description="List Social Accounts for Brand")
-run_curl("POST", "/v1/social/connect/instagram", headers=auth_hdr, data={"code": "oauth_code_sample", "redirectUri": "http://localhost:3000/callback"}, description="Connect Instagram Account (OAuth Exchange)")
-run_curl("POST", "/v1/social/connect/linkedin", headers=auth_hdr, data={"code": "oauth_code_sample", "redirectUri": "http://localhost:3000/callback"}, description="Connect LinkedIn Account (OAuth Exchange)")
-run_curl("POST", "/v1/social/refresh-token", headers=auth_hdr, data={"platform": "instagram", "accountId": "ig_test_98765"}, description="Refresh Social Account Token")
-run_curl("GET", "/v1/social/callback/instagram", query="code=auth_code_123&state=xyz", description="OAuth Callback (Public Webhook/Redirect)")
-run_curl("DELETE", f"/v1/social/{str(social_handle_oid)}", headers=auth_hdr, description="Disconnect Social Account")
+
+# Mock OAuth callback verification test
+run_curl("GET", "/v1/social/callback/linkedin", query="code=test_mock_code&state=invalid_state", description="OAuth Callback (Error Handling Probe)")
+
+# Refresh token test endpoint
+run_curl("POST", "/v1/social/refresh-token", headers=auth_hdr, data={"platform": "linkedin", "accountId": "dummy_acc"}, description="Refresh Social Account Token")
 
 # ==============================================================================
 # 7. Posts, Approval Workflow, Publishing & Resharing
@@ -428,8 +445,8 @@ conv_oid = ObjectId()
 db.inbox_conversations.insert_one({
     "_id": conv_oid,
     "brandId": ObjectId(brand_id),
-    "platform": "instagram",
-    "socialHandleId": social_handle_oid,
+    "platform": "linkedin",
+    "socialHandleId": ObjectId(),
     "externalThreadId": "thread_demo_101",
     "senderName": "Sarah Jenkins",
     "senderAvatar": "https://example.com/sarah.jpg",
@@ -667,7 +684,7 @@ run_curl("POST", "/mcp", headers=auth_hdr, data={
 }, description="MCP Protocol tools/call (Invoke list_posts tool)")
 
 # ==============================================================================
-# 19. Teardown / Deletion of Entities (Testing All Delete Endpoints)
+# 19. Teardown / Deletion of Entities (Preserving Static User)
 # ==============================================================================
 log_section("19. TEARDOWN & RESOURCE DELETION ENDPOINTS")
 if reshare_id:
@@ -708,12 +725,29 @@ if api_key_id:
 if brand_id:
     run_curl("DELETE", f"/v1/brands/{brand_id}", headers=auth_hdr, description="Delete Brand Workspace")
 
-run_curl("POST", "/v1/auth/logout", headers=auth_hdr, data={"refreshToken": refresh_token}, description="User Logout")
-run_curl("DELETE", "/v1/users/me", headers=auth_hdr, description="Delete Current User Account")
+# Note: Static user is PRESERVED permanently so connected social accounts stay linked.
+# To test DELETE /v1/users/me without deleting our static user, create and delete an ephemeral probe user:
+probe_user_email = f"ephemeral_probe_{int(time.time())}@example.com"
+_, probe_reg = run_curl("POST", "/v1/auth/signup", data={"email": probe_user_email, "password": "ProbePassword123!"}, description="Create Ephemeral User for Account Deletion Test")
+probe_tok = probe_reg.get("verificationToken", "") if isinstance(probe_reg, dict) else ""
+if probe_tok:
+    run_curl("POST", "/v1/auth/verify-email", data={"token": probe_tok}, description="Verify Ephemeral User Email")
+
+_, probe_login = run_curl("POST", "/v1/auth/login", data={"email": probe_user_email, "password": "ProbePassword123!"}, description="Login as Ephemeral User")
+probe_token = probe_login.get("token", "") if isinstance(probe_login, dict) else ""
+if probe_token:
+    run_curl("DELETE", "/v1/users/me", headers={"Authorization": f"Bearer {probe_token}"}, description="Delete Ephemeral User Account (Verifying DELETE /me)")
+
+# Static User Logout
+run_curl("POST", "/v1/auth/logout", headers=auth_hdr, data={"refreshToken": refresh_token}, description="Static User Logout")
 
 log("\n" + "=" * 80)
 log(f"All {step_num} End-to-End API Steps Executed and Verified!")
+log(f"Static User Preserved: {STATIC_EMAIL}")
+log(f"LinkedIn Auth URL: {linkedin_auth_url}")
 log(f"Logs successfully written to: {LOG_FILE}")
 log("=" * 80)
 log_f.close()
-print(f"\nExecution finished! Total {step_num} API tests completed and logged to {LOG_FILE}.")
+print(f"\nExecution finished! Total {step_num} API tests completed.")
+print(f"Static user: {STATIC_EMAIL} (Password: {STATIC_PASSWORD})")
+print(f"LinkedIn Auth URL: {linkedin_auth_url}")

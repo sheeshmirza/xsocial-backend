@@ -49,7 +49,12 @@ func (a *OAuthAdapter) BuildAuthorizeURL(state string) string {
 	q.Set("client_id", a.config.ClientID)
 	q.Set("redirect_uri", a.config.RedirectURI)
 	q.Set("state", state)
-	q.Set("scope", strings.Join(linkedInOAuthScopes, " "))
+
+	scope := a.config.Scopes
+	if scope == "" {
+		scope = "openid profile r_ads_reporting r_organization_social rw_organization_admin w_member_social rw_events r_ads w_organization_social rw_ads r_basicprofile r_events r_organization_admin email r_1st_connections_size"
+	}
+	q.Set("scope", scope)
 
 	return fmt.Sprintf("https://www.linkedin.com/oauth/v2/authorization?%s", q.Encode())
 }

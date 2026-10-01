@@ -272,6 +272,7 @@ func (s *Server) Handler() http.Handler {
 		// Social Handles & OAuth
 		"GET /v1/social/accounts":           s.listSocialAccounts,
 		"POST /v1/social/connect/{platform}": s.connectSocialPlatform,
+		"GET /v1/social/connect/{platform}":  s.connectSocialPlatform,
 		"POST /v1/social/refresh-token":     s.refreshSocialToken,
 		"DELETE /v1/social/{id}":            s.disconnectSocialAccount,
 
