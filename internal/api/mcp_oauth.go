@@ -26,7 +26,7 @@ func (s *Server) mcpOAuthSigningKey() []byte {
 	if s.cfg.MCPOAuthSigningSecret != "" {
 		return []byte(s.cfg.MCPOAuthSigningSecret)
 	}
-	return s.mcpOAuthSigningKey()
+	return []byte(s.cfg.JWTAccessSecret)
 }
 
 var usedMCPAuthCodes sync.Map
@@ -159,11 +159,14 @@ func (s *Server) authenticateMCPUserToken(r *http.Request) (bson.ObjectID, bool)
 		return bson.NilObjectID, false
 	}
 	raw := strings.TrimSpace(auth[7:])
+	// The browser OAuth consent page presents the user's normal xSocial access
+	// token. Verify that token with JWT_ACCESS_SECRET, not the dedicated MCP
+	// OAuth signing secret used for MCP authorization codes/access tokens.
 	token, err := jwt.Parse(raw, func(t *jwt.Token) (any, error) {
 		if t.Method != jwt.SigningMethodHS256 {
 			return nil, fmt.Errorf("unexpected signing method")
 		}
-		return s.mcpOAuthSigningKey(), nil
+		return []byte(s.cfg.JWTAccessSecret), nil
 	})
 	if err != nil || !token.Valid {
 		return bson.NilObjectID, false
