@@ -143,7 +143,7 @@ func (s *Server) mcpAuthorize(w http.ResponseWriter, r *http.Request) {
 
 	userID, ok := s.mcpAuthenticateUser(r)
 	if !ok {
-		w.Header().Set("WWW-Authenticate", 'Basic realm="xSocial OAuth", charset="UTF-8"')
+		w.Header().Set("WWW-Authenticate", "Basic realm=\"xSocial OAuth\"")
 		w.Header().Set("Cache-Control", "no-store")
 		http.Error(w, "xSocial authentication required", http.StatusUnauthorized)
 		return
@@ -157,18 +157,18 @@ func (s *Server) mcpAuthorize(w http.ResponseWriter, r *http.Request) {
 
 	now := time.Now()
 	claims := jwt.MapClaims{
-		"mcp_code":                 true,
-		"sub":                      userID.Hex(),
-		"client_id":                q.Get("client_id"),
-		"redirect_uri":             q.Get("redirect_uri"),
-		"resource":                 resource,
-		"code_challenge":           q.Get("code_challenge"),
-		"code_challenge_method":    "S256",
-		"scope":                    scope,
-		"jti":                      jti,
-		"iat":                      now.Unix(),
-		"exp":                      now.Add(2 * time.Minute).Unix(),
-		"iss":                      s.mcpOAuthIssuer(r),
+		"mcp_code":              true,
+		"sub":                   userID.Hex(),
+		"client_id":              q.Get("client_id"),
+		"redirect_uri":           q.Get("redirect_uri"),
+		"resource":              resource,
+		"code_challenge":         q.Get("code_challenge"),
+		"code_challenge_method":  "S256",
+		"scope":                  scope,
+		"jti":                    jti,
+		"iat":                    now.Unix(),
+		"exp":                    now.Add(2 * time.Minute).Unix(),
+		"iss":                    s.mcpOAuthIssuer(r),
 	}
 
 	code, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(s.cfg.JWTAccessSecret))
@@ -372,7 +372,7 @@ func (s *Server) mcpRefreshToken(w http.ResponseWriter, r *http.Request) {
 		"access_token": accessToken,
 		"token_type":   "Bearer",
 		"expires_in":   3600,
-		"scope":       scope,
+		"scope":        scope,
 	})
 }
 
