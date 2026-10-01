@@ -41,16 +41,9 @@ func main() {
 	postRepo := repository.NewPostRepository(mongoDB.Database)
 	postActivityRepo := repository.NewPostActivityRepository(mongoDB.Database)
 
-	// 4. Initialize Metricool Repositories
+	// 4. Initialize Repositories
 	apiKeyRepo := repository.NewApiKeyRepository(mongoDB.Database)
 	brandRepo := repository.NewBrandRepository(mongoDB.Database)
-	inboxRepo := repository.NewInboxRepository(mongoDB.Database)
-	smartLinkRepo := repository.NewSmartLinkRepository(mongoDB.Database)
-	autolistRepo := repository.NewAutolistRepository(mongoDB.Database)
-	competitorRepo := repository.NewCompetitorRepository(mongoDB.Database)
-	analyticsRepo := repository.NewAnalyticsRepository(mongoDB.Database)
-	reportRepo := repository.NewReportRepository(mongoDB.Database)
-	webhookRepo := repository.NewWebhookRepository(mongoDB.Database)
 	auditLogRepo := repository.NewAuditLogRepository(mongoDB.Database)
 
 	// 5. Initialize Dedicated Platform Services
@@ -79,17 +72,9 @@ func main() {
 		nil, // queue set below
 	)
 
-	// 7. Initialize Metricool Services
+	// 7. Initialize Workspaces and Keys Services
 	apiKeyService := service.NewApiKeyService(apiKeyRepo, redisClient, brandRepo)
 	brandService := service.NewBrandService(brandRepo, userRepo)
-	inboxService := service.NewInboxService(inboxRepo, brandRepo, handleRepo)
-	smartLinkService := service.NewSmartLinkService(smartLinkRepo, brandRepo)
-	autolistService := service.NewAutolistService(autolistRepo, postRepo, postPublishService)
-	bestTimesService := service.NewBestTimesService(analyticsRepo, brandRepo)
-	competitorService := service.NewCompetitorService(competitorRepo, brandRepo)
-	analyticsService := service.NewAnalyticsService(analyticsRepo, brandRepo)
-	reportService := service.NewReportService(reportRepo, brandRepo, analyticsRepo, postRepo)
-	webhookService := service.NewWebhookService(webhookRepo)
 	auditLogService := service.NewAuditLogService(auditLogRepo)
 
 	// 8. Initialize Queue & Dispatcher
@@ -102,7 +87,7 @@ func main() {
 	postService.RequeueRecurringScheduledPostsOnStartup(ctxStartup)
 	cancelStartup()
 
-	// 10. Instantiate API Server with the exact mailhost-backend routing architecture
+	// 10. Instantiate API Server with social platform routing
 	apiServer := api.New(
 		cfg,
 		logger,
@@ -114,13 +99,6 @@ func main() {
 		postActivityRepo,
 		apiKeyRepo,
 		brandRepo,
-		inboxRepo,
-		smartLinkRepo,
-		autolistRepo,
-		competitorRepo,
-		analyticsRepo,
-		reportRepo,
-		webhookRepo,
 		auditLogRepo,
 		tokenService,
 		authService,
@@ -133,14 +111,6 @@ func main() {
 		postService,
 		apiKeyService,
 		brandService,
-		inboxService,
-		smartLinkService,
-		autolistService,
-		bestTimesService,
-		competitorService,
-		analyticsService,
-		reportService,
-		webhookService,
 		auditLogService,
 		igService,
 		liService,
@@ -158,7 +128,7 @@ func main() {
 
 	// 11. Graceful Shutdown Listener
 	go func() {
-		logger.Info("Metricool/xSocial API server listening", "port", cfg.Port, "mcp", "/mcp", "api_prefix", cfg.ApiPrefix)
+		logger.Info("xSocial API server listening", "port", cfg.Port, "mcp", "/mcp", "api_prefix", cfg.ApiPrefix)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("Server failed: %v", err)
 		}

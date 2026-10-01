@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -87,16 +86,6 @@ var metricoolMCPTools = []mcpTool{
 		},
 	},
 	{
-		Name:        "get_analytics_available_metrics",
-		Description: "List the analytics metrics supported by xSocial for a social platform.",
-		InputSchema: inputSchema{
-			Type: "object",
-			Properties: map[string]schemaProp{
-				"platform": {Type: "string", Description: "Optional platform filter."},
-			},
-		},
-	},
-	{
 		Name:        "get_brands",
 		Description: "List all managed brands and client workspaces connected to your account.",
 		InputSchema: inputSchema{
@@ -127,42 +116,6 @@ var metricoolMCPTools = []mcpTool{
 				"website_url": {Type: "string", Description: "Brand website URL."},
 			},
 			Required: []string{"name"},
-		},
-	},
-	{
-		Name:        "get_analytics",
-		Description: "Fetch performance analytics (followers, impressions, reach, engagement, clicks, video views) for a brand across social networks or web.",
-		InputSchema: inputSchema{
-			Type: "object",
-			Properties: map[string]schemaProp{
-				"brand_id": {Type: "string", Description: "The brand ID."},
-				"platform": {Type: "string", Description: "Platform to query: 'instagram', 'facebook', 'linkedin', 'tiktok', 'youtube', 'twitter', 'pinterest', or 'web'."},
-				"days":     {Type: "string", Description: "Number of past days to query, e.g. '30' or '7'."},
-			},
-			Required: []string{"brand_id", "platform"},
-		},
-	},
-	{
-		Name:        "get_best_time_to_post",
-		Description: "Get the optimal hours and 7x24 heatmap to post on a given social network based on audience engagement data.",
-		InputSchema: inputSchema{
-			Type: "object",
-			Properties: map[string]schemaProp{
-				"brand_id": {Type: "string", Description: "The brand ID."},
-				"platform": {Type: "string", Description: "Social network: 'instagram', 'facebook', 'linkedin', 'tiktok', or 'youtube'."},
-			},
-			Required: []string{"brand_id", "platform"},
-		},
-	},
-	{
-		Name:        "get_competitors",
-		Description: "Retrieve competitor benchmarking data (follower count, post frequency, engagement rate) for a brand.",
-		InputSchema: inputSchema{
-			Type: "object",
-			Properties: map[string]schemaProp{
-				"brand_id": {Type: "string", Description: "The brand ID."},
-			},
-			Required: []string{"brand_id"},
 		},
 	},
 	{
@@ -215,57 +168,6 @@ var metricoolMCPTools = []mcpTool{
 		},
 	},
 	{
-		Name:        "list_inbox_messages",
-		Description: "Fetch unified inbox conversation threads (DMs, comments, reviews) across social networks for a brand.",
-		InputSchema: inputSchema{
-			Type: "object",
-			Properties: map[string]schemaProp{
-				"brand_id": {Type: "string", Description: "The brand ID."},
-				"platform": {Type: "string", Description: "Optional platform filter (e.g. 'instagram', 'linkedin', 'google_business')."},
-				"status":   {Type: "string", Description: "Status filter: 'open' or 'resolved'."},
-			},
-			Required: []string{"brand_id"},
-		},
-	},
-	{
-		Name:        "reply_inbox_message",
-		Description: "Post a reply to an inbox message or comment thread.",
-		InputSchema: inputSchema{
-			Type: "object",
-			Properties: map[string]schemaProp{
-				"conversation_id": {Type: "string", Description: "The ID of the conversation thread."},
-				"brand_id":        {Type: "string", Description: "The brand ID."},
-				"reply_text":      {Type: "string", Description: "The text message reply to send."},
-			},
-			Required: []string{"conversation_id", "brand_id", "reply_text"},
-		},
-	},
-	{
-		Name:        "get_smartlinks",
-		Description: "Retrieve SmartLink (link-in-bio) pages and click analytics for a brand.",
-		InputSchema: inputSchema{
-			Type: "object",
-			Properties: map[string]schemaProp{
-				"brand_id": {Type: "string", Description: "The brand ID."},
-			},
-			Required: []string{"brand_id"},
-		},
-	},
-	{
-		Name:        "get_analytics_data",
-		Description: "Retrieve dated analytics rollups for a brand and optionally select specific metrics, similar to a social analytics dashboard.",
-		InputSchema: inputSchema{
-			Type: "object",
-			Properties: map[string]schemaProp{
-				"brand_id": {Type: "string", Description: "The brand ID."},
-				"platform": {Type: "string", Description: "Social network, e.g. 'instagram' or 'linkedin'."},
-				"metrics": {Type: "string", Description: "Optional comma-separated metrics such as followers,impressions,reach,engagement,clicks,video_views,posts_count."},
-				"days": {Type: "string", Description: "Number of trailing days to return, e.g. '7' or '30'."},
-			},
-			Required: []string{"brand_id", "platform"},
-		},
-	},
-	{
 		Name:        "update_scheduled_post",
 		Description: "Update a user's scheduled post content, media, platforms, or scheduled time.",
 		InputSchema: inputSchema{
@@ -308,35 +210,15 @@ var metricoolMCPTools = []mcpTool{
 			Required: []string{"post_id"},
 		},
 	},
-	{
-		Name:        "generate_report",
-		Description: "Generate a custom performance report for a brand in PDF, CSV, or JSON format.",
-		InputSchema: inputSchema{
-			Type: "object",
-			Properties: map[string]schemaProp{
-				"brand_id": {Type: "string", Description: "The brand ID."},
-				"title":    {Type: "string", Description: "Report title."},
-				"format":   {Type: "string", Description: "Report format: 'pdf', 'csv', or 'json'."},
-			},
-			Required: []string{"brand_id", "title"},
-		},
-	},
 }
 
 func initMCPToolSecurity() {
 	readOnly := map[string]bool{
-		"get_profile": true,
-		"get_brands": true,
-		"get_brand_details": true,
-		"get_analytics": true,
-		"get_best_time_to_post": true,
-		"get_competitors": true,
+		"get_profile":         true,
+		"get_brands":          true,
+		"get_brand_details":   true,
 		"get_scheduled_posts": true,
-		"list_inbox_messages": true,
-		"get_smartlinks": true,
 		"get_social_accounts": true,
-		"get_analytics_available_metrics": true,
-		"get_analytics_data": true,
 	}
 	for i := range metricoolMCPTools {
 		if len(metricoolMCPTools[i].SecuritySchemes) == 0 {
@@ -347,7 +229,7 @@ func initMCPToolSecurity() {
 			"destructiveHint": false,
 			"openWorldHint":   false,
 		}
-		if metricoolMCPTools[i].Name == "publish_post_now" || metricoolMCPTools[i].Name == "reply_inbox_message" {
+		if metricoolMCPTools[i].Name == "publish_post_now" {
 			metricoolMCPTools[i].Annotations["destructiveHint"] = true
 		}
 		if metricoolMCPTools[i].Meta == nil {
@@ -550,20 +432,6 @@ func (s *Server) executeMCPTool(ctx context.Context, userID bson.ObjectID, name 
 		}
 		return mcpOAuthJSON(safe), nil
 
-	case "get_analytics_available_metrics":
-		metrics := []map[string]string{
-			{"id":"followers","label":"Followers"},
-			{"id":"followers_gained","label":"Followers gained"},
-			{"id":"impressions","label":"Impressions"},
-			{"id":"reach","label":"Reach"},
-			{"id":"engagement","label":"Engagement"},
-			{"id":"clicks","label":"Clicks"},
-			{"id":"video_views","label":"Video views"},
-			{"id":"posts_count","label":"Posts"},
-			{"id":"interactions_count","label":"Interactions"},
-		}
-		return mcpOAuthJSON(map[string]any{"platform": getArg("platform"), "metrics": metrics}), nil
-
 	case "get_brands":
 		brands, err := s.brandService.ListBrands(ctx, userID)
 		if err != nil {
@@ -598,109 +466,6 @@ func (s *Server) executeMCPTool(ctx context.Context, userID bson.ObjectID, name 
 			return "", err
 		}
 		b, _ := json.MarshalIndent(brand, "", "  ")
-		return string(b), nil
-
-	case "get_analytics":
-		bid, err := bson.ObjectIDFromHex(getArg("brand_id"))
-		if err != nil {
-			return "", fmt.Errorf("invalid brand_id")
-		}
-		if err := s.ensureMCPBrandAccess(ctx, userID, bid); err != nil {
-			return "", err
-		}
-		platform := getArg("platform")
-		days := 30
-		if rawDays := getArg("days"); rawDays != "" {
-			if parsed, err := strconv.Atoi(rawDays); err == nil && parsed > 0 && parsed <= 365 {
-				days = parsed
-			}
-		}
-		if strings.EqualFold(platform, "web") {
-			data, err := s.analyticsService.GetWebOverview(ctx, bid, days)
-			if err != nil {
-				return "", err
-			}
-			b, _ := json.MarshalIndent(data, "", "  ")
-			return string(b), nil
-		}
-		data, err := s.analyticsService.GetSocialOverview(ctx, bid, platform, days)
-		if err != nil {
-			return "", err
-		}
-		b, _ := json.MarshalIndent(data, "", "  ")
-		return string(b), nil
-
-	case "get_analytics_data":
-		bid, err := bson.ObjectIDFromHex(getArg("brand_id"))
-		if err != nil {
-			return "", fmt.Errorf("invalid brand_id")
-		}
-		if err := s.ensureMCPBrandAccess(ctx, userID, bid); err != nil {
-			return "", err
-		}
-		platform := getArg("platform")
-		days := 30
-		if rawDays := getArg("days"); rawDays != "" {
-			if parsed, err := strconv.Atoi(rawDays); err == nil && parsed > 0 && parsed <= 365 {
-				days = parsed
-			}
-		}
-		rollups, err := s.analyticsService.GetSocialOverview(ctx, bid, platform, days)
-		if err != nil {
-			return "", err
-		}
-		wanted := map[string]bool{}
-		if raw := getArg("metrics"); raw != "" {
-			for _, m := range strings.Split(raw, ",") {
-				wanted[strings.TrimSpace(strings.ToLower(m))] = true
-			}
-		}
-		rows := make([]map[string]any, 0, len(rollups))
-		for _, r := range rollups {
-			row := map[string]any{"date": r.Date, "platform": r.Platform}
-			add := func(name string, value any) { if len(wanted) == 0 || wanted[name] { row[name] = value } }
-			add("followers", r.Followers)
-			add("followers_gained", r.FollowersGained)
-			add("impressions", r.Impressions)
-			add("reach", r.Reach)
-			add("engagement", r.Engagement)
-			add("clicks", r.Clicks)
-			add("video_views", r.VideoViews)
-			add("posts_count", r.PostsCount)
-			add("interactions_count", r.InteractionsCount)
-			rows = append(rows, row)
-		}
-		return mcpOAuthJSON(map[string]any{"brand_id": bid.Hex(), "platform": platform, "days": days, "data": rows}), nil
-
-	case "get_best_time_to_post":
-		bid, err := bson.ObjectIDFromHex(getArg("brand_id"))
-		if err != nil {
-			return "", fmt.Errorf("invalid brand_id")
-		}
-		if err := s.ensureMCPBrandAccess(ctx, userID, bid); err != nil {
-			return "", err
-		}
-		platform := getArg("platform")
-		data, err := s.bestTimesService.GetBestTimes(ctx, bid, platform)
-		if err != nil {
-			return "", err
-		}
-		b, _ := json.MarshalIndent(data, "", "  ")
-		return string(b), nil
-
-	case "get_competitors":
-		bid, err := bson.ObjectIDFromHex(getArg("brand_id"))
-		if err != nil {
-			return "", fmt.Errorf("invalid brand_id")
-		}
-		if err := s.ensureMCPBrandAccess(ctx, userID, bid); err != nil {
-			return "", err
-		}
-		data, err := s.competitorServ.ListCompetitors(ctx, bid)
-		if err != nil {
-			return "", err
-		}
-		b, _ := json.MarshalIndent(data, "", "  ")
 		return string(b), nil
 
 	case "get_scheduled_posts":
@@ -834,58 +599,6 @@ func (s *Server) executeMCPTool(ctx context.Context, userID bson.ObjectID, name 
 		b, _ := json.MarshalIndent(post, "", "  ")
 		return string(b), nil
 
-	case "list_inbox_messages":
-		bid, err := bson.ObjectIDFromHex(getArg("brand_id"))
-		if err != nil {
-			return "", fmt.Errorf("invalid brand_id")
-		}
-		if err := s.ensureMCPBrandAccess(ctx, userID, bid); err != nil {
-			return "", err
-		}
-		convs, total, err := s.inboxService.ListConversations(ctx, bid, userID, getArg("status"), getArg("platform"), 1, 20)
-		if err != nil {
-			return "", err
-		}
-		resp := map[string]any{"total": total, "conversations": convs}
-		b, _ := json.MarshalIndent(resp, "", "  ")
-		return string(b), nil
-
-	case "reply_inbox_message":
-		cid, err := bson.ObjectIDFromHex(getArg("conversation_id"))
-		if err != nil {
-			return "", fmt.Errorf("invalid conversation_id")
-		}
-		bid, err := bson.ObjectIDFromHex(getArg("brand_id"))
-		if err != nil {
-			return "", fmt.Errorf("invalid brand_id")
-		}
-		if err := s.ensureMCPBrandAccess(ctx, userID, bid); err != nil {
-			return "", err
-		}
-		msg, err := s.inboxService.ReplyToConversation(ctx, cid, bid, userID, "AI Assistant", models.ReplyInboxRequest{
-			MessageText: getArg("reply_text"),
-		})
-		if err != nil {
-			return "", err
-		}
-		b, _ := json.MarshalIndent(msg, "", "  ")
-		return string(b), nil
-
-	case "get_smartlinks":
-		bid, err := bson.ObjectIDFromHex(getArg("brand_id"))
-		if err != nil {
-			return "", fmt.Errorf("invalid brand_id")
-		}
-		if err := s.ensureMCPBrandAccess(ctx, userID, bid); err != nil {
-			return "", err
-		}
-		pages, err := s.smartLinkService.ListPagesByBrand(ctx, bid)
-		if err != nil {
-			return "", err
-		}
-		b, _ := json.MarshalIndent(pages, "", "  ")
-		return string(b), nil
-
 	case "update_scheduled_post":
 		pid, err := bson.ObjectIDFromHex(getArg("post_id"))
 		if err != nil { return "", fmt.Errorf("invalid post_id") }
@@ -949,26 +662,6 @@ func (s *Server) executeMCPTool(ctx context.Context, userID bson.ObjectID, name 
 		if post.BrandID != nil && !post.BrandID.IsZero() { if err := s.ensureMCPBrandAccess(ctx,userID,*post.BrandID); err != nil { return "", err } }
 		post, err = s.postService.SubmitForApproval(ctx,userID,pid); if err != nil { return "", err }
 		b,_:=json.MarshalIndent(post,"","  "); return string(b),nil
-
-	case "generate_report":
-		bid := getArg("brand_id")
-		brandOID, err := bson.ObjectIDFromHex(bid)
-		if err != nil {
-			return "", fmt.Errorf("invalid brand_id")
-		}
-		if err := s.ensureMCPBrandAccess(ctx, userID, brandOID); err != nil {
-			return "", err
-		}
-		rep, err := s.reportService.GenerateReport(ctx, userID, models.GenerateReportRequest{
-			BrandID: bid,
-			Title:   getArg("title"),
-			Format:  getArg("format"),
-		})
-		if err != nil {
-			return "", err
-		}
-		b, _ := json.MarshalIndent(rep, "", "  ")
-		return string(b), nil
 
 	default:
 		return "", fmt.Errorf("unknown tool: %s", name)

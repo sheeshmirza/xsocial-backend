@@ -48,13 +48,6 @@ type Server struct {
 	postActRepo    *repository.PostActivityRepository
 	apiKeyRepo     *repository.ApiKeyRepository
 	brandRepo      *repository.BrandRepository
-	inboxRepo      *repository.InboxRepository
-	smartLinkRepo  *repository.SmartLinkRepository
-	autolistRepo   *repository.AutolistRepository
-	competitorRepo *repository.CompetitorRepository
-	analyticsRepo  *repository.AnalyticsRepository
-	reportRepo     *repository.ReportRepository
-	webhookRepo    *repository.WebhookRepository
 	auditLogRepo   *repository.AuditLogRepository
 
 	// Services
@@ -69,14 +62,6 @@ type Server struct {
 	postService      *service.PostService
 	apiKeyService    *service.ApiKeyService
 	brandService     *service.BrandService
-	inboxService     *service.InboxService
-	smartLinkService *service.SmartLinkService
-	autolistService  *service.AutolistService
-	bestTimesService *service.BestTimesService
-	competitorServ   *service.CompetitorService
-	analyticsService *service.AnalyticsService
-	reportService    *service.ReportService
-	webhookService   *service.WebhookService
 	auditLogService  *service.AuditLogService
 
 	// Platforms
@@ -106,13 +91,6 @@ func New(
 	postActRepo *repository.PostActivityRepository,
 	apiKeyRepo *repository.ApiKeyRepository,
 	brandRepo *repository.BrandRepository,
-	inboxRepo *repository.InboxRepository,
-	smartLinkRepo *repository.SmartLinkRepository,
-	autolistRepo *repository.AutolistRepository,
-	competitorRepo *repository.CompetitorRepository,
-	analyticsRepo *repository.AnalyticsRepository,
-	reportRepo *repository.ReportRepository,
-	webhookRepo *repository.WebhookRepository,
 	auditLogRepo *repository.AuditLogRepository,
 	tokenService *service.TokenService,
 	authService *service.AuthService,
@@ -125,14 +103,6 @@ func New(
 	postService *service.PostService,
 	apiKeyService *service.ApiKeyService,
 	brandService *service.BrandService,
-	inboxService *service.InboxService,
-	smartLinkService *service.SmartLinkService,
-	autolistService *service.AutolistService,
-	bestTimesService *service.BestTimesService,
-	competitorServ *service.CompetitorService,
-	analyticsService *service.AnalyticsService,
-	reportService *service.ReportService,
-	webhookService *service.WebhookService,
 	auditLogService *service.AuditLogService,
 	igService *instagram.Service,
 	liService *linkedin.Service,
@@ -141,47 +111,32 @@ func New(
 		log = slog.Default()
 	}
 	return &Server{
-		cfg:              cfg,
-		log:              log,
-		redis:            redis,
-		userRepo:         userRepo,
-		rfRepo:           rfRepo,
-		handleRepo:       handleRepo,
-		postRepo:         postRepo,
-		postActRepo:      postActRepo,
-		apiKeyRepo:       apiKeyRepo,
-		brandRepo:        brandRepo,
-		inboxRepo:        inboxRepo,
-		smartLinkRepo:    smartLinkRepo,
-		autolistRepo:     autolistRepo,
-		competitorRepo:   competitorRepo,
-		analyticsRepo:    analyticsRepo,
-		reportRepo:       reportRepo,
-		webhookRepo:      webhookRepo,
-		auditLogRepo:     auditLogRepo,
-		tokenService:     tokenService,
-		authService:      authService,
-		userService:      userService,
-		aiService:        aiService,
-		uploadService:    uploadService,
-		socialService:    socialService,
-		postPubService:   postPubService,
-		liActService:     liActService,
-		postService:      postService,
-		apiKeyService:    apiKeyService,
-		brandService:     brandService,
-		inboxService:     inboxService,
-		smartLinkService: smartLinkService,
-		autolistService:  autolistService,
-		bestTimesService: bestTimesService,
-		competitorServ:   competitorServ,
-		analyticsService: analyticsService,
-		reportService:    reportService,
-		webhookService:   webhookService,
-		auditLogService:  auditLogService,
-		igService:        igService,
-		liService:        liService,
-		authFailures:     make(map[string]*authFailureRecord),
+		cfg:             cfg,
+		log:             log,
+		redis:           redis,
+		userRepo:        userRepo,
+		rfRepo:          rfRepo,
+		handleRepo:      handleRepo,
+		postRepo:        postRepo,
+		postActRepo:     postActRepo,
+		apiKeyRepo:      apiKeyRepo,
+		brandRepo:       brandRepo,
+		auditLogRepo:    auditLogRepo,
+		tokenService:    tokenService,
+		authService:     authService,
+		userService:     userService,
+		aiService:       aiService,
+		uploadService:   uploadService,
+		socialService:   socialService,
+		postPubService:  postPubService,
+		liActService:    liActService,
+		postService:     postService,
+		apiKeyService:   apiKeyService,
+		brandService:    brandService,
+		auditLogService: auditLogService,
+		igService:       igService,
+		liService:       liService,
+		authFailures:    make(map[string]*authFailureRecord),
 	}
 }
 
@@ -203,14 +158,6 @@ func (s *Server) Handler() http.Handler {
 		"POST /v1/auth/forgot-password": s.forgotPassword,
 		"POST /v1/auth/reset-password":  s.resetPassword,
 		"POST /v1/auth/logout":          s.logoutUser,
-
-		// Public Bio Pages & Click Tracking
-		"GET /v1/bio/{slug}":                   s.publicBioPage,
-		"POST /v1/bio/{slug}/click/{buttonId}": s.publicTrackClick,
-
-		// Public Web Analytics Pixel & Beacon
-		"GET /v1/tracker/pixel.png": s.publicTrackerPixel,
-		"POST /v1/tracker/event":    s.publicTrackerEvent,
 
 		// Public Post Review & Approval (External Client Review)
 		"GET /v1/posts/review/{token}":         s.publicReview,
@@ -242,11 +189,11 @@ func (s *Server) Handler() http.Handler {
 		"GET /mcp":  s.handleMCP,
 
 		// MCP OAuth 2.1 discovery and authorization endpoints.
-		"GET /.well-known/oauth-protected-resource": s.mcpProtectedResourceMetadata,
+		"GET /.well-known/oauth-protected-resource":   s.mcpProtectedResourceMetadata,
 		"GET /.well-known/oauth-authorization-server": s.mcpAuthorizationServerMetadata,
-		"GET /oauth/authorize": s.mcpAuthorize,
-		"POST /oauth/authorize": s.mcpAuthorize,
-		"POST /oauth/token": s.mcpToken,
+		"GET /oauth/authorize":                        s.mcpAuthorize,
+		"POST /oauth/authorize":                       s.mcpAuthorize,
+		"POST /oauth/token":                           s.mcpToken,
 
 		// Auth & User Management
 		"GET /v1/users/me":              s.getCurrentUser,
@@ -300,60 +247,6 @@ func (s *Server) Handler() http.Handler {
 		"POST /v1/posts/{id}/reject":            s.rejectPost,
 		"POST /v1/posts/{id}/reshare":           s.resharePost,
 		"POST /v1/posts/{id}/publish":           s.publishPost,
-
-		// Best Times to Post Heatmaps
-		"GET /v1/planner/best-times": s.getBestTimes,
-
-		// Unified Inbox & Community Management
-		"GET /v1/inbox":                        s.listInboxConversations,
-		"GET /v1/inbox/{id}":                   s.getInboxConversation,
-		"POST /v1/inbox/{id}/reply":            s.replyInboxMessage,
-		"PATCH /v1/inbox/{id}/status":          s.updateInboxStatus,
-		"GET /v1/inbox/canned-replies":         s.listCannedReplies,
-		"POST /v1/inbox/canned-replies":        s.createCannedReply,
-		"DELETE /v1/inbox/canned-replies/{id}": s.deleteCannedReply,
-
-		// SmartLinks (Link-in-Bio)
-		"POST /v1/smartlinks":               s.createSmartLink,
-		"GET /v1/smartlinks":                s.listSmartLinks,
-		"PUT /v1/smartlinks/{id}":           s.updateSmartLink,
-		"PATCH /v1/smartlinks/{id}":         s.updateSmartLink,
-		"DELETE /v1/smartlinks/{id}":        s.deleteSmartLink,
-		"GET /v1/smartlinks/{id}/analytics": s.getSmartLinkAnalytics,
-
-		// Autolists & RSS Feeds (Evergreen content queues)
-		"POST /v1/autolists":            s.createAutolist,
-		"GET /v1/autolists":             s.listAutolists,
-		"POST /v1/autolists/{id}/posts": s.addAutolistPost,
-		"DELETE /v1/autolists/{id}":     s.deleteAutolist,
-		"POST /v1/rss-feeds":            s.createRSSFeed,
-		"GET /v1/rss-feeds":             s.listRSSFeeds,
-		"DELETE /v1/rss-feeds/{id}":     s.deleteRSSFeed,
-
-		// Competitors
-		"POST /v1/competitors":                s.addCompetitor,
-		"GET /v1/competitors":                 s.listCompetitors,
-		"DELETE /v1/competitors/{id}":         s.deleteCompetitor,
-		"POST /v1/competitors/{id}/sync":      s.syncCompetitor,
-		"POST /v1/competitors/{id}/snapshots": s.recordCompetitorSnapshot,
-
-		// Analytics
-		"GET /v1/analytics/web":             s.getWebAnalytics,
-		"GET /v1/analytics/social":          s.getSocialAnalytics,
-		"POST /v1/analytics/social/rollups": s.recordSocialRollup,
-
-		// Reports
-		"POST /v1/reports/generate":     s.generateReport,
-		"GET /v1/reports":               s.listReports,
-		"GET /v1/reports/{id}/download": s.downloadReport,
-
-		// Webhooks
-		"POST /v1/webhooks":        s.createWebhook,
-		"GET /v1/webhooks":         s.listWebhooks,
-		"DELETE /v1/webhooks/{id}": s.deleteWebhook,
-
-		// Audit Logs
-		"GET /v1/audit-logs": s.listAuditLogs,
 	}
 
 	for pattern, h := range routes {

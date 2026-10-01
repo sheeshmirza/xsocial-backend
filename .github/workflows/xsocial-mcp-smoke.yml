@@ -61,28 +61,19 @@ jobs:
           curl -fsS             -X POST             -H 'Content-Type: application/json'             -H 'Accept: application/json, text/event-stream'             -H 'MCP-Protocol-Version: 2025-06-18'             https://xs-be-sa1e.onrender.com/mcp             --data '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'             | tee tools.json
 
           count="$(jq '.result.tools | length' tools.json)"
-          test "$count" -eq 21
+          test "$count" -eq 12
 
           jq -e '.result.tools | map(.name) | sort == ( [
             "approve_post",
             "create_brand",
             "create_scheduled_post",
             "create_scheduled_post_for_review",
-            "get_analytics",
-            "get_analytics_available_metrics",
-            "get_analytics_data",
-            "get_best_time_to_post",
             "get_brands",
             "get_brand_details",
-            "get_competitors",
             "get_profile",
             "get_scheduled_posts",
-            "get_smartlinks",
             "get_social_accounts",
-            "generate_report",
-            "list_inbox_messages",
             "publish_post_now",
-            "reply_inbox_message",
             "send_scheduled_post_for_review",
             "update_scheduled_post"
           ] | sort )' tools.json
@@ -90,7 +81,6 @@ jobs:
           jq -e 'all(.result.tools[]; (.securitySchemes | length) > 0)' tools.json
           jq -e '.result.tools[] | select(.name == "get_profile") | ._meta["openai/profile"] == true' tools.json
           jq -e '.result.tools[] | select(.name == "publish_post_now") | .annotations.destructiveHint == true' tools.json
-          jq -e '.result.tools[] | select(.name == "reply_inbox_message") | .annotations.destructiveHint == true' tools.json
 
       - name: Unauthorized tool call returns MCP auth challenge
         run: |
