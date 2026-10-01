@@ -539,6 +539,16 @@ func (s *Server) executeMCPTool(ctx context.Context, userID bson.ObjectID, name 
 		if st := getArg("status"); st != "" {
 			queryParams["status"] = st
 		}
+		if brandID := getArg("brand_id"); brandID != "" {
+			bid, err := bson.ObjectIDFromHex(brandID)
+			if err != nil {
+				return "", fmt.Errorf("invalid brand_id")
+			}
+			if err := s.ensureMCPBrandAccess(ctx, userID, bid); err != nil {
+				return "", err
+			}
+			queryParams["brandId"] = brandID
+		}
 		posts, _, err := s.postService.ListPosts(ctx, userID, queryParams, 0, 50, bson.D{{Key: "createdAt", Value: -1}})
 		if err != nil {
 			return "", err
