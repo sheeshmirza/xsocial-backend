@@ -1,0 +1,111 @@
+name: xSocial MCP Smoke Test
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/xsocial-mcp-smoke.yml"
+      - "internal/api/**"
+      - "go.mod"
+      - "go.sum"
+      - "main.go"
+  workflow_dispatch:
+
+jobs:
+  go-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Run Go tests
+        run: go test ./...
+
+  production-mcp-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Health endpoint
+        run: |
+          body="$(curl -fsS https://xs-be-sa1e.onrender.com/healthz)"
+          echo "$body"
+          echo "$body" | jq -e '.status == "healthy"'
+
+      - name: Protected resource metadata
+        run: |
+          body="$(curl -fsS https://xs-be-sa1e.onrender.com/.well-known/oauth-protected-resource)"
+          echo "$body"
+          echo "$body" | jq -e '.resource == "https://xs-be-sa1e.onrender.com/mcp"'
+          echo "$body" | jq -e '.scopes_supported | index("xsocial") != null'
+
+      - name: Authorization server metadata
+        run: |
+          body="$(curl -fsS https://xs-be-sa1e.onrender.com/.well-known/oauth-authorization-server)"
+          echo "$body"
+          echo "$body" | jq -e '.authorization_endpoint == "https://xs-be-sa1e.onrender.com/oauth/authorize"'
+          echo "$body" | jq -e '.token_endpoint == "https://xs-be-sa1e.onrender.com/oauth/token"'
+          echo "$body" | jq -e '.code_challenge_methods_supported | index("S256") != null'
+          echo "$body" | jq -e '.scopes_supported | index("xsocial") != null'
+          echo "$body" | jq -e '.grant_types_supported | index("authorization_code") != null'
+          echo "$body" | jq -e '.grant_types_supported | index("refresh_token") != null'
+
+      - name: MCP initialize
+        run: |
+          curl -fsS             -X POST             -H 'Content-Type: application/json'             -H 'Accept: application/json, text/event-stream'             -H 'MCP-Protocol-Version: 2025-06-18'             https://xs-be-sa1e.onrender.com/mcp             --data '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"xsocial-smoke","version":"1.0.0"}}}'             | tee initialize.json
+          jq -e '.result.protocolVersion == "2025-06-18"' initialize.json
+          jq -e '.result.serverInfo.name == "xsocial-mcp"' initialize.json
+          jq -e '.result.serverInfo.version == "1.2.0"' initialize.json
+
+      - name: MCP tools list and schemas
+        run: |
+          curl -fsS             -X POST             -H 'Content-Type: application/json'             -H 'Accept: application/json, text/event-stream'             -H 'MCP-Protocol-Version: 2025-06-18'             https://xs-be-sa1e.onrender.com/mcp             --data '{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}'             | tee tools.json
+
+          count="$(jq '.result.tools | length' tools.json)"
+          test "$count" -eq 21
+
+          jq -e '.result.tools | map(.name) | sort == [
+            "approve_post",
+            "create_brand",
+            "create_scheduled_post",
+            "create_scheduled_post_for_review",
+            "get_analytics",
+            "get_analytics_available_metrics",
+            "get_analytics_data",
+            "get_best_time_to_post",
+            "get_brands",
+            "get_brand_details",
+            "get_competitors",
+            "get_profile",
+            "get_scheduled_posts",
+            "get_smartlinks",
+            "get_social_accounts",
+            "generate_report",
+            "list_inbox_messages",
+            "publish_post_now",
+            "reply_inbox_message",
+            "send_scheduled_post_for_review",
+            "update_scheduled_post"
+          ]' tools.json
+
+          jq -e 'all(.result.tools[]; (.securitySchemes | length) > 0)' tools.json
+          jq -e '.result.tools[] | select(.name == "get_profile") | ._meta["openai/profile"] == true' tools.json
+          jq -e '.result.tools[] | select(.name == "publish_post_now") | .annotations.destructiveHint == true' tools.json
+          jq -e '.result.tools[] | select(.name == "reply_inbox_message") | .annotations.destructiveHint == true' tools.json
+
+      - name: Unauthorized tool call returns MCP auth challenge
+        run: |
+          curl -sS -D auth-headers.txt             -X POST             -H 'Content-Type: application/json'             -H 'Accept: application/json, text/event-stream'             -H 'MCP-Protocol-Version: 2025-06-18'             https://xs-be-sa1e.onrender.com/mcp             --data '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"get_profile","arguments":{}}}'             | tee auth-body.json
+
+          grep -qi 'mcp/www_authenticate' auth-headers.txt
+          jq -e '.result.isError == true' auth-body.json
+
+      - name: Invalid authorization code is rejected
+        run: |
+          status="$(curl -sS -o invalid-token.json -w '%{http_code}'             -X POST             -H 'Content-Type: application/x-www-form-urlencoded'             https://xs-be-sa1e.onrender.com/oauth/token             --data-urlencode 'grant_type=authorization_code'             --data-urlencode 'code=invalid'             --data-urlencode 'redirect_uri=https://chatgpt.com/connector_platform_oauth_redirect'             --data-urlencode 'client_id=https://chatgpt.com/oauth/client.json'             --data-urlencode 'code_verifier=invalid'             --data-urlencode 'resource=https://xs-be-sa1e.onrender.com/mcp')"
+
+          test "$status" -eq 400
+          jq -e '.error == "invalid_grant"' invalid-token.json
+
+      - name: MCP method errors are JSON-RPC errors
+        run: |
+          curl -fsS             -X POST             -H 'Content-Type: application/json'             -H 'Accept: application/json, text/event-stream'             https://xs-be-sa1e.onrender.com/mcp             --data '{"jsonrpc":"2.0","id":4,"method":"does/not-exist","params":{}}'             | jq -e '.error.code == -32601'
