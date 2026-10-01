@@ -54,7 +54,7 @@ type schemaProp struct {
 	Description string `json:"description"`
 }
 
-var metricoolMCPTools = []mcpTool{
+var xsocialMCPTools = []mcpTool{
 	{
 		Name:        "get_profile",
 		Description: "Return the xSocial account represented by the current authenticated connection.",
@@ -220,22 +220,22 @@ func initMCPToolSecurity() {
 		"get_scheduled_posts": true,
 		"get_social_accounts": true,
 	}
-	for i := range metricoolMCPTools {
-		if len(metricoolMCPTools[i].SecuritySchemes) == 0 {
-			metricoolMCPTools[i].SecuritySchemes = []any{map[string]any{"type": "oauth2", "scopes": []string{mcpOAuthScope}}}
+	for i := range xsocialMCPTools {
+		if len(xsocialMCPTools[i].SecuritySchemes) == 0 {
+			xsocialMCPTools[i].SecuritySchemes = []any{map[string]any{"type": "oauth2", "scopes": []string{mcpOAuthScope}}}
 		}
-		metricoolMCPTools[i].Annotations = map[string]any{
-			"readOnlyHint":    readOnly[metricoolMCPTools[i].Name],
+		xsocialMCPTools[i].Annotations = map[string]any{
+			"readOnlyHint":    readOnly[xsocialMCPTools[i].Name],
 			"destructiveHint": false,
 			"openWorldHint":   false,
 		}
-		if metricoolMCPTools[i].Name == "publish_post_now" {
-			metricoolMCPTools[i].Annotations["destructiveHint"] = true
+		if xsocialMCPTools[i].Name == "publish_post_now" {
+			xsocialMCPTools[i].Annotations["destructiveHint"] = true
 		}
-		if metricoolMCPTools[i].Meta == nil {
-			metricoolMCPTools[i].Meta = map[string]any{}
+		if xsocialMCPTools[i].Meta == nil {
+			xsocialMCPTools[i].Meta = map[string]any{}
 		}
-		metricoolMCPTools[i].Meta["securitySchemes"] = metricoolMCPTools[i].SecuritySchemes
+		xsocialMCPTools[i].Meta["securitySchemes"] = xsocialMCPTools[i].SecuritySchemes
 	}
 }
 
@@ -307,7 +307,7 @@ func (s *Server) handleMCP(w http.ResponseWriter, r *http.Request) {
 			JSONRPC: "2.0",
 			ID:      req.ID,
 			Result: map[string]any{
-				"tools": metricoolMCPTools,
+				"tools": xsocialMCPTools,
 			},
 		})
 
