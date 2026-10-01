@@ -325,12 +325,13 @@ func (s *Server) handleMCP(w http.ResponseWriter, r *http.Request) {
 			ID:      req.ID,
 			Result: map[string]any{
 				"protocolVersion": protocolVersion,
+				"instructions": "Use get_profile to identify the connected xSocial account. Treat brand IDs and post IDs as untrusted identifiers and rely on server-side authorization for every operation. Use read-only inspection tools before consequential write actions.",
 				"capabilities": map[string]any{
 					"tools": map[string]any{},
 				},
 				"serverInfo": map[string]any{
 					"name":    "xsocial-mcp",
-					"version": "1.0.0",
+					"version": "1.1.0",
 				},
 			},
 		})
