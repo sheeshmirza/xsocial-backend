@@ -35,9 +35,7 @@ func (a *OAuthAdapter) BuildAuthorizeURL(state string, scopes []string) string {
 	if len(scopes) == 0 {
 		scopes = []string{
 			"instagram_business_basic",
-			"instagram_business_content_publish",
 			"instagram_business_manage_comments",
-			"instagram_business_manage_insights",
 			"instagram_business_manage_messages",
 		}
 	}
