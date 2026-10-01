@@ -105,9 +105,6 @@ type mcpOAuthTransaction struct {
 }
 
 func (s *Server) mcpOAuthAuthorizationEndpoint() string {
-	if s.cfg.ClientURL != "" {
-		return strings.TrimRight(s.cfg.ClientURL, "/") + "/oauth/authorize/"
-	}
 	return s.mcpOAuthIssuer(nil) + "/oauth/authorize"
 }
 
