@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -74,6 +75,26 @@ var metricoolMCPTools = []mcpTool{
 		Annotations:     map[string]any{"readOnlyHint": true, "destructiveHint": false, "openWorldHint": false},
 		SecuritySchemes: []any{map[string]any{"type": "oauth2", "scopes": []string{mcpOAuthScope}}},
 		Meta:            map[string]any{"openai/profile": true},
+	},
+	{
+		Name:        "get_social_accounts",
+		Description: "List connected social accounts safely (platform, username, display name, status, expiry) without exposing provider access or refresh tokens.",
+		InputSchema: inputSchema{
+			Type: "object",
+			Properties: map[string]schemaProp{
+				"platform": {Type: "string", Description: "Optional platform filter, e.g. 'instagram' or 'linkedin'."},
+			},
+		},
+	},
+	{
+		Name:        "get_analytics_available_metrics",
+		Description: "List the analytics metrics supported by xSocial for a social platform.",
+		InputSchema: inputSchema{
+			Type: "object",
+			Properties: map[string]schemaProp{
+				"platform": {Type: "string", Description: "Optional platform filter."},
+			},
+		},
 	},
 	{
 		Name:        "get_brands",
@@ -231,6 +252,63 @@ var metricoolMCPTools = []mcpTool{
 		},
 	},
 	{
+		Name:        "get_analytics_data",
+		Description: "Retrieve dated analytics rollups for a brand and optionally select specific metrics, similar to a social analytics dashboard.",
+		InputSchema: inputSchema{
+			Type: "object",
+			Properties: map[string]schemaProp{
+				"brand_id": {Type: "string", Description: "The brand ID."},
+				"platform": {Type: "string", Description: "Social network, e.g. 'instagram' or 'linkedin'."},
+				"metrics": {Type: "string", Description: "Optional comma-separated metrics such as followers,impressions,reach,engagement,clicks,video_views,posts_count."},
+				"days": {Type: "string", Description: "Number of trailing days to return, e.g. '7' or '30'."},
+			},
+			Required: []string{"brand_id", "platform"},
+		},
+	},
+	{
+		Name:        "update_scheduled_post",
+		Description: "Update a user's scheduled post content, media, platforms, or scheduled time.",
+		InputSchema: inputSchema{
+			Type: "object",
+			Properties: map[string]schemaProp{
+				"post_id": {Type: "string", Description: "The post ID."},
+				"caption": {Type: "string", Description: "Optional new caption."},
+				"platforms": {Type: "string", Description: "Optional comma-separated platforms."},
+				"media_urls": {Type: "string", Description: "Optional comma-separated public media URLs."},
+				"scheduled_time": {Type: "string", Description: "Optional new ISO 8601 scheduled publish time."},
+				"first_comment": {Type: "string", Description: "Optional first comment."},
+			},
+			Required: []string{"post_id"},
+		},
+	},
+	{
+		Name:        "create_scheduled_post_for_review",
+		Description: "Create a new scheduled or draft post and place it into the review/approval workflow.",
+		InputSchema: inputSchema{
+			Type: "object",
+			Properties: map[string]schemaProp{
+				"brand_id": {Type: "string", Description: "Optional brand ID."},
+				"caption": {Type: "string", Description: "Post caption."},
+				"platforms": {Type: "string", Description: "Comma-separated target platforms."},
+				"scheduled_time": {Type: "string", Description: "Optional ISO 8601 scheduled publish time."},
+				"media_urls": {Type: "string", Description: "Optional comma-separated public media URLs."},
+				"first_comment": {Type: "string", Description: "Optional first comment."},
+			},
+			Required: []string{"caption", "platforms"},
+		},
+	},
+	{
+		Name:        "send_scheduled_post_for_review",
+		Description: "Send an existing scheduled or draft post into the review/approval workflow.",
+		InputSchema: inputSchema{
+			Type: "object",
+			Properties: map[string]schemaProp{
+				"post_id": {Type: "string", Description: "The post ID."},
+			},
+			Required: []string{"post_id"},
+		},
+	},
+	{
 		Name:        "generate_report",
 		Description: "Generate a custom performance report for a brand in PDF, CSV, or JSON format.",
 		InputSchema: inputSchema{
@@ -256,6 +334,9 @@ func initMCPToolSecurity() {
 		"get_scheduled_posts": true,
 		"list_inbox_messages": true,
 		"get_smartlinks": true,
+		"get_social_accounts": true,
+		"get_analytics_available_metrics": true,
+		"get_analytics_data": true,
 	}
 	for i := range metricoolMCPTools {
 		if len(metricoolMCPTools[i].SecuritySchemes) == 0 {
@@ -325,13 +406,13 @@ func (s *Server) handleMCP(w http.ResponseWriter, r *http.Request) {
 			ID:      req.ID,
 			Result: map[string]any{
 				"protocolVersion": protocolVersion,
-				"instructions": "Use get_profile to identify the connected xSocial account. Treat brand IDs and post IDs as untrusted identifiers and rely on server-side authorization for every operation. Use read-only inspection tools before consequential write actions.",
+				"instructions": "Use get_profile to identify the connected xSocial account. Use get_social_accounts and get_brands to understand the workspace before publishing. Treat brand IDs, account IDs, and post IDs as untrusted identifiers and rely on server-side authorization for every operation. Use read-only inspection tools before consequential write actions.",
 				"capabilities": map[string]any{
 					"tools": map[string]any{},
 				},
 				"serverInfo": map[string]any{
 					"name":    "xsocial-mcp",
-					"version": "1.1.0",
+					"version": "1.2.0",
 				},
 			},
 		})
@@ -443,6 +524,46 @@ func (s *Server) executeMCPTool(ctx context.Context, userID bson.ObjectID, name 
 		}
 		return mcpOAuthJSON(map[string]any{"id":user.ID.Hex(),"name":user.FullName,"email":user.Email,"nickname":"xSocial"}), nil
 
+	case "get_social_accounts":
+		accounts, _, err := s.socialService.ListAccounts(ctx, userID, getArg("platform"), 0, 100, bson.D{{Key: "updatedAt", Value: -1}})
+		if err != nil {
+			return "", err
+		}
+		safe := make([]map[string]any, 0, len(accounts))
+		for _, account := range accounts {
+			status := "connected"
+			if account.IsExpired() {
+				status = "expired"
+			}
+			safe = append(safe, map[string]any{
+				"id": account.ID.Hex(),
+				"brand_id": func() string { if account.BrandID == nil { return "" }; return account.BrandID.Hex() }(),
+				"platform": account.Platform,
+				"platform_id": account.PlatformID,
+				"username": account.PlatformUsername,
+				"display_name": account.PlatformDisplayName,
+				"status": status,
+				"access_token_expires_at": account.PlatformAccessTokenExpiry,
+				"refresh_token_expires_at": account.PlatformRefreshTokenExpiry,
+				"metadata": account.PlatformMetadata,
+			})
+		}
+		return mcpOAuthJSON(safe), nil
+
+	case "get_analytics_available_metrics":
+		metrics := []map[string]string{
+			{"id":"followers","label":"Followers"},
+			{"id":"followers_gained","label":"Followers gained"},
+			{"id":"impressions","label":"Impressions"},
+			{"id":"reach","label":"Reach"},
+			{"id":"engagement","label":"Engagement"},
+			{"id":"clicks","label":"Clicks"},
+			{"id":"video_views","label":"Video views"},
+			{"id":"posts_count","label":"Posts"},
+			{"id":"interactions_count","label":"Interactions"},
+		}
+		return mcpOAuthJSON(map[string]any{"platform": getArg("platform"), "metrics": metrics}), nil
+
 	case "get_brands":
 		brands, err := s.brandService.ListBrands(ctx, userID)
 		if err != nil {
@@ -488,20 +609,68 @@ func (s *Server) executeMCPTool(ctx context.Context, userID bson.ObjectID, name 
 			return "", err
 		}
 		platform := getArg("platform")
+		days := 30
+		if rawDays := getArg("days"); rawDays != "" {
+			if parsed, err := strconv.Atoi(rawDays); err == nil && parsed > 0 && parsed <= 365 {
+				days = parsed
+			}
+		}
 		if strings.EqualFold(platform, "web") {
-			data, err := s.analyticsService.GetWebOverview(ctx, bid, 30)
+			data, err := s.analyticsService.GetWebOverview(ctx, bid, days)
 			if err != nil {
 				return "", err
 			}
 			b, _ := json.MarshalIndent(data, "", "  ")
 			return string(b), nil
 		}
-		data, err := s.analyticsService.GetSocialOverview(ctx, bid, platform, 30)
+		data, err := s.analyticsService.GetSocialOverview(ctx, bid, platform, days)
 		if err != nil {
 			return "", err
 		}
 		b, _ := json.MarshalIndent(data, "", "  ")
 		return string(b), nil
+
+	case "get_analytics_data":
+		bid, err := bson.ObjectIDFromHex(getArg("brand_id"))
+		if err != nil {
+			return "", fmt.Errorf("invalid brand_id")
+		}
+		if err := s.ensureMCPBrandAccess(ctx, userID, bid); err != nil {
+			return "", err
+		}
+		platform := getArg("platform")
+		days := 30
+		if rawDays := getArg("days"); rawDays != "" {
+			if parsed, err := strconv.Atoi(rawDays); err == nil && parsed > 0 && parsed <= 365 {
+				days = parsed
+			}
+		}
+		rollups, err := s.analyticsService.GetSocialOverview(ctx, bid, platform, days)
+		if err != nil {
+			return "", err
+		}
+		wanted := map[string]bool{}
+		if raw := getArg("metrics"); raw != "" {
+			for _, m := range strings.Split(raw, ",") {
+				wanted[strings.TrimSpace(strings.ToLower(m))] = true
+			}
+		}
+		rows := make([]map[string]any, 0, len(rollups))
+		for _, r := range rollups {
+			row := map[string]any{"date": r.Date, "platform": r.Platform}
+			add := func(name string, value any) { if len(wanted) == 0 || wanted[name] { row[name] = value } }
+			add("followers", r.Followers)
+			add("followers_gained", r.FollowersGained)
+			add("impressions", r.Impressions)
+			add("reach", r.Reach)
+			add("engagement", r.Engagement)
+			add("clicks", r.Clicks)
+			add("video_views", r.VideoViews)
+			add("posts_count", r.PostsCount)
+			add("interactions_count", r.InteractionsCount)
+			rows = append(rows, row)
+		}
+		return mcpOAuthJSON(map[string]any{"brand_id": bid.Hex(), "platform": platform, "days": days, "data": rows}), nil
 
 	case "get_best_time_to_post":
 		bid, err := bson.ObjectIDFromHex(getArg("brand_id"))
@@ -716,6 +885,70 @@ func (s *Server) executeMCPTool(ctx context.Context, userID bson.ObjectID, name 
 		}
 		b, _ := json.MarshalIndent(pages, "", "  ")
 		return string(b), nil
+
+	case "update_scheduled_post":
+		pid, err := bson.ObjectIDFromHex(getArg("post_id"))
+		if err != nil { return "", fmt.Errorf("invalid post_id") }
+		post, err := s.postService.GetPost(ctx, userID, pid)
+		if err != nil { return "", err }
+		if post.BrandID != nil && !post.BrandID.IsZero() {
+			if err := s.ensureMCPBrandAccess(ctx, userID, *post.BrandID); err != nil { return "", err }
+		}
+		update := models.UpdatePostInput{}
+		if v := getArg("caption"); v != "" { update.Caption = &v }
+		if v := getArg("platforms"); v != "" {
+			parts := strings.Split(v, ","); for i := range parts { parts[i] = strings.TrimSpace(parts[i]) }
+			update.SelectedPlatforms = &parts
+		}
+		if v := getArg("media_urls"); v != "" {
+			urls := strings.Split(v, ","); items := make([]models.MediaItem,0,len(urls))
+			for _, u := range urls { u=strings.TrimSpace(u); if u!="" { items=append(items, models.MediaItem{Type:"image",URL:u}) } }
+			update.Media = &items
+		}
+		if v := getArg("first_comment"); v != "" { update.FirstComment = v }
+		updated, err := s.postService.UpdatePost(ctx, userID, pid, update)
+		if err != nil { return "", err }
+		if raw := getArg("scheduled_time"); raw != "" {
+			t, err := time.Parse(time.RFC3339, raw)
+			if err != nil { return "", fmt.Errorf("scheduled_time must be ISO 8601/RFC3339") }
+			updated, err = s.postService.SchedulePost(ctx, userID, pid, models.SchedulePostInput{ScheduledTime:&t, Timezone:updated.Timezone, Recurrence:updated.Recurrence})
+			if err != nil { return "", err }
+		}
+		b, _ := json.MarshalIndent(updated, "", "  "); return string(b), nil
+
+	case "create_scheduled_post_for_review":
+		if bid := getArg("brand_id"); bid != "" {
+			boid, err := bson.ObjectIDFromHex(bid); if err != nil { return "", fmt.Errorf("invalid brand_id") }
+			if err := s.ensureMCPBrandAccess(ctx,userID,boid); err != nil { return "", err }
+		}
+		platforms := strings.Split(getArg("platforms"), ","); for i:=range platforms { platforms[i]=strings.TrimSpace(platforms[i]) }
+		mediaItems := []models.MediaItem{}
+		if raw := getArg("media_urls"); raw != "" {
+			for _, u := range strings.Split(raw,",") { u=strings.TrimSpace(u); if u!="" { mediaItems=append(mediaItems,models.MediaItem{Type:"image",URL:u}) } }
+		}
+		var sched *time.Time
+		status := models.PostStatusDraft
+		if raw := getArg("scheduled_time"); raw != "" {
+			t, err := time.Parse(time.RFC3339,raw); if err != nil { return "", fmt.Errorf("scheduled_time must be ISO 8601/RFC3339") }
+			sched=&t; status=models.PostStatusScheduled
+		}
+		var brandOID *bson.ObjectID
+		if bid := getArg("brand_id"); bid != "" { if b, err := bson.ObjectIDFromHex(bid); err == nil { brandOID=&b } }
+		post, err := s.postService.CreatePost(ctx,userID,models.CreatePostRequest{
+			Caption:getArg("caption"), SelectedPlatforms:platforms, ScheduledTime:sched, Status:status,
+			Media:mediaItems, BrandID:brandOID, FirstComment:getArg("first_comment"),
+		})
+		if err != nil { return "", err }
+		post, err = s.postService.SubmitForApproval(ctx,userID,post.ID)
+		if err != nil { return "", err }
+		b,_:=json.MarshalIndent(post,"","  "); return string(b),nil
+
+	case "send_scheduled_post_for_review":
+		pid, err := bson.ObjectIDFromHex(getArg("post_id")); if err != nil { return "", fmt.Errorf("invalid post_id") }
+		post, err := s.postService.GetPost(ctx,userID,pid); if err != nil { return "", err }
+		if post.BrandID != nil && !post.BrandID.IsZero() { if err := s.ensureMCPBrandAccess(ctx,userID,*post.BrandID); err != nil { return "", err } }
+		post, err = s.postService.SubmitForApproval(ctx,userID,pid); if err != nil { return "", err }
+		b,_:=json.MarshalIndent(post,"","  "); return string(b),nil
 
 	case "generate_report":
 		bid := getArg("brand_id")
