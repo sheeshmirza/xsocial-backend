@@ -578,6 +578,9 @@ run_curl("POST", f"/v1/posts/{post_li_text_id}/publish", headers=auth_hdr, data=
 # 7.11c Live Real Publishing to Connected LinkedIn Account (Post with Automated First Comment)
 run_curl("POST", f"/v1/posts/{post_li_fc_id}/publish", headers=auth_hdr, data={}, description="Publish Post Live to LinkedIn with Automated First Comment")
 
+# 7.11d Live Real Publishing to Connected LinkedIn Account (Article / Link Post)
+run_curl("POST", f"/v1/posts/{post_li_art_id}/publish", headers=auth_hdr, data={}, description="Publish Article Post Live to Connected LinkedIn Account")
+
 # 7.12 Reshare Post across Existing Accounts (User 1 posts from Account 1, reshares content to Account 2)
 target_accounts = [instagram_handle_id] if instagram_handle_id else ([linkedin_handle_id] if linkedin_handle_id else [])
 target_platforms = ["instagram"] if instagram_handle_id else ["linkedin"]
@@ -882,7 +885,7 @@ if post_li_fc_id:
     run_curl("DELETE", f"/v1/posts/{post_li_fc_id}/published", headers=auth_hdr, description="Delete Published LinkedIn First Comment Post (Remotely Cleans LinkedIn Feed)")
 
 if post_li_art_id:
-    run_curl("DELETE", f"/v1/posts/{post_li_art_id}", headers=auth_hdr, description="Delete LinkedIn Article Post by ID")
+    run_curl("DELETE", f"/v1/posts/{post_li_art_id}/published", headers=auth_hdr, description="Delete Published LinkedIn Article Post (Remotely Cleans LinkedIn Feed)")
 
 # Delete dedicated posts via bulk endpoints
 bulk_sched_targets = [post_sched_bulk_id] if post_sched_bulk_id else [post_car_id]

@@ -1,4 +1,4 @@
-import urllib.request, json, urllib.parse
+import urllib.request, json, urllib.parse, time
 from pymongo import MongoClient
 from bson import ObjectId
 
@@ -20,7 +20,7 @@ auth_hdr = {'Authorization': f'Bearer {token}', 'Content-Type': 'application/jso
 
 # 2. Create brand
 req = urllib.request.Request('http://localhost:5000/v1/brands', data=json.dumps({
-    'name': 'LinkedIn Real Testing Brand 2',
+    'name': 'LinkedIn Real Testing Brand Multi',
     'timezone': 'UTC'
 }).encode(), headers=auth_hdr)
 
@@ -31,37 +31,37 @@ with urllib.request.urlopen(req) as resp:
 # 3. Associate LinkedIn handle with brand
 client.xsocial.socialhandles.update_one({'_id': handle['_id']}, {'$set': {'brandId': ObjectId(brand_id)}})
 
-# 4. Create Post with First Comment
-post_payload = {
+# Test 1: Image Post
+ts = int(time.time())
+image_payload = {
     'brandId': brand_id,
-    'title': 'Real LinkedIn First Comment Test',
-    'caption': 'Testing automated real LinkedIn post with first comment! #tech #api',
-    'firstComment': 'Automated first comment from XSocial testing suite! #firstcomment',
+    'title': 'Real LinkedIn Image Post Test',
+    'caption': f'Testing automated real LinkedIn post with real image asset [{ts}]! #tech #media',
     'selectedPlatforms': ['linkedin'],
     'selectedAccountIds': [str(handle['_id'])],
-    'postType': 'text',
+    'postType': 'image',
+    'media': [{'type': 'image', 'url': 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe'}],
     'status': 'draft'
 }
 
-req = urllib.request.Request('http://localhost:5000/v1/posts', data=json.dumps(post_payload).encode(), headers=auth_hdr)
+req = urllib.request.Request('http://localhost:5000/v1/posts', data=json.dumps(image_payload).encode(), headers=auth_hdr)
 with urllib.request.urlopen(req) as resp:
-    post = json.loads(resp.read().decode())
-    post_id = post['id']
-print('Created post with first comment:', post_id)
+    img_post = json.loads(resp.read().decode())
+    img_post_id = img_post['id']
+print('Created image post in draft:', img_post_id)
 
-# 5. Publish live to LinkedIn
-req = urllib.request.Request(f'http://localhost:5000/v1/posts/{post_id}/publish', data=json.dumps({}).encode(), headers=auth_hdr)
+req = urllib.request.Request(f'http://localhost:5000/v1/posts/{img_post_id}/publish', data=json.dumps({}).encode(), headers=auth_hdr)
 with urllib.request.urlopen(req) as resp:
-    print('Publish status:', resp.status)
-    pub_data = json.loads(resp.read().decode())
-    print('Publish result:', json.dumps(pub_data.get('post', {}).get('platformResponses'), indent=2))
+    pub_img = json.loads(resp.read().decode())
+    print('Image publish status:', resp.status)
+    print('Image platform responses:', json.dumps(pub_img.get('post', {}).get('platformResponses'), indent=2))
 
-# 6. Delete published post via API (triggers remote cleanup on LinkedIn)
-req = urllib.request.Request(f'http://localhost:5000/v1/posts/{post_id}/published', headers=auth_hdr, method='DELETE')
+# Delete image post via /published
+req = urllib.request.Request(f'http://localhost:5000/v1/posts/{img_post_id}/published', headers=auth_hdr, method='DELETE')
 with urllib.request.urlopen(req) as resp:
-    print('Delete published status via API (remote LinkedIn delete):', resp.status)
+    print('Delete published image post status (remote LinkedIn clean):', resp.status)
 
-# 7. Delete test brand
+# Delete brand workspace
 del_req = urllib.request.Request(f'http://localhost:5000/v1/brands/{brand_id}', headers=auth_hdr, method='DELETE')
 with urllib.request.urlopen(del_req) as resp:
     print('Deleted test brand workspace:', resp.status)

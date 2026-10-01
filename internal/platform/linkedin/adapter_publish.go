@@ -362,7 +362,7 @@ func (a *PublishAdapter) Publish(ctx context.Context, post *models.Post, handle 
 	// Post first comment if provided
 	var rawComment any
 	if pubResp.ID != "" && strings.TrimSpace(post.FirstComment) != "" {
-		encodedURN := url.PathEscape(pubResp.ID)
+		encodedURN := url.QueryEscape(pubResp.ID)
 		commentURL := fmt.Sprintf("%s/v2/socialActions/%s/comments", LinkedInAPIBase, encodedURN)
 		commentPayload := map[string]any{
 			"actor": authorURN,
@@ -394,7 +394,7 @@ func (a *PublishAdapter) DeletePost(ctx context.Context, accessToken, platformPo
 	}
 
 	token := common.NormalizeToken(accessToken)
-	encodedURN := url.PathEscape(urn)
+	encodedURN := url.QueryEscape(urn)
 	reqURL := fmt.Sprintf("%s/v2/ugcPosts/%s", LinkedInAPIBase, encodedURN)
 
 	headers := map[string]string{
