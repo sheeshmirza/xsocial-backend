@@ -223,16 +223,20 @@ var metricoolMCPTools = []mcpTool{
 
 // handleMCP processes JSON-RPC 2.0 requests conforming to the Model Context Protocol (MCP) exactly like mailhost-backend
 func (s *Server) handleMCP(w http.ResponseWriter, r *http.Request) {
+	// MCP Streamable HTTP is POST-based. This implementation intentionally runs
+	// statelessly: each JSON-RPC exchange is self-contained and returns JSON.
 	if r.Method == http.MethodGet {
-		writeJSON(w, http.StatusOK, map[string]any{
-			"status":  "ok",
-			"service": "metricool-mcp",
-			"version": "1.0.0",
-			"tools":   len(metricoolMCPTools),
-		})
+		w.Header().Set("Allow", "POST")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	if r.Method != http.MethodPost {
+		w.Header().Set("Allow", "POST")
+		w.WriteHeader(http.StatusMethodNotAllowed)
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
 	r.Body = http.MaxBytesReader(w, r.Body, 10<<20)
 	var req mcpRequest
 	dec := json.NewDecoder(r.Body)
@@ -254,16 +258,22 @@ func (s *Server) handleMCP(w http.ResponseWriter, r *http.Request) {
 
 	switch req.Method {
 	case "initialize":
+		requestedVersion := r.Header.Get("MCP-Protocol-Version")
+		protocolVersion := "2025-06-18"
+		if requestedVersion == "2024-11-05" {
+			protocolVersion = requestedVersion
+		}
+		w.Header().Set("MCP-Protocol-Version", protocolVersion)
 		writeJSON(w, http.StatusOK, mcpResponse{
 			JSONRPC: "2.0",
 			ID:      req.ID,
 			Result: map[string]any{
-				"protocolVersion": "2024-11-05",
+				"protocolVersion": protocolVersion,
 				"capabilities": map[string]any{
 					"tools": map[string]any{},
 				},
 				"serverInfo": map[string]any{
-					"name":    "metricool-mcp",
+					"name":    "xsocial-mcp",
 					"version": "1.0.0",
 				},
 			},
