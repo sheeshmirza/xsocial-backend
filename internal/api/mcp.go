@@ -416,6 +416,16 @@ func (s *Server) handleMCP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (s *Server) ensureMCPBrandAccess(ctx context.Context, userID, brandID bson.ObjectID) error {
+	if brandID.IsZero() {
+		return fmt.Errorf("brand_id is required")
+	}
+	if _, err := s.brandService.GetBrand(ctx, brandID, userID); err != nil {
+		return fmt.Errorf("brand access denied: %w", err)
+	}
+	return nil
+}
+
 func (s *Server) executeMCPTool(ctx context.Context, userID bson.ObjectID, name string, args map[string]any) (string, error) {
 	getArg := func(k string) string {
 		if v, ok := args[k].(string); ok {
@@ -445,6 +455,9 @@ func (s *Server) executeMCPTool(ctx context.Context, userID bson.ObjectID, name 
 		if err != nil {
 			return "", fmt.Errorf("invalid brand_id")
 		}
+		if err := s.ensureMCPBrandAccess(ctx, userID, bid); err != nil {
+			return "", err
+		}
 		brand, err := s.brandService.GetBrand(ctx, bid, userID)
 		if err != nil {
 			return "", err
@@ -470,6 +483,9 @@ func (s *Server) executeMCPTool(ctx context.Context, userID bson.ObjectID, name 
 		if err != nil {
 			return "", fmt.Errorf("invalid brand_id")
 		}
+		if err := s.ensureMCPBrandAccess(ctx, userID, bid); err != nil {
+			return "", err
+		}
 		platform := getArg("platform")
 		if strings.EqualFold(platform, "web") {
 			data, err := s.analyticsService.GetWebOverview(ctx, bid, 30)
@@ -491,6 +507,9 @@ func (s *Server) executeMCPTool(ctx context.Context, userID bson.ObjectID, name 
 		if err != nil {
 			return "", fmt.Errorf("invalid brand_id")
 		}
+		if err := s.ensureMCPBrandAccess(ctx, userID, bid); err != nil {
+			return "", err
+		}
 		platform := getArg("platform")
 		data, err := s.bestTimesService.GetBestTimes(ctx, bid, platform)
 		if err != nil {
@@ -503,6 +522,9 @@ func (s *Server) executeMCPTool(ctx context.Context, userID bson.ObjectID, name 
 		bid, err := bson.ObjectIDFromHex(getArg("brand_id"))
 		if err != nil {
 			return "", fmt.Errorf("invalid brand_id")
+		}
+		if err := s.ensureMCPBrandAccess(ctx, userID, bid); err != nil {
+			return "", err
 		}
 		data, err := s.competitorServ.ListCompetitors(ctx, bid)
 		if err != nil {
@@ -524,6 +546,15 @@ func (s *Server) executeMCPTool(ctx context.Context, userID bson.ObjectID, name 
 		return string(b), nil
 
 	case "create_scheduled_post":
+		if bid := getArg("brand_id"); bid != "" {
+			brandOID, err := bson.ObjectIDFromHex(bid)
+			if err != nil {
+				return "", fmt.Errorf("invalid brand_id")
+			}
+			if err := s.ensureMCPBrandAccess(ctx, userID, brandOID); err != nil {
+				return "", err
+			}
+		}
 		platforms := strings.Split(getArg("platforms"), ",")
 		for i := range platforms {
 			platforms[i] = strings.TrimSpace(platforms[i])
@@ -628,6 +659,9 @@ func (s *Server) executeMCPTool(ctx context.Context, userID bson.ObjectID, name 
 		if err != nil {
 			return "", fmt.Errorf("invalid brand_id")
 		}
+		if err := s.ensureMCPBrandAccess(ctx, userID, bid); err != nil {
+			return "", err
+		}
 		convs, total, err := s.inboxService.ListConversations(ctx, bid, userID, getArg("status"), getArg("platform"), 1, 20)
 		if err != nil {
 			return "", err
@@ -645,6 +679,9 @@ func (s *Server) executeMCPTool(ctx context.Context, userID bson.ObjectID, name 
 		if err != nil {
 			return "", fmt.Errorf("invalid brand_id")
 		}
+		if err := s.ensureMCPBrandAccess(ctx, userID, bid); err != nil {
+			return "", err
+		}
 		msg, err := s.inboxService.ReplyToConversation(ctx, cid, bid, userID, "AI Assistant", models.ReplyInboxRequest{
 			MessageText: getArg("reply_text"),
 		})
@@ -659,6 +696,9 @@ func (s *Server) executeMCPTool(ctx context.Context, userID bson.ObjectID, name 
 		if err != nil {
 			return "", fmt.Errorf("invalid brand_id")
 		}
+		if err := s.ensureMCPBrandAccess(ctx, userID, bid); err != nil {
+			return "", err
+		}
 		pages, err := s.smartLinkService.ListPagesByBrand(ctx, bid)
 		if err != nil {
 			return "", err
@@ -668,6 +708,13 @@ func (s *Server) executeMCPTool(ctx context.Context, userID bson.ObjectID, name 
 
 	case "generate_report":
 		bid := getArg("brand_id")
+		brandOID, err := bson.ObjectIDFromHex(bid)
+		if err != nil {
+			return "", fmt.Errorf("invalid brand_id")
+		}
+		if err := s.ensureMCPBrandAccess(ctx, userID, brandOID); err != nil {
+			return "", err
+		}
 		rep, err := s.reportService.GenerateReport(ctx, userID, models.GenerateReportRequest{
 			BrandID: bid,
 			Title:   getArg("title"),
