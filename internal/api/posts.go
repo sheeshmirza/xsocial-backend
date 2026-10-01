@@ -482,3 +482,38 @@ func (s *Server) resharePost(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, resharePost)
 }
 
+func (s *Server) publishPost(w http.ResponseWriter, r *http.Request) {
+	userOID, ok := currentUserOID(r)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return
+	}
+
+	postOID, err := bson.ObjectIDFromHex(r.PathValue("id"))
+	if err != nil {
+		writeError(w, http.StatusBadRequest, "invalid post ID")
+		return
+	}
+
+	var req struct {
+		Platforms  []string `json:"platforms"`
+		AccountIDs []string `json:"accountIds"`
+		Recurrence *string  `json:"recurrence"`
+	}
+	if r.Body != nil && r.ContentLength > 0 {
+		_ = decode(w, r, 0, &req)
+	}
+
+	post, err := s.postService.PublishPost(r.Context(), userOID, postOID, req.Platforms, req.AccountIDs, req.Recurrence)
+	if err != nil {
+		writeApiError(w, err)
+		return
+	}
+
+	s.auditLogService.Log(r.Context(), &userOID, post.BrandID, currentUserID(r), "post.publish", "post", postOID.Hex(), clientIP(r), r.UserAgent())
+	writeJSON(w, http.StatusOK, map[string]any{
+		"success": true,
+		"post":    post,
+	})
+}
+

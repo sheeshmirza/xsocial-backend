@@ -432,13 +432,42 @@ post_car_id = p_car_res.get("id", "") if isinstance(p_car_res, dict) else ""
 p_li_text = {
     "brandId": brand_id,
     "title": "Industry Insights Commentary",
-    "caption": "Scaling a SaaS infrastructure requires relentless focus on reliability, observability, and customer feedback. What principles guide your team's architecture? #saas #leadership #engineering",
+    "caption": f"Scaling a SaaS infrastructure requires relentless focus on reliability and customer feedback [Run {ts}]. What principles guide your team's architecture? #saas #leadership",
     "selectedPlatforms": ["linkedin"],
+    "targetAccountIds": [linkedin_handle_id] if linkedin_handle_id else [],
     "postType": "text",
     "status": "draft"
 }
 _, p_li_text_res = run_curl("POST", "/v1/posts", headers=auth_hdr, data=p_li_text, description="Create Post 5: LinkedIn Pure Text Commentary Post")
 post_li_text_id = p_li_text_res.get("id", "") if isinstance(p_li_text_res, dict) else ""
+
+# 7.5b Post Type: LinkedIn Article / Link Post
+p_li_article = {
+    "brandId": brand_id,
+    "title": "Cloud Architecture Deep Dive",
+    "caption": f"Exploring event-driven architectures and distributed message brokers for enterprise SaaS [Ref {ts}]: https://aws.amazon.com/blogs",
+    "selectedPlatforms": ["linkedin"],
+    "targetAccountIds": [linkedin_handle_id] if linkedin_handle_id else [],
+    "media": [{"type": "link", "url": "https://aws.amazon.com/blogs"}],
+    "postType": "article",
+    "status": "draft"
+}
+_, p_li_art_res = run_curl("POST", "/v1/posts", headers=auth_hdr, data=p_li_article, description="Create Post 5b: LinkedIn Article / Link Post")
+post_li_art_id = p_li_art_res.get("id", "") if isinstance(p_li_art_res, dict) else ""
+
+# 7.5c Post Type: LinkedIn Post with Automated First Comment
+p_li_first_comm = {
+    "brandId": brand_id,
+    "title": "Developer Tooling Showcase",
+    "caption": f"How our team scaled real-time social automation across multiple networks [Build {ts}]. What tools are in your daily developer workflow? #software #devops",
+    "selectedPlatforms": ["linkedin"],
+    "targetAccountIds": [linkedin_handle_id] if linkedin_handle_id else [],
+    "postType": "text",
+    "status": "draft",
+    "firstComment": f"Check out our open architecture docs [Release {ts}] linked below! #opensource"
+}
+_, p_li_fc_res = run_curl("POST", "/v1/posts", headers=auth_hdr, data=p_li_first_comm, description="Create Post 5c: LinkedIn Post with Automated First Comment")
+post_li_fc_id = p_li_fc_res.get("id", "") if isinstance(p_li_fc_res, dict) else ""
 
 # 7.6 Post Type: LinkedIn Multi-Image Carousel Post
 p_li_car = {
@@ -542,6 +571,12 @@ if approval_token:
 
 run_curl("POST", f"/v1/posts/{post_img_id}/reject", headers=auth_hdr, data={"reason": "Internal review requested additional review"}, description="Reject Post (Internal)")
 run_curl("POST", f"/v1/posts/{post_img_id}/approve", headers=auth_hdr, data={"comment": "Approved for scheduled broadcasting"}, description="Approve Post (Internal)")
+
+# 7.11b Live Real Publishing to Connected LinkedIn Account (Text Post)
+run_curl("POST", f"/v1/posts/{post_li_text_id}/publish", headers=auth_hdr, data={}, description="Publish Text Post Live to Connected LinkedIn Account")
+
+# 7.11c Live Real Publishing to Connected LinkedIn Account (Post with Automated First Comment)
+run_curl("POST", f"/v1/posts/{post_li_fc_id}/publish", headers=auth_hdr, data={}, description="Publish Post Live to LinkedIn with Automated First Comment")
 
 # 7.12 Reshare Post across Existing Accounts (User 1 posts from Account 1, reshares content to Account 2)
 target_accounts = [instagram_handle_id] if instagram_handle_id else ([linkedin_handle_id] if linkedin_handle_id else [])
@@ -836,9 +871,18 @@ if reshare_id:
 if post_sched_id:
     run_curl("DELETE", f"/v1/posts/{post_sched_id}/scheduled", headers=auth_hdr, description="Delete Scheduled Post via /scheduled Endpoint")
 
-# Delete Published post specifically via /published endpoint
+# Delete Published posts specifically via /published endpoint (triggers remote LinkedIn deletion)
 if post_pub_id:
     run_curl("DELETE", f"/v1/posts/{post_pub_id}/published", headers=auth_hdr, description="Delete Published Post via /published Endpoint")
+
+if post_li_text_id:
+    run_curl("DELETE", f"/v1/posts/{post_li_text_id}/published", headers=auth_hdr, description="Delete Published LinkedIn Text Post (Remotely Cleans LinkedIn Feed)")
+
+if post_li_fc_id:
+    run_curl("DELETE", f"/v1/posts/{post_li_fc_id}/published", headers=auth_hdr, description="Delete Published LinkedIn First Comment Post (Remotely Cleans LinkedIn Feed)")
+
+if post_li_art_id:
+    run_curl("DELETE", f"/v1/posts/{post_li_art_id}", headers=auth_hdr, description="Delete LinkedIn Article Post by ID")
 
 # Delete dedicated posts via bulk endpoints
 bulk_sched_targets = [post_sched_bulk_id] if post_sched_bulk_id else [post_car_id]
