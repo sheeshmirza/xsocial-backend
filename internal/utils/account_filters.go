@@ -7,7 +7,6 @@ import (
 func NormalizeAccountIDs(raw []string) []string {
 	seen := make(map[string]struct{})
 	result := make([]string, 0, len(raw))
-
 	for _, item := range raw {
 		parts := strings.Split(item, ",")
 		for _, part := range parts {

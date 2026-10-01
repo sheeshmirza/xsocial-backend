@@ -15,7 +15,6 @@ func ParsePagination(pageStr, limitStr string) (page, limit, skip int) {
 	if p, err := strconv.Atoi(pageStr); err == nil && p >= 1 {
 		page = p
 	}
-
 	limit = 10
 	if l, err := strconv.Atoi(limitStr); err == nil && l >= 1 {
 		if l > 100 {
@@ -24,7 +23,6 @@ func ParsePagination(pageStr, limitStr string) (page, limit, skip int) {
 			limit = l
 		}
 	}
-
 	skip = (page - 1) * limit
 	return page, limit, skip
 }

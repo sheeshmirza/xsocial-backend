@@ -58,4 +58,3 @@ func Slugify(s string) string {
 	}
 	return res
 }
-
