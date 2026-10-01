@@ -49,6 +49,13 @@ func (r *RedisClient) Set(ctx context.Context, key string, value any, expiration
 	return r.Client.Set(ctx, key, value, expiration).Err()
 }
 
+func (r *RedisClient) SetNX(ctx context.Context, key string, value any, expiration time.Duration) (bool, error) {
+	if r == nil || r.Client == nil {
+		return false, nil
+	}
+	return r.Client.SetNX(ctx, key, value, expiration).Result()
+}
+
 func (r *RedisClient) Del(ctx context.Context, keys ...string) error {
 	if r == nil || r.Client == nil {
 		return nil
