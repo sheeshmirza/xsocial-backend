@@ -235,9 +235,17 @@ func (s *Server) Handler() http.Handler {
 
 	// Authenticated routes (Wrapped with s.authed)
 	routes := map[string]http.HandlerFunc{
-		// Model Context Protocol (MCP) Server JSON-RPC 2.0 endpoint
+		// Model Context Protocol (MCP) Server JSON-RPC 2.0 endpoint.
+		// Authentication is enforced inside handleMCP so OAuth discovery and the
+		// initial tools/list exchange remain reachable before the user links xSocial.
 		"POST /mcp": s.handleMCP,
 		"GET /mcp":  s.handleMCP,
+
+		// MCP OAuth 2.1 discovery and authorization endpoints.
+		"GET /.well-known/oauth-protected-resource": s.mcpProtectedResourceMetadata,
+		"GET /.well-known/oauth-authorization-server": s.mcpAuthorizationServerMetadata,
+		"GET /oauth/authorize": s.mcpAuthorize,
+		"POST /oauth/token": s.mcpToken,
 
 		// Auth & User Management
 		"GET /v1/users/me":              s.getCurrentUser,
@@ -348,6 +356,14 @@ func (s *Server) Handler() http.Handler {
 	}
 
 	for pattern, h := range routes {
+		if pattern == "POST /mcp" || pattern == "GET /mcp" ||
+			pattern == "GET /.well-known/oauth-protected-resource" ||
+			pattern == "GET /.well-known/oauth-authorization-server" ||
+			pattern == "GET /oauth/authorize" ||
+			pattern == "POST /oauth/token" {
+			mux.Handle(pattern, h)
+			continue
+		}
 		mux.Handle(pattern, s.authed(h))
 		if strings.Contains(pattern, " /v1/") {
 			aliasPattern := strings.Replace(pattern, " /v1/", " /", 1)
