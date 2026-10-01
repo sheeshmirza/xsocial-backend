@@ -148,9 +148,29 @@ else:
     static_user_id = str(static_user["_id"])
     db.users.update_one({"_id": static_user["_id"]}, {"$set": {"isVerified": True}})
 
-# Ensure connected LinkedIn handle is linked to static user
+# Ensure connected LinkedIn (Account 1) and Instagram (Account 2) handles are linked to static user
 linkedin_handle = db.socialhandles.find_one({"userId": ObjectId(static_user_id), "platform": "LINKEDIN"})
 linkedin_handle_id = str(linkedin_handle["_id"]) if linkedin_handle else ""
+
+instagram_handle = db.socialhandles.find_one({"userId": ObjectId(static_user_id), "platform": "INSTAGRAM"})
+if not instagram_handle:
+    ig_inserted = db.socialhandles.insert_one({
+        "userId": ObjectId(static_user_id),
+        "platform": "INSTAGRAM",
+        "platformId": "17841400012345678",
+        "platformUsername": "xsocial_official",
+        "platformDisplayName": "XSocial Official Brand",
+        "platformAccessToken": "EAABsample_token_instagram_connected_handle",
+        "platformAccessTokenExpiry": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=60),
+        "platformRefreshToken": "EAABsample_refresh_token",
+        "platformRefreshTokenExpiry": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=60),
+        "platformMetadata": {"accountType": "BUSINESS", "username": "xsocial_official"},
+        "createdAt": datetime.datetime.now(datetime.timezone.utc),
+        "updatedAt": datetime.datetime.now(datetime.timezone.utc)
+    })
+    instagram_handle_id = str(ig_inserted.inserted_id)
+else:
+    instagram_handle_id = str(instagram_handle["_id"])
 
 # ==============================================================================
 # 1. Health Checks
@@ -244,9 +264,11 @@ brand_id = ""
 if isinstance(brand_res, dict):
     brand_id = brand_res.get("id", "")
 
-# Link the connected LinkedIn handle to this brand
+# Link the connected handles (LinkedIn & Instagram) to this brand
 if linkedin_handle_id and brand_id:
     db.socialhandles.update_one({"_id": ObjectId(linkedin_handle_id)}, {"$set": {"brandId": ObjectId(brand_id)}})
+if instagram_handle_id and brand_id:
+    db.socialhandles.update_one({"_id": ObjectId(instagram_handle_id)}, {"$set": {"brandId": ObjectId(brand_id)}})
 
 run_curl("GET", "/v1/brands", headers=auth_hdr, description="List All Brands for Static User")
 run_curl("GET", f"/v1/brands/{brand_id}", headers=auth_hdr, description="Get Brand Workspace Details")
@@ -340,13 +362,14 @@ if linkedin_handle_id:
 # ==============================================================================
 log_section("7. ALL POST TYPES, COMMENTS, APPROVALS & RESHARING")
 
-# 7.1 Post Type: Single Feed Image Post with First Comment
+# 7.1 Post Type: Single Feed Image Post with First Comment (Targeting Account 1: LinkedIn)
 p_image = {
     "brandId": brand_id,
     "title": "Product Feature Highlight",
     "caption": "Exploring our latest AI automation features! #ai #workflow #growth",
     "hashtags": ["ai", "workflow", "growth"],
-    "selectedPlatforms": ["instagram", "linkedin"],
+    "selectedPlatforms": ["linkedin"],
+    "targetAccountIds": [linkedin_handle_id] if linkedin_handle_id else [],
     "media": [{"type": "image", "url": media_url if media_url else "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"}],
     "postType": "image",
     "visibility": "public",
@@ -357,12 +380,13 @@ p_image = {
 _, p_img_res = run_curl("POST", "/v1/posts", headers=auth_hdr, data=p_image, description="Create Post 1: Image Feed Post with First Comment")
 post_img_id = p_img_res.get("id", "") if isinstance(p_img_res, dict) else ""
 
-# 7.2 Post Type: Instagram Reel with Trial Settings
+# 7.2 Post Type: Instagram Reel with Trial Settings (Targeting Account 2: Instagram)
 p_reel = {
     "brandId": brand_id,
     "title": "Behind the Scenes Reel",
     "caption": "A quick look behind the scenes of our engineering sprint! #dev #coding #tech",
     "selectedPlatforms": ["instagram"],
+    "targetAccountIds": [instagram_handle_id] if instagram_handle_id else [],
     "media": [{"type": "video", "url": "https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4"}],
     "postType": "reel",
     "status": "draft",
@@ -438,7 +462,7 @@ p_scheduled = {
     "brandId": brand_id,
     "title": "Scheduled Milestone Announcement",
     "caption": "Mark your calendars! Big announcement coming this Friday at 10 AM EST.",
-    "selectedPlatforms": ["linkedin", "instagram"],
+    "selectedPlatforms": ["linkedin"],
     "postType": "text",
     "status": "scheduled",
     "scheduledTime": future_time
@@ -459,6 +483,31 @@ p_published = {
 }
 _, p_pub_res = run_curl("POST", "/v1/posts", headers=auth_hdr, data=p_published, description="Create Post 8: Published Post")
 post_pub_id = p_pub_res.get("id", "") if isinstance(p_pub_res, dict) else ""
+
+# 7.8b Post Types for Bulk Lifecycle Testing
+p_sched_bulk = {
+    "brandId": brand_id,
+    "title": "Bulk Scheduled Post",
+    "caption": "Scheduled post for bulk schedule lifecycle operations.",
+    "selectedPlatforms": ["linkedin"],
+    "postType": "text",
+    "status": "scheduled",
+    "scheduledTime": future_time
+}
+_, p_sched_bulk_res = run_curl("POST", "/v1/posts", headers=auth_hdr, data=p_sched_bulk, description="Create Post 9: Bulk Scheduled Post")
+post_sched_bulk_id = p_sched_bulk_res.get("id", "") if isinstance(p_sched_bulk_res, dict) else ""
+
+p_pub_bulk = {
+    "brandId": brand_id,
+    "title": "Bulk Published Post",
+    "caption": "Published post for bulk published lifecycle operations.",
+    "selectedPlatforms": ["linkedin"],
+    "postType": "text",
+    "status": "published",
+    "publishedTime": past_time
+}
+_, p_pub_bulk_res = run_curl("POST", "/v1/posts", headers=auth_hdr, data=p_pub_bulk, description="Create Post 10: Bulk Published Post")
+post_pub_bulk_id = p_pub_bulk_res.get("id", "") if isinstance(p_pub_bulk_res, dict) else ""
 
 # 7.9 Read & List Posts
 run_curl("GET", "/v1/posts", headers=auth_hdr, query=f"brandId={brand_id}&limit=20", description="List All Posts for Brand")
@@ -494,15 +543,16 @@ if approval_token:
 run_curl("POST", f"/v1/posts/{post_img_id}/reject", headers=auth_hdr, data={"reason": "Internal review requested additional review"}, description="Reject Post (Internal)")
 run_curl("POST", f"/v1/posts/{post_img_id}/approve", headers=auth_hdr, data={"comment": "Approved for scheduled broadcasting"}, description="Approve Post (Internal)")
 
-# 7.12 Reshare Post to Connected LinkedIn Account
-target_accounts = [linkedin_handle_id] if linkedin_handle_id else []
+# 7.12 Reshare Post across Existing Accounts (User 1 posts from Account 1, reshares content to Account 2)
+target_accounts = [instagram_handle_id] if instagram_handle_id else ([linkedin_handle_id] if linkedin_handle_id else [])
+target_platforms = ["instagram"] if instagram_handle_id else ["linkedin"]
 reshare_payload = {
-    "targetPlatforms": ["linkedin"],
+    "targetPlatforms": target_platforms,
     "targetAccountIds": target_accounts,
-    "newCaption": "Resharing our core landmark release with our professional network!",
+    "newCaption": "Resharing our core landmark release from Account 1 (LinkedIn) to Account 2 (Instagram)!",
     "publishImmediately": False
 }
-_, reshare_res = run_curl("POST", f"/v1/posts/{post_img_id}/reshare", headers=auth_hdr, data=reshare_payload, description="Reshare Post to Connected LinkedIn Account")
+_, reshare_res = run_curl("POST", f"/v1/posts/{post_img_id}/reshare", headers=auth_hdr, data=reshare_payload, description="Reshare Post across Existing Accounts (Account 1 -> Account 2)")
 reshare_id = reshare_res.get("id", "") if isinstance(reshare_res, dict) else ""
 
 # 7.13 Bulk Recurring Controls
@@ -790,9 +840,11 @@ if post_sched_id:
 if post_pub_id:
     run_curl("DELETE", f"/v1/posts/{post_pub_id}/published", headers=auth_hdr, description="Delete Published Post via /published Endpoint")
 
-# Delete Carousel posts via bulk endpoints
-run_curl("DELETE", "/v1/posts/bulk/scheduled", headers=auth_hdr, data={"ids": [post_car_id]}, description="Bulk Delete Scheduled Posts")
-run_curl("DELETE", "/v1/posts/bulk/published", headers=auth_hdr, data={"ids": [post_li_car_id]}, description="Bulk Delete Published Posts")
+# Delete dedicated posts via bulk endpoints
+bulk_sched_targets = [post_sched_bulk_id] if post_sched_bulk_id else [post_car_id]
+bulk_pub_targets = [post_pub_bulk_id] if post_pub_bulk_id else [post_li_car_id]
+run_curl("DELETE", "/v1/posts/bulk/scheduled", headers=auth_hdr, data={"ids": bulk_sched_targets}, description="Bulk Delete Scheduled Posts")
+run_curl("DELETE", "/v1/posts/bulk/published", headers=auth_hdr, data={"ids": bulk_pub_targets}, description="Bulk Delete Published Posts")
 run_curl("DELETE", "/v1/posts/bulk", headers=auth_hdr, data={"ids": [post_reel_id, post_story_id]}, description="Bulk Delete Posts")
 
 # Delete Image post specifically via single delete endpoint
