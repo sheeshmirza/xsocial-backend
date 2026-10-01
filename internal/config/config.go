@@ -36,8 +36,9 @@ type Config struct {
 	AIWrapperTimeoutMS  time.Duration
 	Instagram           OAuthPlatformConfig
 	LinkedIn            OAuthPlatformConfig
-	MCPOAuthIssuer      string
-	MCPOAuthResource    string
+	MCPOAuthIssuer         string
+	MCPOAuthResource       string
+	MCPOAuthSigningSecret  string
 }
 
 func cleanEnvValue(value string) string {
@@ -126,6 +127,11 @@ func LoadConfig() *Config {
 		linkedInVersion = "202607"
 	}
 
+	mcpOAuthSigningSecret := cleanEnvValue(os.Getenv("MCP_OAUTH_SIGNING_SECRET"))
+	if mcpOAuthSigningSecret == "" {
+		mcpOAuthSigningSecret = cleanEnvValue(os.Getenv("JWT_ACCESS_SECRET"))
+	}
+
 	return &Config{
 		Port:                port,
 		ApiPrefix:           apiPrefix,
@@ -155,7 +161,8 @@ func LoadConfig() *Config {
 			Version:      linkedInVersion,
 			Scopes:       cleanEnvValue(os.Getenv("LINKEDIN_SCOPES")),
 		},
-		MCPOAuthIssuer:   strings.TrimRight(cleanEnvValue(os.Getenv("MCP_OAUTH_ISSUER")), "/"),
-		MCPOAuthResource: strings.TrimRight(cleanEnvValue(os.Getenv("MCP_OAUTH_RESOURCE")), "/"),
+		MCPOAuthIssuer:        strings.TrimRight(cleanEnvValue(os.Getenv("MCP_OAUTH_ISSUER")), "/"),
+		MCPOAuthResource:      strings.TrimRight(cleanEnvValue(os.Getenv("MCP_OAUTH_RESOURCE")), "/"),
+		MCPOAuthSigningSecret: mcpOAuthSigningSecret,
 	}
 }
