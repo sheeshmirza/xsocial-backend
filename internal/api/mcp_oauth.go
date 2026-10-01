@@ -169,7 +169,7 @@ func (s *Server) authenticateMCPUserToken(r *http.Request) (bson.ObjectID, bool)
 		return bson.NilObjectID, false
 	}
 	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
+	if !ok || claims["mcp"] == true || claims["mcp_refresh"] == true {
 		return bson.NilObjectID, false
 	}
 	sub, _ := claims["sub"].(string)
