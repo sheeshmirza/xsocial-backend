@@ -35,7 +35,7 @@ jobs:
         run: |
           body="$(curl -fsS https://xs-be-sa1e.onrender.com/.well-known/oauth-protected-resource)"
           echo "$body"
-          echo "$body" | jq -e '.resource == "https://xs-be-sa1e.onrender.com/mcp"'
+          echo "$body" | jq -e '.resource == "https://xs-be-sa1e.onrender.com"'
           echo "$body" | jq -e '.scopes_supported | index("xsocial") != null'
 
       - name: Authorization server metadata
@@ -101,7 +101,7 @@ jobs:
 
       - name: Invalid authorization code is rejected
         run: |
-          status="$(curl -sS -o invalid-token.json -w '%{http_code}'             -X POST             -H 'Content-Type: application/x-www-form-urlencoded'             https://xs-be-sa1e.onrender.com/oauth/token             --data-urlencode 'grant_type=authorization_code'             --data-urlencode 'code=invalid'             --data-urlencode 'redirect_uri=https://chatgpt.com/connector_platform_oauth_redirect'             --data-urlencode 'client_id=https://chatgpt.com/oauth/client.json'             --data-urlencode 'code_verifier=invalid'             --data-urlencode 'resource=https://xs-be-sa1e.onrender.com/mcp')"
+          status="$(curl -sS -o invalid-token.json -w '%{http_code}'             -X POST             -H 'Content-Type: application/x-www-form-urlencoded'             https://xs-be-sa1e.onrender.com/oauth/token             --data-urlencode 'grant_type=authorization_code'             --data-urlencode 'code=invalid'             --data-urlencode 'redirect_uri=https://chatgpt.com/connector_platform_oauth_redirect'             --data-urlencode 'client_id=https://chatgpt.com/oauth/client.json'             --data-urlencode 'code_verifier=invalid'             --data-urlencode 'resource=https://xs-be-sa1e.onrender.com')"
 
           test "$status" -eq 400
           jq -e '.error == "invalid_grant"' invalid-token.json
