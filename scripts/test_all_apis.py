@@ -149,8 +149,12 @@ else:
     db.users.update_one({"_id": static_user["_id"]}, {"$set": {"password": pw_hash, "isVerified": True}})
 
 # Ensure connected LinkedIn (Account 1) and Instagram (Account 2) handles are linked to static user
-linkedin_handle = db.socialhandles.find_one({"userId": ObjectId(static_user_id), "platform": "LINKEDIN"})
-linkedin_handle_id = str(linkedin_handle["_id"]) if linkedin_handle else ""
+linkedin_handle = db.socialhandles.find_one({"platform": "LINKEDIN"})
+if linkedin_handle:
+    db.socialhandles.update_one({"_id": linkedin_handle["_id"]}, {"$set": {"userId": ObjectId(static_user_id)}})
+    linkedin_handle_id = str(linkedin_handle["_id"])
+else:
+    linkedin_handle_id = ""
 
 instagram_handle = db.socialhandles.find_one({"userId": ObjectId(static_user_id), "platform": "INSTAGRAM"})
 if not instagram_handle:
