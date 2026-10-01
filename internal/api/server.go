@@ -52,7 +52,6 @@ type Server struct {
 	smartLinkRepo  *repository.SmartLinkRepository
 	autolistRepo   *repository.AutolistRepository
 	competitorRepo *repository.CompetitorRepository
-	adCampaignRepo *repository.AdCampaignRepository
 	analyticsRepo  *repository.AnalyticsRepository
 	reportRepo     *repository.ReportRepository
 	webhookRepo    *repository.WebhookRepository
@@ -75,7 +74,6 @@ type Server struct {
 	autolistService  *service.AutolistService
 	bestTimesService *service.BestTimesService
 	competitorServ   *service.CompetitorService
-	adService        *service.AdCampaignService
 	analyticsService *service.AnalyticsService
 	reportService    *service.ReportService
 	webhookService   *service.WebhookService
@@ -112,7 +110,6 @@ func New(
 	smartLinkRepo *repository.SmartLinkRepository,
 	autolistRepo *repository.AutolistRepository,
 	competitorRepo *repository.CompetitorRepository,
-	adCampaignRepo *repository.AdCampaignRepository,
 	analyticsRepo *repository.AnalyticsRepository,
 	reportRepo *repository.ReportRepository,
 	webhookRepo *repository.WebhookRepository,
@@ -133,7 +130,6 @@ func New(
 	autolistService *service.AutolistService,
 	bestTimesService *service.BestTimesService,
 	competitorServ *service.CompetitorService,
-	adService *service.AdCampaignService,
 	analyticsService *service.AnalyticsService,
 	reportService *service.ReportService,
 	webhookService *service.WebhookService,
@@ -159,7 +155,6 @@ func New(
 		smartLinkRepo:    smartLinkRepo,
 		autolistRepo:     autolistRepo,
 		competitorRepo:   competitorRepo,
-		adCampaignRepo:   adCampaignRepo,
 		analyticsRepo:    analyticsRepo,
 		reportRepo:       reportRepo,
 		webhookRepo:      webhookRepo,
@@ -180,7 +175,6 @@ func New(
 		autolistService:  autolistService,
 		bestTimesService: bestTimesService,
 		competitorServ:   competitorServ,
-		adService:        adService,
 		analyticsService: analyticsService,
 		reportService:    reportService,
 		webhookService:   webhookService,
@@ -218,7 +212,7 @@ func (s *Server) Handler() http.Handler {
 		"POST /v1/tracker/event":    s.publicTrackerEvent,
 
 		// Public Post Review & Approval (External Client Review)
-		"GET /v1/posts/review/{token}":        s.publicReview,
+		"GET /v1/posts/review/{token}":         s.publicReview,
 		"POST /v1/posts/review/{token}/action": s.publicReviewAction,
 
 		// Public Media Access
@@ -243,12 +237,12 @@ func (s *Server) Handler() http.Handler {
 		"GET /mcp":  s.handleMCP,
 
 		// Auth & User Management
-		"POST /v1/auth/logout":         s.logoutUser,
-		"GET /v1/users/me":             s.getCurrentUser,
-		"PUT /v1/users/me":             s.updateCurrentUser,
-		"PATCH /v1/users/me":           s.updateCurrentUser,
+		"POST /v1/auth/logout":          s.logoutUser,
+		"GET /v1/users/me":              s.getCurrentUser,
+		"PUT /v1/users/me":              s.updateCurrentUser,
+		"PATCH /v1/users/me":            s.updateCurrentUser,
 		"PUT /v1/users/change-password": s.changePassword,
-		"DELETE /v1/users/me":          s.deleteCurrentUser,
+		"DELETE /v1/users/me":           s.deleteCurrentUser,
 
 		// API Keys
 		"POST /v1/api-keys":        s.createAPIKey,
@@ -256,74 +250,74 @@ func (s *Server) Handler() http.Handler {
 		"DELETE /v1/api-keys/{id}": s.deleteAPIKey,
 
 		// Brands & Workspaces (RBAC)
-		"POST /v1/brands":             s.createBrand,
-		"GET /v1/brands":              s.listBrands,
-		"GET /v1/brands/{id}":         s.getBrand,
-		"PUT /v1/brands/{id}":         s.updateBrand,
-		"PATCH /v1/brands/{id}":       s.updateBrand,
-		"DELETE /v1/brands/{id}":      s.deleteBrand,
-		"POST /v1/brands/{id}/members": s.addBrandMember,
-		"GET /v1/brands/{id}/members":  s.listBrandMembers,
+		"POST /v1/brands":                         s.createBrand,
+		"GET /v1/brands":                          s.listBrands,
+		"GET /v1/brands/{id}":                     s.getBrand,
+		"PUT /v1/brands/{id}":                     s.updateBrand,
+		"PATCH /v1/brands/{id}":                   s.updateBrand,
+		"DELETE /v1/brands/{id}":                  s.deleteBrand,
+		"POST /v1/brands/{id}/members":            s.addBrandMember,
+		"GET /v1/brands/{id}/members":             s.listBrandMembers,
 		"DELETE /v1/brands/{id}/members/{userId}": s.removeBrandMember,
 
 		// Media Uploads
 		"POST /v1/uploads/media": s.uploadMedia,
 
 		// Social Handles & OAuth
-		"GET /v1/social/accounts":           s.listSocialAccounts,
+		"GET /v1/social/accounts":            s.listSocialAccounts,
 		"POST /v1/social/connect/{platform}": s.connectSocialPlatform,
 		"GET /v1/social/connect/{platform}":  s.connectSocialPlatform,
-		"POST /v1/social/refresh-token":     s.refreshSocialToken,
-		"DELETE /v1/social/{id}":            s.disconnectSocialAccount,
+		"POST /v1/social/refresh-token":      s.refreshSocialToken,
+		"DELETE /v1/social/{id}":             s.disconnectSocialAccount,
 
 		// Posts & Planner
-		"POST /v1/posts":                         s.createPost,
-		"GET /v1/posts":                          s.listPosts,
-		"GET /v1/posts/{id}":                     s.getPost,
-		"PUT /v1/posts/{id}":                     s.updatePost,
-		"PATCH /v1/posts/{id}":                   s.updatePost,
-		"DELETE /v1/posts/{id}":                  s.deletePost,
-		"DELETE /v1/posts/{id}/scheduled":        s.deleteScheduledPost,
-		"DELETE /v1/posts/{id}/published":        s.deletePublishedPost,
-		"DELETE /v1/posts/bulk":                  s.bulkDeletePosts,
-		"DELETE /v1/posts/bulk/scheduled":        s.bulkDeleteScheduledPosts,
-		"DELETE /v1/posts/bulk/published":        s.bulkDeletePublishedPosts,
-		"POST /v1/posts/bulk/pause-recurrence":   s.bulkPauseRecurringPosts,
-		"POST /v1/posts/bulk/resume-recurrence":  s.bulkResumeRecurringPosts,
-		"POST /v1/posts/{id}/submit-approval":    s.submitPostForApproval,
-		"POST /v1/posts/{id}/approve":            s.approvePost,
-		"POST /v1/posts/{id}/reject":             s.rejectPost,
-		"POST /v1/posts/{id}/reshare":            s.resharePost,
-		"POST /v1/posts/{id}/publish":            s.publishPost,
+		"POST /v1/posts":                        s.createPost,
+		"GET /v1/posts":                         s.listPosts,
+		"GET /v1/posts/{id}":                    s.getPost,
+		"PUT /v1/posts/{id}":                    s.updatePost,
+		"PATCH /v1/posts/{id}":                  s.updatePost,
+		"DELETE /v1/posts/{id}":                 s.deletePost,
+		"DELETE /v1/posts/{id}/scheduled":       s.deleteScheduledPost,
+		"DELETE /v1/posts/{id}/published":       s.deletePublishedPost,
+		"DELETE /v1/posts/bulk":                 s.bulkDeletePosts,
+		"DELETE /v1/posts/bulk/scheduled":       s.bulkDeleteScheduledPosts,
+		"DELETE /v1/posts/bulk/published":       s.bulkDeletePublishedPosts,
+		"POST /v1/posts/bulk/pause-recurrence":  s.bulkPauseRecurringPosts,
+		"POST /v1/posts/bulk/resume-recurrence": s.bulkResumeRecurringPosts,
+		"POST /v1/posts/{id}/submit-approval":   s.submitPostForApproval,
+		"POST /v1/posts/{id}/approve":           s.approvePost,
+		"POST /v1/posts/{id}/reject":            s.rejectPost,
+		"POST /v1/posts/{id}/reshare":           s.resharePost,
+		"POST /v1/posts/{id}/publish":           s.publishPost,
 
 		// Best Times to Post Heatmaps
 		"GET /v1/planner/best-times": s.getBestTimes,
 
 		// Unified Inbox & Community Management
-		"GET /v1/inbox":                     s.listInboxConversations,
-		"GET /v1/inbox/{id}":                s.getInboxConversation,
-		"POST /v1/inbox/{id}/reply":         s.replyInboxMessage,
-		"PATCH /v1/inbox/{id}/status":       s.updateInboxStatus,
-		"GET /v1/inbox/canned-replies":      s.listCannedReplies,
-		"POST /v1/inbox/canned-replies":     s.createCannedReply,
+		"GET /v1/inbox":                        s.listInboxConversations,
+		"GET /v1/inbox/{id}":                   s.getInboxConversation,
+		"POST /v1/inbox/{id}/reply":            s.replyInboxMessage,
+		"PATCH /v1/inbox/{id}/status":          s.updateInboxStatus,
+		"GET /v1/inbox/canned-replies":         s.listCannedReplies,
+		"POST /v1/inbox/canned-replies":        s.createCannedReply,
 		"DELETE /v1/inbox/canned-replies/{id}": s.deleteCannedReply,
 
 		// SmartLinks (Link-in-Bio)
-		"POST /v1/smartlinks":              s.createSmartLink,
-		"GET /v1/smartlinks":               s.listSmartLinks,
-		"PUT /v1/smartlinks/{id}":          s.updateSmartLink,
-		"PATCH /v1/smartlinks/{id}":        s.updateSmartLink,
-		"DELETE /v1/smartlinks/{id}":       s.deleteSmartLink,
+		"POST /v1/smartlinks":               s.createSmartLink,
+		"GET /v1/smartlinks":                s.listSmartLinks,
+		"PUT /v1/smartlinks/{id}":           s.updateSmartLink,
+		"PATCH /v1/smartlinks/{id}":         s.updateSmartLink,
+		"DELETE /v1/smartlinks/{id}":        s.deleteSmartLink,
 		"GET /v1/smartlinks/{id}/analytics": s.getSmartLinkAnalytics,
 
 		// Autolists & RSS Feeds (Evergreen content queues)
-		"POST /v1/autolists":             s.createAutolist,
-		"GET /v1/autolists":              s.listAutolists,
-		"POST /v1/autolists/{id}/posts":  s.addAutolistPost,
-		"DELETE /v1/autolists/{id}":      s.deleteAutolist,
-		"POST /v1/rss-feeds":             s.createRSSFeed,
-		"GET /v1/rss-feeds":              s.listRSSFeeds,
-		"DELETE /v1/rss-feeds/{id}":      s.deleteRSSFeed,
+		"POST /v1/autolists":            s.createAutolist,
+		"GET /v1/autolists":             s.listAutolists,
+		"POST /v1/autolists/{id}/posts": s.addAutolistPost,
+		"DELETE /v1/autolists/{id}":     s.deleteAutolist,
+		"POST /v1/rss-feeds":            s.createRSSFeed,
+		"GET /v1/rss-feeds":             s.listRSSFeeds,
+		"DELETE /v1/rss-feeds/{id}":     s.deleteRSSFeed,
 
 		// Competitors
 		"POST /v1/competitors":                s.addCompetitor,
@@ -331,15 +325,6 @@ func (s *Server) Handler() http.Handler {
 		"DELETE /v1/competitors/{id}":         s.deleteCompetitor,
 		"POST /v1/competitors/{id}/sync":      s.syncCompetitor,
 		"POST /v1/competitors/{id}/snapshots": s.recordCompetitorSnapshot,
-
-		// Ad Campaigns (Google, Meta, TikTok)
-		"GET /v1/ads/campaigns":        s.listAdCampaigns,
-		"POST /v1/ads/campaigns":       s.createAdCampaign,
-		"PUT /v1/ads/campaigns/{id}":   s.updateAdCampaign,
-		"PATCH /v1/ads/campaigns/{id}": s.updateAdCampaign,
-		"DELETE /v1/ads/campaigns/{id}": s.deleteAdCampaign,
-		"GET /v1/ads/summary":          s.getAdSummary,
-		"POST /v1/ads/sync":            s.syncAdCampaigns,
 
 		// Analytics
 		"GET /v1/analytics/web":             s.getWebAnalytics,

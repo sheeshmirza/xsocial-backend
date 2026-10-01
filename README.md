@@ -56,11 +56,7 @@ Built with clean architecture patterns referencing the battle-tested design of `
 - Benchmark competitors across Instagram, Facebook, YouTube, Twitch, and Twitter/X.
 - Track follower growth, post frequency, and engagement rates over time with historical snapshots.
 
-### 7. Paid Ad Campaigns Tracker
-- Unified ad dashboard across **Google Ads**, **Meta (Facebook/Instagram) Ads**, and **TikTok Ads**.
-- Aggregate and campaign-level metrics: Budget, Spend, Impressions, Clicks, Conversions, CTR, CPC, CPM, and ROAS.
-
-### 8. Web & Social Analytics
+### 7. Web & Social Analytics
 - **Web Analytics**:
   - 1x1 GIF tracking pixel (`GET /tracker/pixel.png`) and JavaScript beacon (`POST /tracker/event`) for tracking website traffic.
   - Metrics: Pageviews, unique visitors, referrers, countries, and devices.
@@ -93,7 +89,6 @@ Authorization: Bearer mc_live_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 - `planner:write`: Create, edit, and schedule posts.
 - `inbox:manage`: Read and reply to inbox conversations.
 - `smartlinks:manage`: Manage link-in-bio landing pages.
-- `ads:read`: Access paid advertising metrics.
 - `reports:read`: Generate and download reports.
 
 ### API Key Endpoints
@@ -132,7 +127,6 @@ Connect AI clients (such as Claude Desktop, Cursor, typingmind, Antigravity) by 
 | `list_inbox_messages` | Fetch unified inbox conversation threads (DMs, comments, reviews). |
 | `reply_inbox_message` | Send a reply to an inbox conversation. |
 | `get_smartlinks` | Retrieve SmartLink (link-in-bio) pages and analytics. |
-| `get_ad_campaigns` | Query Google Ads, Meta Ads, and TikTok Ads metrics. |
 | `generate_report` | Generate a performance report (PDF, CSV, or JSON). |
 
 ---

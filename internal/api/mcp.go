@@ -207,18 +207,6 @@ var metricoolMCPTools = []mcpTool{
 		},
 	},
 	{
-		Name:        "get_ad_campaigns",
-		Description: "Query paid ad campaign performance across Google Ads, Meta Ads, and TikTok Ads (spend, impressions, clicks, CPC, ROAS).",
-		InputSchema: inputSchema{
-			Type: "object",
-			Properties: map[string]schemaProp{
-				"brand_id": {Type: "string", Description: "The brand ID."},
-				"platform": {Type: "string", Description: "Optional ad platform: 'meta', 'google', or 'tiktok'."},
-			},
-			Required: []string{"brand_id"},
-		},
-	},
-	{
 		Name:        "generate_report",
 		Description: "Generate a custom performance report for a brand in PDF, CSV, or JSON format.",
 		InputSchema: inputSchema{
@@ -583,20 +571,6 @@ func (s *Server) executeMCPTool(ctx context.Context, userID bson.ObjectID, name 
 			return "", err
 		}
 		b, _ := json.MarshalIndent(pages, "", "  ")
-		return string(b), nil
-
-	case "get_ad_campaigns":
-		bid, err := bson.ObjectIDFromHex(getArg("brand_id"))
-		if err != nil {
-			return "", fmt.Errorf("invalid brand_id")
-		}
-		camps, err := s.adService.ListCampaigns(ctx, bid, getArg("platform"))
-		if err != nil {
-			return "", err
-		}
-		summary, _ := s.adService.GetSummary(ctx, bid)
-		resp := map[string]any{"campaigns": camps, "summary": summary}
-		b, _ := json.MarshalIndent(resp, "", "  ")
 		return string(b), nil
 
 	case "generate_report":

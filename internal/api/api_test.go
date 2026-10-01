@@ -141,7 +141,6 @@ func TestUnauthorizedProtectedEndpoints(t *testing.T) {
 	}{
 		{http.MethodGet, "/v1/posts"},
 		{http.MethodGet, "/v1/brands"},
-		{http.MethodGet, "/v1/ads/campaigns"},
 		{http.MethodGet, "/v1/competitors"},
 		{http.MethodGet, "/v1/inbox"},
 		{http.MethodGet, "/v1/smartlinks"},
@@ -159,4 +158,3 @@ func TestUnauthorizedProtectedEndpoints(t *testing.T) {
 		}
 	}
 }
-

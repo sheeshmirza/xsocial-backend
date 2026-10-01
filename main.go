@@ -48,7 +48,6 @@ func main() {
 	smartLinkRepo := repository.NewSmartLinkRepository(mongoDB.Database)
 	autolistRepo := repository.NewAutolistRepository(mongoDB.Database)
 	competitorRepo := repository.NewCompetitorRepository(mongoDB.Database)
-	adCampaignRepo := repository.NewAdCampaignRepository(mongoDB.Database)
 	analyticsRepo := repository.NewAnalyticsRepository(mongoDB.Database)
 	reportRepo := repository.NewReportRepository(mongoDB.Database)
 	webhookRepo := repository.NewWebhookRepository(mongoDB.Database)
@@ -88,7 +87,6 @@ func main() {
 	autolistService := service.NewAutolistService(autolistRepo, postRepo, postPublishService)
 	bestTimesService := service.NewBestTimesService(analyticsRepo, brandRepo)
 	competitorService := service.NewCompetitorService(competitorRepo, brandRepo)
-	adCampaignService := service.NewAdCampaignService(adCampaignRepo, handleRepo, brandRepo)
 	analyticsService := service.NewAnalyticsService(analyticsRepo, brandRepo)
 	reportService := service.NewReportService(reportRepo, brandRepo, analyticsRepo, postRepo)
 	webhookService := service.NewWebhookService(webhookRepo)
@@ -120,7 +118,6 @@ func main() {
 		smartLinkRepo,
 		autolistRepo,
 		competitorRepo,
-		adCampaignRepo,
 		analyticsRepo,
 		reportRepo,
 		webhookRepo,
@@ -141,7 +138,6 @@ func main() {
 		autolistService,
 		bestTimesService,
 		competitorService,
-		adCampaignService,
 		analyticsService,
 		reportService,
 		webhookService,

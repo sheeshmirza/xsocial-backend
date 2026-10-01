@@ -743,41 +743,7 @@ run_curl("POST", f"/v1/competitors/{target_comp_id}/snapshots", headers=auth_hdr
 run_curl("POST", f"/v1/competitors/{target_comp_id}/sync", headers=auth_hdr, query=f"brandId={brand_id}", description="Trigger Competitor Sync")
 
 # ==============================================================================
-# 13. Paid Ads Management (Google, Meta, TikTok)
-# ==============================================================================
-log_section("13. PAID ADS MANAGEMENT (GOOGLE, META, TIKTOK)")
-ad_payload = {
-    "platform": "meta",
-    "externalCampaignId": "cmp_meta_98765",
-    "name": "Q4 Brand Awareness Drive",
-    "status": "ACTIVE",
-    "objective": "AWARENESS",
-    "budget": 5000.0,
-    "spend": 1240.50,
-    "impressions": 485000,
-    "clicks": 14200,
-    "conversions": 630,
-    "dateRange": "2026-Q4"
-}
-_, ad_res = run_curl("POST", "/v1/ads/campaigns", headers=auth_hdr, query=f"brandId={brand_id}", data=ad_payload, description="Create Ad Campaign Record")
-ad_id = ""
-if isinstance(ad_res, dict):
-    ad_id = ad_res.get("id", "")
-
-run_curl("GET", "/v1/ads/campaigns", headers=auth_hdr, query=f"brandId={brand_id}", description="List Ad Campaigns for Brand")
-run_curl("PUT", f"/v1/ads/campaigns/{ad_id}", headers=auth_hdr, query=f"brandId={brand_id}", data={
-    "spend": 1850.75,
-    "clicks": 19800,
-    "conversions": 890
-}, description="Update Ad Campaign Performance (PUT)")
-run_curl("PATCH", f"/v1/ads/campaigns/{ad_id}", headers=auth_hdr, query=f"brandId={brand_id}", data={
-    "status": "PAUSED"
-}, description="Update Ad Campaign Status (PATCH)")
-run_curl("GET", "/v1/ads/summary", headers=auth_hdr, query=f"brandId={brand_id}", description="Get Multi-Channel Ad Spend Summary")
-run_curl("POST", "/v1/ads/sync", headers=auth_hdr, query=f"brandId={brand_id}", data={"platform": "meta"}, description="Sync Ad Campaigns from Network API")
-
-# ==============================================================================
-# 14. Analytics (Web Tracking, Pixel & Social Rollups)
+# 13. Analytics (Web Tracking, Pixel & Social Rollups)
 # ==============================================================================
 log_section("14. WEB ANALYTICS & SOCIAL ROLLUPS")
 run_curl("GET", "/v1/tracker/pixel.png", query=f"brandId={brand_id}&page=/products", description="Public Web Tracking 1x1 Transparent Pixel")
@@ -913,10 +879,6 @@ if autolist_id:
 # Delete Competitor
 if comp_id:
     run_curl("DELETE", f"/v1/competitors/{comp_id}", headers=auth_hdr, query=f"brandId={brand_id}", description="Delete Competitor")
-
-# Delete Ad Campaign
-if ad_id:
-    run_curl("DELETE", f"/v1/ads/campaigns/{ad_id}", headers=auth_hdr, query=f"brandId={brand_id}", description="Delete Ad Campaign")
 
 # Delete Webhook
 if webhook_id:
