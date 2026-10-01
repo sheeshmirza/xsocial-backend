@@ -56,7 +56,7 @@ func (s *SocialService) GetConnectURL(userID, platform string) (string, error) {
 	}
 }
 
-func (s *SocialService) ConnectFromCallback(ctx context.Context, userIDStr, platform, code, state string) (*models.SocialHandle, error) {
+func (s *SocialService) ConnectFromCallback(ctx context.Context, userIDStr, platform, code, state string, customRedirectURI ...string) (*models.SocialHandle, error) {
 	norm := s.normalizePlatform(platform)
 	userOID, err := bson.ObjectIDFromHex(userIDStr)
 	if err != nil {
@@ -77,7 +77,7 @@ func (s *SocialService) ConnectFromCallback(ctx context.Context, userIDStr, plat
 		return saved, nil
 
 	case models.PlatformLinkedIn:
-		primaryHandle, managedPages, err := s.linkedinService.HandleCallback(ctx, code, state)
+		primaryHandle, managedPages, err := s.linkedinService.HandleCallback(ctx, code, state, customRedirectURI...)
 		if err != nil {
 			return nil, err
 		}

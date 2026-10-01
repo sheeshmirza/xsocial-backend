@@ -59,11 +59,16 @@ func (a *OAuthAdapter) BuildAuthorizeURL(state string) string {
 	return fmt.Sprintf("https://www.linkedin.com/oauth/v2/authorization?%s", q.Encode())
 }
 
-func (a *OAuthAdapter) ExchangeCodeForToken(ctx context.Context, code string) (*TokenResponse, error) {
+func (a *OAuthAdapter) ExchangeCodeForToken(ctx context.Context, code string, customRedirectURI ...string) (*TokenResponse, error) {
+	redirectURI := a.config.RedirectURI
+	if len(customRedirectURI) > 0 && strings.TrimSpace(customRedirectURI[0]) != "" {
+		redirectURI = strings.TrimSpace(customRedirectURI[0])
+	}
+
 	data := url.Values{}
 	data.Set("grant_type", "authorization_code")
 	data.Set("code", code)
-	data.Set("redirect_uri", a.config.RedirectURI)
+	data.Set("redirect_uri", redirectURI)
 	data.Set("client_id", a.config.ClientID)
 	data.Set("client_secret", a.config.ClientSecret)
 
@@ -72,7 +77,37 @@ func (a *OAuthAdapter) ExchangeCodeForToken(ctx context.Context, code string) (*
 		return nil, err
 	}
 	if status >= 400 {
-		return nil, utils.BadRequest(fmt.Sprintf("LinkedIn token exchange failed: %s", string(body)))
+		// Fallback: try alternate common redirect URIs (e.g. backend callback vs frontend callback)
+		altURIs := []string{
+			"http://localhost:5000/v1/social/callback/linkedin",
+			"http://localhost:3000/oauth/callback/linkedin",
+			a.config.RedirectURI,
+		}
+		var lastBody []byte
+		var lastStatus int
+		retried := false
+		for _, alt := range altURIs {
+			if alt == "" || alt == redirectURI {
+				continue
+			}
+			data.Set("redirect_uri", alt)
+			b, s, e := a.http.PostForm(ctx, "https://www.linkedin.com/oauth/v2/accessToken", data, nil)
+			if e == nil && s < 400 {
+				body = b
+				status = s
+				retried = true
+				break
+			}
+			lastBody = b
+			lastStatus = s
+		}
+		if !retried {
+			if len(lastBody) > 0 {
+				body = lastBody
+				status = lastStatus
+			}
+			return nil, utils.BadRequest(fmt.Sprintf("LinkedIn token exchange failed: %s", string(body)))
+		}
 	}
 
 	var resp TokenResponse

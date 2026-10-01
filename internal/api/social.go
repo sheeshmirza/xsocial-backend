@@ -103,7 +103,13 @@ func (s *Server) oauthCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handle, err := s.socialService.ConnectFromCallback(r.Context(), userID, platform, code, state)
+	scheme := "http"
+	if r.TLS != nil || r.Header.Get("X-Forwarded-Proto") == "https" {
+		scheme = "https"
+	}
+	currentCallbackURI := fmt.Sprintf("%s://%s%s", scheme, r.Host, r.URL.Path)
+
+	handle, err := s.socialService.ConnectFromCallback(r.Context(), userID, platform, code, state, currentCallbackURI)
 	if err != nil {
 		writeError(w, http.StatusBadRequest, fmt.Sprintf("OAuth connection failed: %v", err))
 		return

@@ -27,8 +27,8 @@ func (s *Service) GetConnectURL(state string) string {
 	return s.OAuth.BuildAuthorizeURL(state)
 }
 
-func (s *Service) HandleCallback(ctx context.Context, code, state string) (*models.SocialHandle, []ManagedPage, error) {
-	tokenResp, err := s.OAuth.ExchangeCodeForToken(ctx, code)
+func (s *Service) HandleCallback(ctx context.Context, code, state string, customRedirectURI ...string) (*models.SocialHandle, []ManagedPage, error) {
+	tokenResp, err := s.OAuth.ExchangeCodeForToken(ctx, code, customRedirectURI...)
 	if err != nil {
 		return nil, nil, err
 	}
