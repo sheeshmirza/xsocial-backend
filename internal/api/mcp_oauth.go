@@ -302,7 +302,7 @@ func (s *Server) authenticateMCPBearer(r *http.Request) (bson.ObjectID, bool) {
 func (s *Server) mcpAuthChallenge(w http.ResponseWriter, r *http.Request) {
 	resourceMeta := s.mcpOAuthResource(r) + "/.well-known/oauth-protected-resource"
 	w.Header().Set("WWW-Authenticate", fmt.Sprintf("Bearer resource_metadata=%q, scope=%q", resourceMeta, mcpOAuthScope))
-	writeJSON(w, http.StatusUnauthorized, map[string]any{"error": "unauthorized", "message": "OAuth authentication required"})
+	writeJSON(w, http.StatusUnauthorized, map[string]any{"error": "unauthorized", "message": "OAuth authentication required", "_meta": map[string]any{"mcp/www_authenticate": fmt.Sprintf("Bearer resource_metadata=%q, scope=%q", resourceMeta, mcpOAuthScope)}})
 }
 
 func mcpOAuthJSON(v any) string {
