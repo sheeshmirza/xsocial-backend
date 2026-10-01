@@ -621,7 +621,7 @@ func (s *Server) mcpAuthChallenge(w http.ResponseWriter, r *http.Request, id any
 	resourceMeta := s.mcpOAuthResource(r) + "/.well-known/oauth-protected-resource"
 	challenge := fmt.Sprintf("Bearer resource_metadata=%q, scope=%q, error=%q, error_description=%q", resourceMeta, mcpOAuthScope, "invalid_token", "OAuth authentication required")
 	w.Header().Set("WWW-Authenticate", challenge)
-	writeJSON(w, http.StatusOK, mcpResponse{
+	writeJSON(w, http.StatusUnauthorized, mcpResponse{
 		JSONRPC: "2.0",
 		ID:      id,
 		Result: map[string]any{
