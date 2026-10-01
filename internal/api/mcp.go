@@ -34,9 +34,11 @@ type mcpError struct {
 }
 
 type mcpTool struct {
-	Name        string      `json:"name"`
-	Description string      `json:"description"`
-	InputSchema inputSchema `json:"inputSchema"`
+	Name            string         `json:"name"`
+	Description     string         `json:"description"`
+	InputSchema     inputSchema    `json:"inputSchema"`
+	SecuritySchemes []any          `json:"securitySchemes,omitempty"`
+	Meta            map[string]any `json:"_meta,omitempty"`
 }
 
 type inputSchema struct {
@@ -51,6 +53,13 @@ type schemaProp struct {
 }
 
 var metricoolMCPTools = []mcpTool{
+	{
+		Name: "get_profile",
+		Description: "Return the xSocial account represented by the current authenticated connection.",
+		InputSchema: inputSchema{Type:"object", Properties:map[string]schemaProp{}},
+		SecuritySchemes: []any{map[string]any{"type":"oauth2","scopes":[]string{mcpOAuthScope}}},
+		Meta: map[string]any{"openai/profile":true},
+	},
 	{
 		Name:        "get_brands",
 		Description: "List all managed brands and client workspaces connected to your account.",
@@ -221,8 +230,21 @@ var metricoolMCPTools = []mcpTool{
 	},
 }
 
+func initMCPToolSecurity() {
+	for i := range metricoolMCPTools {
+		if len(metricoolMCPTools[i].SecuritySchemes) == 0 {
+			metricoolMCPTools[i].SecuritySchemes = []any{map[string]any{"type":"oauth2","scopes":[]string{mcpOAuthScope}}}
+		}
+		if metricoolMCPTools[i].Meta == nil {
+			metricoolMCPTools[i].Meta = map[string]any{}
+		}
+		metricoolMCPTools[i].Meta["securitySchemes"] = metricoolMCPTools[i].SecuritySchemes
+	}
+}
+
 // handleMCP processes JSON-RPC 2.0 requests conforming to the Model Context Protocol (MCP) exactly like mailhost-backend
 func (s *Server) handleMCP(w http.ResponseWriter, r *http.Request) {
+	initMCPToolSecurity()
 	// MCP Streamable HTTP is POST-based. This implementation intentionally runs
 	// statelessly: each JSON-RPC exchange is self-contained and returns JSON.
 	if r.Method == http.MethodGet {
@@ -292,6 +314,11 @@ func (s *Server) handleMCP(w http.ResponseWriter, r *http.Request) {
 		})
 
 	case "tools/call":
+		userOID, ok := s.authenticateMCPBearer(r)
+		if !ok {
+			s.mcpAuthChallenge(w, r)
+			return
+		}
 		var callParams struct {
 			Name      string         `json:"name"`
 			Arguments map[string]any `json:"arguments"`
@@ -305,7 +332,6 @@ func (s *Server) handleMCP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		userOID, _ := currentUserOID(r)
 		resStr, callErr := s.executeMCPTool(r.Context(), userOID, callParams.Name, callParams.Arguments)
 		if callErr != nil {
 			writeJSON(w, http.StatusOK, mcpResponse{
@@ -349,6 +375,13 @@ func (s *Server) executeMCPTool(ctx context.Context, userID bson.ObjectID, name 
 	}
 
 	switch name {
+	case "get_profile":
+		user, err := s.userService.GetUserByID(ctx, userID)
+		if err != nil || user == nil {
+			return "", fmt.Errorf("authenticated user not found")
+		}
+		return mcpOAuthJSON(map[string]any{"id":user.ID.Hex(),"name":user.FullName,"email":user.Email,"nickname":"xSocial"}), nil
+
 	case "get_brands":
 		brands, err := s.brandService.ListBrands(ctx, userID)
 		if err != nil {
