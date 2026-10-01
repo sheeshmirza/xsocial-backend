@@ -22,6 +22,13 @@ const (
 	mcpOAuthDefaultIssuer   = "https://xs-be-sa1e.onrender.com"
 )
 
+func (s *Server) mcpOAuthSigningKey() []byte {
+	if s.cfg.MCPOAuthSigningSecret != "" {
+		return []byte(s.cfg.MCPOAuthSigningSecret)
+	}
+	return s.mcpOAuthSigningKey()
+}
+
 var usedMCPAuthCodes sync.Map
 var usedMCPRefreshTokens sync.Map
 var mcpRefreshTokenStore sync.Map
@@ -116,7 +123,7 @@ func (s *Server) signMCPTransaction(tx mcpOAuthTransaction, ttl time.Duration) (
 		"code_challenge_method": tx.CodeChallengeMethod, "iss": tx.Issuer,
 		"iat": now.Unix(), "exp": now.Add(ttl).Unix(),
 	}
-	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(s.cfg.JWTAccessSecret))
+	return jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(s.mcpOAuthSigningKey())
 }
 
 func (s *Server) parseMCPTransaction(raw string) (mcpOAuthTransaction, bool) {
@@ -124,7 +131,7 @@ func (s *Server) parseMCPTransaction(raw string) (mcpOAuthTransaction, bool) {
 		if t.Method != jwt.SigningMethodHS256 {
 			return nil, fmt.Errorf("unexpected signing method")
 		}
-		return []byte(s.cfg.JWTAccessSecret), nil
+		return s.mcpOAuthSigningKey(), nil
 	})
 	if err != nil || !token.Valid {
 		return mcpOAuthTransaction{}, false
@@ -156,7 +163,7 @@ func (s *Server) authenticateMCPUserToken(r *http.Request) (bson.ObjectID, bool)
 		if t.Method != jwt.SigningMethodHS256 {
 			return nil, fmt.Errorf("unexpected signing method")
 		}
-		return []byte(s.cfg.JWTAccessSecret), nil
+		return s.mcpOAuthSigningKey(), nil
 	})
 	if err != nil || !token.Valid {
 		return bson.NilObjectID, false
@@ -281,7 +288,7 @@ func (s *Server) mcpAuthorize(w http.ResponseWriter, r *http.Request) {
 		"code_challenge": tx.CodeChallenge, "code_challenge_method": "S256", "scope": tx.Scope, "jti": jti,
 		"iat": now.Unix(), "exp": now.Add(2*time.Minute).Unix(), "iss": s.mcpOAuthIssuer(r),
 	}
-	code, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString([]byte(s.cfg.JWTAccessSecret))
+	code, err := jwt.NewWithClaims(jwt.SigningMethodHS256, claims).SignedString(s.mcpOAuthSigningKey())
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "server_error"})
 		return
@@ -328,7 +335,7 @@ func (s *Server) mcpToken(w http.ResponseWriter, r *http.Request) {
 		if t.Method != jwt.SigningMethodHS256 {
 			return nil, fmt.Errorf("unexpected signing method")
 		}
-		return []byte(s.cfg.JWTAccessSecret), nil
+		return s.mcpOAuthSigningKey(), nil
 	})
 	if err != nil || !token.Valid {
 		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_grant"})
@@ -391,7 +398,7 @@ func (s *Server) mcpToken(w http.ResponseWriter, r *http.Request) {
 		"iat":   now.Unix(),
 		"exp":   now.Add(time.Hour).Unix(),
 	}
-	accessToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims).SignedString([]byte(s.cfg.JWTAccessSecret))
+	accessToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims).SignedString(s.mcpOAuthSigningKey())
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "server_error"})
 		return
@@ -412,7 +419,7 @@ func (s *Server) mcpToken(w http.ResponseWriter, r *http.Request) {
 		"iat":         now.Unix(),
 		"exp":         now.Add(30 * 24 * time.Hour).Unix(),
 	}
-	refreshToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims).SignedString([]byte(s.cfg.JWTAccessSecret))
+	refreshToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, refreshClaims).SignedString(s.mcpOAuthSigningKey())
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "server_error"})
 		return
@@ -458,7 +465,7 @@ func (s *Server) mcpRefreshToken(w http.ResponseWriter, r *http.Request) {
 		if t.Method != jwt.SigningMethodHS256 {
 			return nil, fmt.Errorf("unexpected signing method")
 		}
-		return []byte(s.cfg.JWTAccessSecret), nil
+		return s.mcpOAuthSigningKey(), nil
 	})
 	if err != nil || !token.Valid {
 		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_grant"})
@@ -514,7 +521,7 @@ func (s *Server) mcpRefreshToken(w http.ResponseWriter, r *http.Request) {
 		"mcp": true, "sub": sub, "aud": resource, "scope": scope,
 		"iss": s.mcpOAuthIssuer(r), "iat": now.Unix(), "exp": now.Add(time.Hour).Unix(),
 	}
-	accessToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims).SignedString([]byte(s.cfg.JWTAccessSecret))
+	accessToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, accessClaims).SignedString(s.mcpOAuthSigningKey())
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "server_error"})
 		return
@@ -529,7 +536,7 @@ func (s *Server) mcpRefreshToken(w http.ResponseWriter, r *http.Request) {
 		"mcp_refresh": true, "sub": sub, "aud": resource, "scope": scope,
 		"jti": newRefreshJTI, "iss": s.mcpOAuthIssuer(r), "iat": now.Unix(), "exp": now.Add(30 * 24 * time.Hour).Unix(),
 	}
-	newRefreshToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, newRefreshClaims).SignedString([]byte(s.cfg.JWTAccessSecret))
+	newRefreshToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256, newRefreshClaims).SignedString(s.mcpOAuthSigningKey())
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "server_error"})
 		return
@@ -581,7 +588,7 @@ func (s *Server) authenticateMCPBearer(r *http.Request) (bson.ObjectID, bool) {
 		if t.Method != jwt.SigningMethodHS256 {
 			return nil, fmt.Errorf("unexpected signing method")
 		}
-		return []byte(s.cfg.JWTAccessSecret), nil
+		return s.mcpOAuthSigningKey(), nil
 	})
 	if err != nil || !token.Valid {
 		return bson.NilObjectID, false
