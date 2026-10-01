@@ -148,33 +148,13 @@ else:
     static_user_id = str(static_user["_id"])
     db.users.update_one({"_id": static_user["_id"]}, {"$set": {"password": pw_hash, "isVerified": True}})
 
-# Ensure connected LinkedIn (Account 1) and Instagram (Account 2) handles are linked to static user
+# Ensure real connected LinkedIn handle is bound to static developer user
 linkedin_handle = db.socialhandles.find_one({"platform": "LINKEDIN"})
 if linkedin_handle:
     db.socialhandles.update_one({"_id": linkedin_handle["_id"]}, {"$set": {"userId": ObjectId(static_user_id)}})
     linkedin_handle_id = str(linkedin_handle["_id"])
 else:
     linkedin_handle_id = ""
-
-instagram_handle = db.socialhandles.find_one({"userId": ObjectId(static_user_id), "platform": "INSTAGRAM"})
-if not instagram_handle:
-    ig_inserted = db.socialhandles.insert_one({
-        "userId": ObjectId(static_user_id),
-        "platform": "INSTAGRAM",
-        "platformId": "17841400012345678",
-        "platformUsername": "xsocial_official",
-        "platformDisplayName": "XSocial Official Brand",
-        "platformAccessToken": "EAABsample_token_instagram_connected_handle",
-        "platformAccessTokenExpiry": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=60),
-        "platformRefreshToken": "EAABsample_refresh_token",
-        "platformRefreshTokenExpiry": datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=60),
-        "platformMetadata": {"accountType": "BUSINESS", "username": "xsocial_official"},
-        "createdAt": datetime.datetime.now(datetime.timezone.utc),
-        "updatedAt": datetime.datetime.now(datetime.timezone.utc)
-    })
-    instagram_handle_id = str(ig_inserted.inserted_id)
-else:
-    instagram_handle_id = str(instagram_handle["_id"])
 
 # ==============================================================================
 # 1. Health Checks
@@ -268,11 +248,9 @@ brand_id = ""
 if isinstance(brand_res, dict):
     brand_id = brand_res.get("id", "")
 
-# Link the connected handles (LinkedIn & Instagram) to this brand
+# Link the connected real LinkedIn handle to this brand
 if linkedin_handle_id and brand_id:
     db.socialhandles.update_one({"_id": ObjectId(linkedin_handle_id)}, {"$set": {"brandId": ObjectId(brand_id)}})
-if instagram_handle_id and brand_id:
-    db.socialhandles.update_one({"_id": ObjectId(instagram_handle_id)}, {"$set": {"brandId": ObjectId(brand_id)}})
 
 run_curl("GET", "/v1/brands", headers=auth_hdr, description="List All Brands for Static User")
 run_curl("GET", f"/v1/brands/{brand_id}", headers=auth_hdr, description="Get Brand Workspace Details")
@@ -323,11 +301,11 @@ if api_key_raw:
 # 5. Media Uploads & Assets
 # ==============================================================================
 log_section("5. MEDIA UPLOADS & ASSETS")
-dummy_img = "/tmp/test_upload.png"
-with open(dummy_img, "wb") as f:
+upload_img = "/tmp/test_upload.png"
+with open(upload_img, "wb") as f:
     f.write(b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15c4\x00\x00\x00\nIDATx\x9cc\x00\x01\x00\x00\x05\x00\x01\r\n-\xb4\x00\x00\x00\x00IEND\xaeB`\x82")
 
-_, upload_res = run_curl("POST", "/v1/uploads/media", headers=auth_hdr, form_file=dummy_img, description="Upload Media Asset (PNG Image)")
+_, upload_res = run_curl("POST", "/v1/uploads/media", headers=auth_hdr, form_file=upload_img, description="Upload Media Asset (PNG Image)")
 media_id = ""
 media_url = ""
 if isinstance(upload_res, dict) and "data" in upload_res and isinstance(upload_res["data"], dict):
@@ -384,52 +362,48 @@ p_image = {
 _, p_img_res = run_curl("POST", "/v1/posts", headers=auth_hdr, data=p_image, description="Create Post 1: Image Feed Post with First Comment")
 post_img_id = p_img_res.get("id", "") if isinstance(p_img_res, dict) else ""
 
-# 7.2 Post Type: Instagram Reel with Trial Settings (Targeting Account 2: Instagram)
-p_reel = {
+# 7.2 Post Type: Real LinkedIn Poll Post with Options & First Comment
+p_poll = {
     "brandId": brand_id,
-    "title": "Behind the Scenes Reel",
-    "caption": "A quick look behind the scenes of our engineering sprint! #dev #coding #tech",
-    "selectedPlatforms": ["instagram"],
-    "targetAccountIds": [instagram_handle_id] if instagram_handle_id else [],
-    "media": [{"type": "video", "url": "https://sample-videos.com/video321/mp4/720/big_buck_bunny_720p_1mb.mp4"}],
-    "postType": "reel",
-    "status": "draft",
-    "firstComment": "Which tech stack are you building on? Let us know below!",
-    "instagramTrial": {
-        "enabled": True,
-        "graduationStrategy": "SS_PERFORMANCE"
-    }
-}
-_, p_reel_res = run_curl("POST", "/v1/posts", headers=auth_hdr, data=p_reel, description="Create Post 2: Instagram Reel with Trial Settings")
-post_reel_id = p_reel_res.get("id", "") if isinstance(p_reel_res, dict) else ""
-
-# 7.3 Post Type: Instagram Story
-p_story = {
-    "brandId": brand_id,
-    "title": "Daily Community Story",
-    "caption": "Quick announcement: Live Q&A starts at 4 PM EST today!",
-    "selectedPlatforms": ["instagram"],
-    "media": [{"type": "image", "url": media_url if media_url else "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"}],
-    "postType": "story",
+    "title": "Engineering Stack Poll",
+    "caption": "Which backend paradigm is delivering the highest velocity for your team in 2026? #tech #golang #cloud",
+    "selectedPlatforms": ["linkedin"],
+    "targetAccountIds": [linkedin_handle_id] if linkedin_handle_id else [],
+    "postType": "poll",
+    "poll": {
+        "question": "Which backend architecture does your team prioritize for production?",
+        "options": [
+            {"text": "Go Microservices"},
+            {"text": "Modular Monolith"},
+            {"text": "Serverless Functions"},
+            {"text": "Rust Systems Core"}
+        ],
+        "settings": {
+            "duration": "SEVEN_DAYS",
+            "voteSelectionType": "SINGLE_VOTE"
+        }
+    },
+    "firstComment": "Share your architectural decisions and trade-offs in the comments!",
     "status": "draft"
 }
-_, p_story_res = run_curl("POST", "/v1/posts", headers=auth_hdr, data=p_story, description="Create Post 3: Instagram Story Post")
-post_story_id = p_story_res.get("id", "") if isinstance(p_story_res, dict) else ""
+_, p_poll_res = run_curl("POST", "/v1/posts", headers=auth_hdr, data=p_poll, description="Create Post 2: Real LinkedIn Poll Post with Options & First Comment")
+post_poll_id = p_poll_res.get("id", "") if isinstance(p_poll_res, dict) else ""
 
-# 7.4 Post Type: Instagram Carousel Post (Multiple child items)
+# 7.3 Post Type: Real LinkedIn Multi-Image Carousel Post
 p_carousel = {
     "brandId": brand_id,
-    "title": "Top 5 Marketing Tips Carousel",
-    "caption": "Swipe left to discover the top 5 multi-channel content strategies for Q4 🚀 #marketing #tips",
-    "selectedPlatforms": ["instagram"],
+    "title": "Engineering Roadmap Visual Carousel",
+    "caption": "A visual walkthrough of our high-scale cloud architecture and event pipeline 🚀 #engineering #cloud #architecture",
+    "selectedPlatforms": ["linkedin"],
+    "targetAccountIds": [linkedin_handle_id] if linkedin_handle_id else [],
     "media": [
-        {"type": "image", "url": "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"},
+        {"type": "image", "url": media_url if media_url else "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"},
         {"type": "image", "url": "https://images.unsplash.com/photo-1557804506-669a67965ba0"}
     ],
     "postType": "carousel",
     "status": "draft"
 }
-_, p_car_res = run_curl("POST", "/v1/posts", headers=auth_hdr, data=p_carousel, description="Create Post 4: Instagram Carousel Post")
+_, p_car_res = run_curl("POST", "/v1/posts", headers=auth_hdr, data=p_carousel, description="Create Post 3: Real LinkedIn Multi-Image Carousel Post")
 post_car_id = p_car_res.get("id", "") if isinstance(p_car_res, dict) else ""
 
 # 7.5 Post Type: LinkedIn Text Post
@@ -551,7 +525,7 @@ run_curl("PUT", f"/v1/posts/{post_img_id}", headers=auth_hdr, data={
     "brandId": brand_id,
     "title": "Product Feature Highlight (v2)",
     "caption": "Exploring our latest AI automation features v2! #ai #workflow #growth",
-    "selectedPlatforms": ["instagram", "linkedin"],
+    "selectedPlatforms": ["linkedin"],
     "status": "draft"
 }, description="Update Post Content (PUT)")
 
@@ -585,16 +559,14 @@ run_curl("POST", f"/v1/posts/{post_li_fc_id}/publish", headers=auth_hdr, data={}
 # 7.11d Live Real Publishing to Connected LinkedIn Account (Article / Link Post)
 run_curl("POST", f"/v1/posts/{post_li_art_id}/publish", headers=auth_hdr, data={}, description="Publish Article Post Live to Connected LinkedIn Account")
 
-# 7.12 Reshare Post across Existing Accounts (User 1 posts from Account 1, reshares content to Account 2)
-target_accounts = [instagram_handle_id] if instagram_handle_id else ([linkedin_handle_id] if linkedin_handle_id else [])
-target_platforms = ["instagram"] if instagram_handle_id else ["linkedin"]
+# 7.12 Reshare Post on Connected LinkedIn Account
 reshare_payload = {
-    "targetPlatforms": target_platforms,
-    "targetAccountIds": target_accounts,
-    "newCaption": "Resharing our core landmark release from Account 1 (LinkedIn) to Account 2 (Instagram)!",
+    "targetPlatforms": ["linkedin"],
+    "targetAccountIds": [linkedin_handle_id] if linkedin_handle_id else [],
+    "newCaption": "Resharing our core landmark release on our connected LinkedIn channel!",
     "publishImmediately": False
 }
-_, reshare_res = run_curl("POST", f"/v1/posts/{post_img_id}/reshare", headers=auth_hdr, data=reshare_payload, description="Reshare Post across Existing Accounts (Account 1 -> Account 2)")
+_, reshare_res = run_curl("POST", f"/v1/posts/{post_img_id}/reshare", headers=auth_hdr, data=reshare_payload, description="Reshare Post on Connected LinkedIn Account")
 reshare_id = reshare_res.get("id", "") if isinstance(reshare_res, dict) else ""
 
 # 7.13 Bulk Recurring Controls
@@ -605,8 +577,7 @@ run_curl("POST", "/v1/posts/bulk/resume-recurrence", headers=auth_hdr, data={"id
 # 8. Planner & Best Times Heatmaps
 # ==============================================================================
 log_section("8. PLANNER & BEST TIMES HEATMAPS")
-run_curl("GET", "/v1/planner/best-times", headers=auth_hdr, query=f"brandId={brand_id}&platform=instagram", description="Get Best Times Heatmap for Instagram")
-run_curl("GET", "/v1/planner/best-times", headers=auth_hdr, query=f"brandId={brand_id}&platform=linkedin", description="Get Best Times Heatmap for LinkedIn")
+run_curl("GET", "/v1/planner/best-times", headers=auth_hdr, query=f"brandId={brand_id}&platform=linkedin", description="Get Best Times Heatmap for Connected LinkedIn Account")
 
 # ==============================================================================
 # 9. Unified Inbox & Community Management
@@ -862,7 +833,7 @@ bulk_sched_targets = [post_sched_bulk_id] if post_sched_bulk_id else [post_car_i
 bulk_pub_targets = [post_pub_bulk_id] if post_pub_bulk_id else [post_li_car_id]
 run_curl("DELETE", "/v1/posts/bulk/scheduled", headers=auth_hdr, data={"ids": bulk_sched_targets}, description="Bulk Delete Scheduled Posts")
 run_curl("DELETE", "/v1/posts/bulk/published", headers=auth_hdr, data={"ids": bulk_pub_targets}, description="Bulk Delete Published Posts")
-run_curl("DELETE", "/v1/posts/bulk", headers=auth_hdr, data={"ids": [post_reel_id, post_story_id]}, description="Bulk Delete Posts")
+run_curl("DELETE", "/v1/posts/bulk", headers=auth_hdr, data={"ids": [post_poll_id, post_car_id]}, description="Bulk Delete Posts")
 
 # Delete Image post specifically via single delete endpoint
 if post_img_id:

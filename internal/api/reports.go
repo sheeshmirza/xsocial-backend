@@ -22,7 +22,7 @@ func (s *Server) generateReport(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if req.BrandID == "" {
-		if bOID, ok := currentBrandOID(r); ok {
+		if bOID, err := s.resolveBrandForRequest(r); err == nil {
 			req.BrandID = bOID.Hex()
 		}
 	}
@@ -77,4 +77,3 @@ func (s *Server) downloadReport(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(data)
 }
-
