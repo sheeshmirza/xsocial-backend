@@ -37,7 +37,9 @@ type mcpTool struct {
 	Name            string         `json:"name"`
 	Description     string         `json:"description"`
 	InputSchema     inputSchema    `json:"inputSchema"`
+	OutputSchema    map[string]any `json:"outputSchema,omitempty"`
 	SecuritySchemes []any          `json:"securitySchemes,omitempty"`
+	Annotations     map[string]any `json:"annotations,omitempty"`
 	Meta            map[string]any `json:"_meta,omitempty"`
 }
 
@@ -54,11 +56,24 @@ type schemaProp struct {
 
 var metricoolMCPTools = []mcpTool{
 	{
-		Name: "get_profile",
+		Name:        "get_profile",
 		Description: "Return the xSocial account represented by the current authenticated connection.",
-		InputSchema: inputSchema{Type:"object", Properties:map[string]schemaProp{}},
-		SecuritySchemes: []any{map[string]any{"type":"oauth2","scopes":[]string{mcpOAuthScope}}},
-		Meta: map[string]any{"openai/profile":true},
+		InputSchema: inputSchema{Type: "object", Properties: map[string]schemaProp{}},
+		OutputSchema: map[string]any{
+			"$schema": "https://json-schema.org/draft/2020-12/schema",
+			"type": "object",
+			"properties": map[string]any{
+				"id": map[string]any{"type": "string", "minLength": 1, "pattern": "\\S"},
+				"name": map[string]any{"type": "string"},
+				"email": map[string]any{"type": "string"},
+				"nickname": map[string]any{"type": "string"},
+			},
+			"required": []string{"id"},
+			"additionalProperties": false,
+		},
+		Annotations:     map[string]any{"readOnlyHint": true, "destructiveHint": false, "openWorldHint": false},
+		SecuritySchemes: []any{map[string]any{"type": "oauth2", "scopes": []string{mcpOAuthScope}}},
+		Meta:            map[string]any{"openai/profile": true},
 	},
 	{
 		Name:        "get_brands",
@@ -347,14 +362,30 @@ func (s *Server) handleMCP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		result := map[string]any{
+			"content": []map[string]string{
+				{"type": "text", "text": resStr},
+			},
+		}
+		if callParams.Name == "get_profile" {
+			var profile map[string]any
+			if err := json.Unmarshal([]byte(resStr), &profile); err != nil || strings.TrimSpace(fmt.Sprint(profile["id"])) == "" {
+				writeJSON(w, http.StatusOK, mcpResponse{
+					JSONRPC: "2.0",
+					ID:      req.ID,
+					Result: map[string]any{
+						"isError": true,
+						"content": []map[string]string{{"type": "text", "text": "Profile identity unavailable."}},
+					},
+				})
+				return
+			}
+			result["structuredContent"] = profile
+		}
 		writeJSON(w, http.StatusOK, mcpResponse{
 			JSONRPC: "2.0",
 			ID:      req.ID,
-			Result: map[string]any{
-				"content": []map[string]string{
-					{"type": "text", "text": resStr},
-				},
-			},
+			Result: result,
 		})
 
 	default:
