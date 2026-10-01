@@ -10,7 +10,7 @@ import (
 type MediaItem struct {
 	Type       string  `bson:"type" json:"type"` // "image", "video", "gif"
 	URL        string  `bson:"url" json:"url"`
-	Base64Data string  `bson:"base64Data,omitempty" json:"base64Data,omitempty"`
+	Base64Data string  `bson:"-" json:"base64Data,omitempty"`
 	MimeType   string  `bson:"mimeType,omitempty" json:"mimeType,omitempty"`
 	Size       float64 `bson:"size,omitempty" json:"size,omitempty"`
 }
@@ -28,7 +28,7 @@ type PlatformPublishResponse struct {
 	Message        string `bson:"message,omitempty" json:"message,omitempty"`
 	PlatformPostID string `bson:"platformPostId,omitempty" json:"platformPostId,omitempty"`
 	URL            string `bson:"url,omitempty" json:"url,omitempty"`
-	Raw            any    `bson:"raw,omitempty" json:"raw,omitempty"`
+	Raw            any    `bson:"-" json:"raw,omitempty"`
 	SocialHandleID string `bson:"socialHandleId,omitempty" json:"socialHandleId,omitempty"`
 	PlatformID     string `bson:"platformId,omitempty" json:"platformId,omitempty"`
 	AccountType    string `bson:"accountType,omitempty" json:"accountType,omitempty"`
@@ -102,7 +102,6 @@ type Post struct {
 	ApprovedBy         *bson.ObjectID            `bson:"approvedBy,omitempty" json:"approvedBy,omitempty"`
 	ApprovedAt         *time.Time                `bson:"approvedAt,omitempty" json:"approvedAt,omitempty"`
 	FirstComment       string                    `bson:"firstComment,omitempty" json:"firstComment,omitempty"`
-	BestTimeScore      float64                   `bson:"bestTimeScore,omitempty" json:"bestTimeScore,omitempty"`
 	InstagramTrial     *InstagramTrialSettings   `bson:"instagramTrial,omitempty" json:"instagramTrial,omitempty"`
 	OriginPostID       *bson.ObjectID            `bson:"originPostId,omitempty" json:"originPostId,omitempty"`
 	OriginPlatformPostID string                  `bson:"originPlatformPostId,omitempty" json:"originPlatformPostId,omitempty"`
