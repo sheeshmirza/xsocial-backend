@@ -245,6 +245,7 @@ func (s *Server) Handler() http.Handler {
 		"GET /.well-known/oauth-protected-resource": s.mcpProtectedResourceMetadata,
 		"GET /.well-known/oauth-authorization-server": s.mcpAuthorizationServerMetadata,
 		"GET /oauth/authorize": s.mcpAuthorize,
+		"POST /oauth/authorize": s.mcpAuthorize,
 		"POST /oauth/token": s.mcpToken,
 
 		// Auth & User Management
