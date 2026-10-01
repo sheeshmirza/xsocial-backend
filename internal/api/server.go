@@ -361,6 +361,7 @@ func (s *Server) Handler() http.Handler {
 			pattern == "GET /.well-known/oauth-protected-resource" ||
 			pattern == "GET /.well-known/oauth-authorization-server" ||
 			pattern == "GET /oauth/authorize" ||
+			pattern == "POST /oauth/authorize" ||
 			pattern == "POST /oauth/token" {
 			mux.Handle(pattern, h)
 			continue
