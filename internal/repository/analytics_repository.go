@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -75,6 +76,48 @@ func (r *AnalyticsRepository) GetWebMetrics(ctx context.Context, brandID bson.Ob
 		"from":      from,
 		"to":        to,
 	}, nil
+}
+
+type HourlyBucketResult struct {
+	ID struct {
+		DayOfWeek int `bson:"dayOfWeek"`
+		Hour      int `bson:"hour"`
+	} `bson:"_id"`
+	Count int64 `bson:"count"`
+}
+
+func (r *AnalyticsRepository) GetHourlyActivity(ctx context.Context, brandID bson.ObjectID, from time.Time) (map[string]int64, error) {
+	pipeline := mongo.Pipeline{
+		{{Key: "$match", Value: bson.M{
+			"brandId":   brandID,
+			"timestamp": bson.M{"$gte": from},
+		}}},
+		{{Key: "$project", Value: bson.M{
+			"dayOfWeek": bson.M{"$subtract": []any{bson.M{"$dayOfWeek": "$timestamp"}, 1}},
+			"hour":      bson.M{"$hour": "$timestamp"},
+		}}},
+		{{Key: "$group", Value: bson.M{
+			"_id":   bson.M{"dayOfWeek": "$dayOfWeek", "hour": "$hour"},
+			"count": bson.M{"$sum": 1},
+		}}},
+	}
+
+	cursor, err := r.webEventsCollection.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	results := make(map[string]int64)
+	var buckets []HourlyBucketResult
+	if err := cursor.All(ctx, &buckets); err != nil {
+		return nil, err
+	}
+	for _, b := range buckets {
+		key := fmt.Sprintf("%d:%d", b.ID.DayOfWeek, b.ID.Hour)
+		results[key] = b.Count
+	}
+	return results, nil
 }
 
 func (r *AnalyticsRepository) UpsertSocialRollup(ctx context.Context, rollup *models.SocialMetricRollup) error {

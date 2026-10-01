@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"strings"
+	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 
@@ -36,13 +38,28 @@ func (s *BestTimesService) GetBestTimes(ctx context.Context, brandID bson.Object
 		tz = brand.Timezone
 	}
 
+	// Fetch real audience activity from MongoDB if available
+	activity, _ := s.analyticsRepo.GetHourlyActivity(ctx, brandID, time.Now().AddDate(0, 0, -90))
+	var maxCount int64
+	for _, c := range activity {
+		if c > maxCount {
+			maxCount = c
+		}
+	}
+
 	// Generate 7 days (0 to 6) x 24 hours (0 to 23) slots
 	slots := make([]models.BestTimeSlot, 0, 7*24)
 
-	// Platform baseline curves for peak follower activity
+	// Platform baseline curves blended with real measured activity
 	for day := 0; day < 7; day++ {
 		for hour := 0; hour < 24; hour++ {
 			score := calculateBaselineScore(normPlatform, day, hour)
+			key := fmt.Sprintf("%d:%d", day, hour)
+			if maxCount > 0 {
+				cnt := activity[key]
+				realPct := (float64(cnt) / float64(maxCount)) * 100.0
+				score = (score * 0.4) + (realPct * 0.6)
+			}
 			slots = append(slots, models.BestTimeSlot{
 				DayOfWeek: day,
 				Hour:      hour,
