@@ -36,14 +36,13 @@ type Config struct {
 	AIWrapperTimeoutMS  time.Duration
 	Instagram           OAuthPlatformConfig
 	LinkedIn            OAuthPlatformConfig
-	MCPOAuthUserID       string
-	MCPOAuthIssuer       string
-	MCPOAuthResource     string
+	MCPOAuthIssuer      string
+	MCPOAuthResource    string
 }
 
 func cleanEnvValue(value string) string {
 	trimmed := strings.TrimSpace(value)
-	if (strings.HasPrefix(trimmed, "\"") && strings.HasSuffix(trimmed, "\"")) ||
+	if (strings.HasPrefix(trimmed, """) && strings.HasSuffix(trimmed, """)) ||
 		(strings.HasPrefix(trimmed, "'") && strings.HasSuffix(trimmed, "'")) {
 		return strings.TrimSpace(trimmed[1 : len(trimmed)-1])
 	}
@@ -157,7 +156,6 @@ func LoadConfig() *Config {
 			Version:      linkedInVersion,
 			Scopes:       cleanEnvValue(os.Getenv("LINKEDIN_SCOPES")),
 		},
-		MCPOAuthUserID:   cleanEnvValue(os.Getenv("MCP_OAUTH_USER_ID")),
 		MCPOAuthIssuer:   strings.TrimRight(cleanEnvValue(os.Getenv("MCP_OAUTH_ISSUER")), "/"),
 		MCPOAuthResource: strings.TrimRight(cleanEnvValue(os.Getenv("MCP_OAUTH_RESOURCE")), "/"),
 	}
