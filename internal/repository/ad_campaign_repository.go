@@ -60,8 +60,21 @@ func (r *AdCampaignRepository) UpsertCampaign(ctx context.Context, camp *models.
 		},
 	}
 	opt := options.UpdateOne().SetUpsert(true)
-	_, err := r.collection.UpdateOne(ctx, filter, update, opt)
-	return err
+	res, err := r.collection.UpdateOne(ctx, filter, update, opt)
+	if err != nil {
+		return err
+	}
+	if res.UpsertedID != nil {
+		if oid, ok := res.UpsertedID.(bson.ObjectID); ok {
+			camp.ID = oid
+		}
+	} else if camp.ID.IsZero() {
+		var existing models.AdCampaign
+		if err := r.collection.FindOne(ctx, filter).Decode(&existing); err == nil {
+			camp.ID = existing.ID
+		}
+	}
+	return nil
 }
 
 func (r *AdCampaignRepository) FindByBrand(ctx context.Context, brandID bson.ObjectID, platform string) ([]models.AdCampaign, error) {
