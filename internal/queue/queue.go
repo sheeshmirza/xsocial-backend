@@ -13,9 +13,12 @@ import (
 )
 
 const (
-	PublishPostJobName         = "publish-post"
+	PublishPostJobName           = "publish-post"
 	ExpirePostPublicationJobName = "expire-post-publication"
-	RedisScheduledSet          = "xsocial:scheduled-posts-queue"
+	RedisScheduledSet            = "xsocial:scheduled-posts-queue"
+	RedisJobIndexKey             = "xsocial:job-index:"     // xsocial:job-index:<jobID> -> member payload
+	RedisDeadLetterSet           = "xsocial:dead-letter-queue"
+	MaxJobRetries                = 3
 )
 
 type PublishJobData struct {
@@ -31,8 +34,11 @@ type ExpiryJobData struct {
 }
 
 type JobEnvelope struct {
-	Name string `json:"name"`
-	Data any    `json:"data"`
+	ID        string `json:"id"`
+	Name      string `json:"name"`
+	Data      any    `json:"data"`
+	Retries   int    `json:"retries,omitempty"`
+	CreatedAt int64  `json:"createdAt"`
 }
 
 type HandlerFunc func(name string, payload []byte) error
@@ -74,7 +80,7 @@ func (q *PostQueue) startRedisWorker() {
 		case <-q.stopCh:
 			return
 		case <-ticker.C:
-			ctx := context.Background()
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			nowScore := float64(time.Now().UnixMilli())
 
 			// Fetch items whose runAt is <= now
@@ -86,27 +92,80 @@ func (q *PostQueue) startRedisWorker() {
 			}).Result()
 
 			if err != nil || len(vals) == 0 {
+				cancel()
 				continue
 			}
 
 			for _, rawItem := range vals {
-				// Remove item from set
+				// Atomically pop item from scheduled set to prevent duplicate execution across workers
 				remCount, remErr := q.redisClient.ZRem(ctx, RedisScheduledSet, rawItem).Result()
 				if remErr != nil || remCount == 0 {
 					continue
 				}
 
 				var envelope struct {
-					Name string          `json:"name"`
-					Data json.RawMessage `json:"data"`
+					ID        string          `json:"id"`
+					Name      string          `json:"name"`
+					Data      json.RawMessage `json:"data"`
+					Retries   int             `json:"retries"`
+					CreatedAt int64           `json:"createdAt"`
 				}
 				if err := json.Unmarshal([]byte(rawItem), &envelope); err == nil {
-					go func(n string, d []byte) {
-						if err := q.handler(n, d); err != nil {
-							log.Printf("[QueueWorker] Job %s failed: %v", n, err)
-						}
-					}(envelope.Name, envelope.Data)
+					// Clean up the index key
+					if envelope.ID != "" {
+						_ = q.redisClient.Del(ctx, RedisJobIndexKey+envelope.ID).Err()
+					}
+
+					go q.processJob(envelope.ID, envelope.Name, envelope.Data, envelope.Retries)
 				}
+			}
+			cancel()
+		}
+	}
+}
+
+func (q *PostQueue) processJob(jobID, name string, data []byte, retries int) {
+	if err := q.handler(name, data); err != nil {
+		log.Printf("[QueueWorker] Job %s (id: %s, attempt: %d) failed: %v", name, jobID, retries+1, err)
+
+		if retries < MaxJobRetries {
+			// Retry with exponential backoff: 5s, 20s, 60s
+			backoffSec := []int{5, 20, 60}[retries]
+			retryAt := time.Now().Add(time.Duration(backoffSec) * time.Second)
+			log.Printf("[QueueWorker] Requeuing job %s (id: %s) in %d seconds (attempt %d/%d)", name, jobID, backoffSec, retries+1, MaxJobRetries)
+
+			var parsedData any
+			_ = json.Unmarshal(data, &parsedData)
+			env := JobEnvelope{
+				ID:        jobID,
+				Name:      name,
+				Data:      parsedData,
+				Retries:   retries + 1,
+				CreatedAt: time.Now().UnixMilli(),
+			}
+			bytes, _ := json.Marshal(env)
+
+			if q.redisClient != nil {
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+				_ = q.redisClient.ZAdd(ctx, RedisScheduledSet, redis.Z{
+					Score:  float64(retryAt.UnixMilli()),
+					Member: string(bytes),
+				}).Err()
+				if jobID != "" {
+					_ = q.redisClient.Set(ctx, RedisJobIndexKey+jobID, string(bytes), 24*time.Hour).Err()
+				}
+			}
+		} else {
+			// Dead letter queue
+			log.Printf("[QueueWorker] Job %s (id: %s) exceeded max retries (%d). Sent to dead-letter queue.", name, jobID, MaxJobRetries)
+			if q.redisClient != nil {
+				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+				defer cancel()
+				_ = q.redisClient.ZAdd(ctx, RedisDeadLetterSet, redis.Z{
+					Score:  float64(time.Now().UnixMilli()),
+					Member: fmt.Sprintf(`{"id":%q,"name":%q,"retries":%d,"failedAt":%d}`, jobID, name, retries+1, time.Now().UnixMilli()),
+				}).Err()
 			}
 		}
 	}
@@ -115,10 +174,13 @@ func (q *PostQueue) startRedisWorker() {
 func (q *PostQueue) AddSchedulePublishJob(postID string, runAt time.Time) error {
 	_ = q.RemoveSchedulePublishJob(postID)
 
+	jobID := "publish:" + postID
 	data := PublishJobData{PostID: postID}
 	env := JobEnvelope{
-		Name: PublishPostJobName,
-		Data: data,
+		ID:        jobID,
+		Name:      PublishPostJobName,
+		Data:      data,
+		CreatedAt: time.Now().UnixMilli(),
 	}
 	bytes, _ := json.Marshal(env)
 
@@ -128,11 +190,17 @@ func (q *PostQueue) AddSchedulePublishJob(postID string, runAt time.Time) error 
 	}
 
 	if q.redisClient != nil {
-		ctx := context.Background()
-		return q.redisClient.ZAdd(ctx, RedisScheduledSet, redis.Z{
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		pipe := q.redisClient.TxPipeline()
+		pipe.ZAdd(ctx, RedisScheduledSet, redis.Z{
 			Score:  float64(runAt.UnixMilli()),
 			Member: string(bytes),
-		}).Err()
+		})
+		pipe.Set(ctx, RedisJobIndexKey+jobID, string(bytes), 30*24*time.Hour)
+		_, err := pipe.Exec(ctx)
+		return err
 	}
 
 	// Memory fallback
@@ -151,17 +219,29 @@ func (q *PostQueue) AddSchedulePublishJob(postID string, runAt time.Time) error 
 }
 
 func (q *PostQueue) RemoveSchedulePublishJob(postID string) error {
+	jobID := "publish:" + postID
+
 	if q.redisClient != nil {
-		ctx := context.Background()
-		vals, err := q.redisClient.ZRange(ctx, RedisScheduledSet, 0, -1).Result()
-		if err == nil {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		// O(1) direct removal via tracked job index
+		if rawMember, err := q.redisClient.Get(ctx, RedisJobIndexKey+jobID).Result(); err == nil && rawMember != "" {
+			pipe := q.redisClient.TxPipeline()
+			pipe.ZRem(ctx, RedisScheduledSet, rawMember)
+			pipe.Del(ctx, RedisJobIndexKey+jobID)
+			_, _ = pipe.Exec(ctx)
+		} else {
+			// Fallback: search sorted set if index key missing
+			vals, _ := q.redisClient.ZRange(ctx, RedisScheduledSet, 0, -1).Result()
 			for _, val := range vals {
 				var env struct {
+					ID   string         `json:"id"`
 					Name string         `json:"name"`
 					Data PublishJobData `json:"data"`
 				}
-				if err := json.Unmarshal([]byte(val), &env); err == nil {
-					if env.Name == PublishPostJobName && env.Data.PostID == postID {
+				if json.Unmarshal([]byte(val), &env) == nil {
+					if (env.ID == jobID) || (env.Name == PublishPostJobName && env.Data.PostID == postID) {
 						_ = q.redisClient.ZRem(ctx, RedisScheduledSet, val).Err()
 					}
 				}
@@ -181,6 +261,7 @@ func (q *PostQueue) RemoveSchedulePublishJob(postID string) error {
 }
 
 func (q *PostQueue) AddPostExpiryJob(postID, userID, platform, platformPostID, socialHandleID string, runAt time.Time) error {
+	jobID := fmt.Sprintf("expiry:%s:%s", postID, platformPostID)
 	data := ExpiryJobData{
 		PostID:         postID,
 		UserID:         userID,
@@ -189,8 +270,10 @@ func (q *PostQueue) AddPostExpiryJob(postID, userID, platform, platformPostID, s
 		SocialHandleID: socialHandleID,
 	}
 	env := JobEnvelope{
-		Name: ExpirePostPublicationJobName,
-		Data: data,
+		ID:        jobID,
+		Name:      ExpirePostPublicationJobName,
+		Data:      data,
+		CreatedAt: time.Now().UnixMilli(),
 	}
 	bytes, _ := json.Marshal(env)
 
@@ -200,11 +283,17 @@ func (q *PostQueue) AddPostExpiryJob(postID, userID, platform, platformPostID, s
 	}
 
 	if q.redisClient != nil {
-		ctx := context.Background()
-		return q.redisClient.ZAdd(ctx, RedisScheduledSet, redis.Z{
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		pipe := q.redisClient.TxPipeline()
+		pipe.ZAdd(ctx, RedisScheduledSet, redis.Z{
 			Score:  float64(runAt.UnixMilli()),
 			Member: string(bytes),
-		}).Err()
+		})
+		pipe.Set(ctx, RedisJobIndexKey+jobID, string(bytes), 30*24*time.Hour)
+		_, err := pipe.Exec(ctx)
+		return err
 	}
 
 	q.mu.Lock()
@@ -223,17 +312,23 @@ func (q *PostQueue) AddPostExpiryJob(postID, userID, platform, platformPostID, s
 
 func (q *PostQueue) RemovePostExpiryJobs(postID string) error {
 	if q.redisClient != nil {
-		ctx := context.Background()
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
 		vals, err := q.redisClient.ZRange(ctx, RedisScheduledSet, 0, -1).Result()
 		if err == nil {
 			for _, val := range vals {
 				var env struct {
+					ID   string        `json:"id"`
 					Name string        `json:"name"`
 					Data ExpiryJobData `json:"data"`
 				}
 				if err := json.Unmarshal([]byte(val), &env); err == nil {
 					if env.Name == ExpirePostPublicationJobName && env.Data.PostID == postID {
 						_ = q.redisClient.ZRem(ctx, RedisScheduledSet, val).Err()
+						if env.ID != "" {
+							_ = q.redisClient.Del(ctx, RedisJobIndexKey+env.ID).Err()
+						}
 					}
 				}
 			}

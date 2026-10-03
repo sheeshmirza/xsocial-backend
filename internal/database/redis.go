@@ -24,6 +24,13 @@ func ConnectRedis(cfg *config.Config) *RedisClient {
 		log.Printf("Failed to parse REDIS_URL: %v; running without Redis", err)
 		return nil
 	}
+	opt.PoolSize = 50
+	opt.MinIdleConns = 10
+	opt.ConnMaxIdleTime = 5 * time.Minute
+	opt.DialTimeout = 5 * time.Second
+	opt.ReadTimeout = 3 * time.Second
+	opt.WriteTimeout = 3 * time.Second
+
 	client := redis.NewClient(opt)
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

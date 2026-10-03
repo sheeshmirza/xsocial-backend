@@ -26,7 +26,13 @@ func ConnectMongoDB(cfg *config.Config) (*MongoDB, error) {
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	clientOpts := options.Client().ApplyURI(cfg.MongoURI)
+	clientOpts := options.Client().
+		ApplyURI(cfg.MongoURI).
+		SetMaxPoolSize(100).
+		SetMinPoolSize(10).
+		SetMaxConnIdleTime(5 * time.Minute).
+		SetServerSelectionTimeout(5 * time.Second)
+
 	client, err := mongo.Connect(clientOpts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create MongoDB client: %w", err)
