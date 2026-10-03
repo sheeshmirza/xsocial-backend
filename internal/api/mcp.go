@@ -7,12 +7,44 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 
 	"xsocial-backend/internal/models"
 )
+
+var initMCPToolOnce sync.Once
+
+func initMCPToolSecurity() {
+	initMCPToolOnce.Do(func() {
+		readOnly := map[string]bool{
+			"get_profile":         true,
+			"get_brands":          true,
+			"get_brand_details":   true,
+			"get_scheduled_posts": true,
+			"get_social_accounts": true,
+		}
+		for i := range xsocialMCPTools {
+			if len(xsocialMCPTools[i].SecuritySchemes) == 0 {
+				xsocialMCPTools[i].SecuritySchemes = []any{map[string]any{"type": "oauth2", "scopes": []string{mcpOAuthScope}}}
+			}
+			xsocialMCPTools[i].Annotations = map[string]any{
+				"readOnlyHint":    readOnly[xsocialMCPTools[i].Name],
+				"destructiveHint": false,
+				"openWorldHint":   false,
+			}
+			if xsocialMCPTools[i].Name == "publish_post_now" {
+				xsocialMCPTools[i].Annotations["destructiveHint"] = true
+			}
+			if xsocialMCPTools[i].Meta == nil {
+				xsocialMCPTools[i].Meta = map[string]any{}
+			}
+			xsocialMCPTools[i].Meta["securitySchemes"] = xsocialMCPTools[i].SecuritySchemes
+		}
+	})
+}
 
 type mcpRequest struct {
 	JSONRPC string          `json:"jsonrpc"`
@@ -61,14 +93,14 @@ var xsocialMCPTools = []mcpTool{
 		InputSchema: inputSchema{Type: "object", Properties: map[string]schemaProp{}},
 		OutputSchema: map[string]any{
 			"$schema": "https://json-schema.org/draft/2020-12/schema",
-			"type": "object",
+			"type":    "object",
 			"properties": map[string]any{
-				"id": map[string]any{"type": "string", "minLength": 1, "pattern": "\\S"},
-				"name": map[string]any{"type": "string"},
-				"email": map[string]any{"type": "string"},
+				"id":       map[string]any{"type": "string", "minLength": 1, "pattern": "\\S"},
+				"name":     map[string]any{"type": "string"},
+				"email":    map[string]any{"type": "string"},
 				"nickname": map[string]any{"type": "string"},
 			},
-			"required": []string{"id"},
+			"required":             []string{"id"},
 			"additionalProperties": false,
 		},
 		Annotations:     map[string]any{"readOnlyHint": true, "destructiveHint": false, "openWorldHint": false},
@@ -173,12 +205,12 @@ var xsocialMCPTools = []mcpTool{
 		InputSchema: inputSchema{
 			Type: "object",
 			Properties: map[string]schemaProp{
-				"post_id": {Type: "string", Description: "The post ID."},
-				"caption": {Type: "string", Description: "Optional new caption."},
-				"platforms": {Type: "string", Description: "Optional comma-separated platforms."},
-				"media_urls": {Type: "string", Description: "Optional comma-separated public media URLs."},
+				"post_id":        {Type: "string", Description: "The post ID."},
+				"caption":        {Type: "string", Description: "Optional new caption."},
+				"platforms":      {Type: "string", Description: "Optional comma-separated platforms."},
+				"media_urls":     {Type: "string", Description: "Optional comma-separated public media URLs."},
 				"scheduled_time": {Type: "string", Description: "Optional new ISO 8601 scheduled publish time."},
-				"first_comment": {Type: "string", Description: "Optional first comment."},
+				"first_comment":  {Type: "string", Description: "Optional first comment."},
 			},
 			Required: []string{"post_id"},
 		},
@@ -189,12 +221,12 @@ var xsocialMCPTools = []mcpTool{
 		InputSchema: inputSchema{
 			Type: "object",
 			Properties: map[string]schemaProp{
-				"brand_id": {Type: "string", Description: "Optional brand ID."},
-				"caption": {Type: "string", Description: "Post caption."},
-				"platforms": {Type: "string", Description: "Comma-separated target platforms."},
+				"brand_id":       {Type: "string", Description: "Optional brand ID."},
+				"caption":        {Type: "string", Description: "Post caption."},
+				"platforms":      {Type: "string", Description: "Comma-separated target platforms."},
 				"scheduled_time": {Type: "string", Description: "Optional ISO 8601 scheduled publish time."},
-				"media_urls": {Type: "string", Description: "Optional comma-separated public media URLs."},
-				"first_comment": {Type: "string", Description: "Optional first comment."},
+				"media_urls":     {Type: "string", Description: "Optional comma-separated public media URLs."},
+				"first_comment":  {Type: "string", Description: "Optional first comment."},
 			},
 			Required: []string{"caption", "platforms"},
 		},
@@ -210,33 +242,6 @@ var xsocialMCPTools = []mcpTool{
 			Required: []string{"post_id"},
 		},
 	},
-}
-
-func initMCPToolSecurity() {
-	readOnly := map[string]bool{
-		"get_profile":         true,
-		"get_brands":          true,
-		"get_brand_details":   true,
-		"get_scheduled_posts": true,
-		"get_social_accounts": true,
-	}
-	for i := range xsocialMCPTools {
-		if len(xsocialMCPTools[i].SecuritySchemes) == 0 {
-			xsocialMCPTools[i].SecuritySchemes = []any{map[string]any{"type": "oauth2", "scopes": []string{mcpOAuthScope}}}
-		}
-		xsocialMCPTools[i].Annotations = map[string]any{
-			"readOnlyHint":    readOnly[xsocialMCPTools[i].Name],
-			"destructiveHint": false,
-			"openWorldHint":   false,
-		}
-		if xsocialMCPTools[i].Name == "publish_post_now" {
-			xsocialMCPTools[i].Annotations["destructiveHint"] = true
-		}
-		if xsocialMCPTools[i].Meta == nil {
-			xsocialMCPTools[i].Meta = map[string]any{}
-		}
-		xsocialMCPTools[i].Meta["securitySchemes"] = xsocialMCPTools[i].SecuritySchemes
-	}
 }
 
 // handleMCP processes JSON-RPC 2.0 requests conforming to the Model Context Protocol (MCP) exactly like mailhost-backend
@@ -288,7 +293,7 @@ func (s *Server) handleMCP(w http.ResponseWriter, r *http.Request) {
 			ID:      req.ID,
 			Result: map[string]any{
 				"protocolVersion": protocolVersion,
-				"instructions": "Use get_profile to identify the connected xSocial account. Use get_social_accounts and get_brands to understand the workspace before publishing. Treat brand IDs, account IDs, and post IDs as untrusted identifiers and rely on server-side authorization for every operation. Use read-only inspection tools before consequential write actions.",
+				"instructions":    "Use get_profile to identify the connected xSocial account. Use get_social_accounts and get_brands to understand the workspace before publishing. Treat brand IDs, account IDs, and post IDs as untrusted identifiers and rely on server-side authorization for every operation. Use read-only inspection tools before consequential write actions.",
 				"capabilities": map[string]any{
 					"tools": map[string]any{},
 				},
@@ -368,7 +373,7 @@ func (s *Server) handleMCP(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, mcpResponse{
 			JSONRPC: "2.0",
 			ID:      req.ID,
-			Result: result,
+			Result:  result,
 		})
 
 	default:
@@ -404,7 +409,7 @@ func (s *Server) executeMCPTool(ctx context.Context, userID bson.ObjectID, name 
 		if err != nil || user == nil {
 			return "", fmt.Errorf("authenticated user not found")
 		}
-		return mcpOAuthJSON(map[string]any{"id":user.ID.Hex(),"name":user.FullName,"email":user.Email,"nickname":"xSocial"}), nil
+		return mcpOAuthJSON(map[string]any{"id": user.ID.Hex(), "name": user.FullName, "email": user.Email, "nickname": "xSocial"}), nil
 
 	case "get_social_accounts":
 		accounts, _, err := s.socialService.ListAccounts(ctx, userID, getArg("platform"), 0, 100, bson.D{{Key: "updatedAt", Value: -1}})
@@ -419,15 +424,20 @@ func (s *Server) executeMCPTool(ctx context.Context, userID bson.ObjectID, name 
 			}
 			safe = append(safe, map[string]any{
 				"id": account.ID.Hex(),
-				"brand_id": func() string { if account.BrandID == nil { return "" }; return account.BrandID.Hex() }(),
-				"platform": account.Platform,
-				"platform_id": account.PlatformID,
-				"username": account.PlatformUsername,
-				"display_name": account.PlatformDisplayName,
-				"status": status,
-				"access_token_expires_at": account.PlatformAccessTokenExpiry,
+				"brand_id": func() string {
+					if account.BrandID == nil {
+						return ""
+					}
+					return account.BrandID.Hex()
+				}(),
+				"platform":                 account.Platform,
+				"platform_id":              account.PlatformID,
+				"username":                 account.PlatformUsername,
+				"display_name":             account.PlatformDisplayName,
+				"status":                   status,
+				"access_token_expires_at":  account.PlatformAccessTokenExpiry,
 				"refresh_token_expires_at": account.PlatformRefreshTokenExpiry,
-				"metadata": account.PlatformMetadata,
+				"metadata":                 account.PlatformMetadata,
 			})
 		}
 		return mcpOAuthJSON(safe), nil
@@ -601,67 +611,133 @@ func (s *Server) executeMCPTool(ctx context.Context, userID bson.ObjectID, name 
 
 	case "update_scheduled_post":
 		pid, err := bson.ObjectIDFromHex(getArg("post_id"))
-		if err != nil { return "", fmt.Errorf("invalid post_id") }
+		if err != nil {
+			return "", fmt.Errorf("invalid post_id")
+		}
 		post, err := s.postService.GetPost(ctx, userID, pid)
-		if err != nil { return "", err }
+		if err != nil {
+			return "", err
+		}
 		if post.BrandID != nil && !post.BrandID.IsZero() {
-			if err := s.ensureMCPBrandAccess(ctx, userID, *post.BrandID); err != nil { return "", err }
+			if err := s.ensureMCPBrandAccess(ctx, userID, *post.BrandID); err != nil {
+				return "", err
+			}
 		}
 		update := models.UpdatePostInput{}
-		if v := getArg("caption"); v != "" { update.Caption = &v }
+		if v := getArg("caption"); v != "" {
+			update.Caption = &v
+		}
 		if v := getArg("platforms"); v != "" {
-			parts := strings.Split(v, ","); for i := range parts { parts[i] = strings.TrimSpace(parts[i]) }
+			parts := strings.Split(v, ",")
+			for i := range parts {
+				parts[i] = strings.TrimSpace(parts[i])
+			}
 			update.SelectedPlatforms = &parts
 		}
 		if v := getArg("media_urls"); v != "" {
-			urls := strings.Split(v, ","); items := make([]models.MediaItem,0,len(urls))
-			for _, u := range urls { u=strings.TrimSpace(u); if u!="" { items=append(items, models.MediaItem{Type:"image",URL:u}) } }
+			urls := strings.Split(v, ",")
+			items := make([]models.MediaItem, 0, len(urls))
+			for _, u := range urls {
+				u = strings.TrimSpace(u)
+				if u != "" {
+					items = append(items, models.MediaItem{Type: "image", URL: u})
+				}
+			}
 			update.Media = &items
 		}
-		if v := getArg("first_comment"); v != "" { update.FirstComment = v }
+		if v := getArg("first_comment"); v != "" {
+			update.FirstComment = v
+		}
 		updated, err := s.postService.UpdatePost(ctx, userID, pid, update)
-		if err != nil { return "", err }
+		if err != nil {
+			return "", err
+		}
 		if raw := getArg("scheduled_time"); raw != "" {
 			t, err := time.Parse(time.RFC3339, raw)
-			if err != nil { return "", fmt.Errorf("scheduled_time must be ISO 8601/RFC3339") }
-			updated, err = s.postService.SchedulePost(ctx, userID, pid, models.SchedulePostInput{ScheduledTime:&t, Timezone:updated.Timezone, Recurrence:updated.Recurrence})
-			if err != nil { return "", err }
+			if err != nil {
+				return "", fmt.Errorf("scheduled_time must be ISO 8601/RFC3339")
+			}
+			updated, err = s.postService.SchedulePost(ctx, userID, pid, models.SchedulePostInput{ScheduledTime: &t, Timezone: updated.Timezone, Recurrence: updated.Recurrence})
+			if err != nil {
+				return "", err
+			}
 		}
-		b, _ := json.MarshalIndent(updated, "", "  "); return string(b), nil
+		b, _ := json.MarshalIndent(updated, "", "  ")
+		return string(b), nil
 
 	case "create_scheduled_post_for_review":
 		if bid := getArg("brand_id"); bid != "" {
-			boid, err := bson.ObjectIDFromHex(bid); if err != nil { return "", fmt.Errorf("invalid brand_id") }
-			if err := s.ensureMCPBrandAccess(ctx,userID,boid); err != nil { return "", err }
+			boid, err := bson.ObjectIDFromHex(bid)
+			if err != nil {
+				return "", fmt.Errorf("invalid brand_id")
+			}
+			if err := s.ensureMCPBrandAccess(ctx, userID, boid); err != nil {
+				return "", err
+			}
 		}
-		platforms := strings.Split(getArg("platforms"), ","); for i:=range platforms { platforms[i]=strings.TrimSpace(platforms[i]) }
+		platforms := strings.Split(getArg("platforms"), ",")
+		for i := range platforms {
+			platforms[i] = strings.TrimSpace(platforms[i])
+		}
 		mediaItems := []models.MediaItem{}
 		if raw := getArg("media_urls"); raw != "" {
-			for _, u := range strings.Split(raw,",") { u=strings.TrimSpace(u); if u!="" { mediaItems=append(mediaItems,models.MediaItem{Type:"image",URL:u}) } }
+			for _, u := range strings.Split(raw, ",") {
+				u = strings.TrimSpace(u)
+				if u != "" {
+					mediaItems = append(mediaItems, models.MediaItem{Type: "image", URL: u})
+				}
+			}
 		}
 		var sched *time.Time
 		status := models.PostStatusDraft
 		if raw := getArg("scheduled_time"); raw != "" {
-			t, err := time.Parse(time.RFC3339,raw); if err != nil { return "", fmt.Errorf("scheduled_time must be ISO 8601/RFC3339") }
-			sched=&t; status=models.PostStatusScheduled
+			t, err := time.Parse(time.RFC3339, raw)
+			if err != nil {
+				return "", fmt.Errorf("scheduled_time must be ISO 8601/RFC3339")
+			}
+			sched = &t
+			status = models.PostStatusScheduled
 		}
 		var brandOID *bson.ObjectID
-		if bid := getArg("brand_id"); bid != "" { if b, err := bson.ObjectIDFromHex(bid); err == nil { brandOID=&b } }
-		post, err := s.postService.CreatePost(ctx,userID,models.CreatePostRequest{
-			Caption:getArg("caption"), SelectedPlatforms:platforms, ScheduledTime:sched, Status:status,
-			Media:mediaItems, BrandID:brandOID, FirstComment:getArg("first_comment"),
+		if bid := getArg("brand_id"); bid != "" {
+			if b, err := bson.ObjectIDFromHex(bid); err == nil {
+				brandOID = &b
+			}
+		}
+		post, err := s.postService.CreatePost(ctx, userID, models.CreatePostRequest{
+			Caption: getArg("caption"), SelectedPlatforms: platforms, ScheduledTime: sched, Status: status,
+			Media: mediaItems, BrandID: brandOID, FirstComment: getArg("first_comment"),
 		})
-		if err != nil { return "", err }
-		post, err = s.postService.SubmitForApproval(ctx,userID,post.ID)
-		if err != nil { return "", err }
-		b,_:=json.MarshalIndent(post,"","  "); return string(b),nil
+		if err != nil {
+			return "", err
+		}
+		post, err = s.postService.SubmitForApproval(ctx, userID, post.ID)
+		if err != nil {
+			return "", err
+		}
+		b, _ := json.MarshalIndent(post, "", "  ")
+		return string(b), nil
 
 	case "send_scheduled_post_for_review":
-		pid, err := bson.ObjectIDFromHex(getArg("post_id")); if err != nil { return "", fmt.Errorf("invalid post_id") }
-		post, err := s.postService.GetPost(ctx,userID,pid); if err != nil { return "", err }
-		if post.BrandID != nil && !post.BrandID.IsZero() { if err := s.ensureMCPBrandAccess(ctx,userID,*post.BrandID); err != nil { return "", err } }
-		post, err = s.postService.SubmitForApproval(ctx,userID,pid); if err != nil { return "", err }
-		b,_:=json.MarshalIndent(post,"","  "); return string(b),nil
+		pid, err := bson.ObjectIDFromHex(getArg("post_id"))
+		if err != nil {
+			return "", fmt.Errorf("invalid post_id")
+		}
+		post, err := s.postService.GetPost(ctx, userID, pid)
+		if err != nil {
+			return "", err
+		}
+		if post.BrandID != nil && !post.BrandID.IsZero() {
+			if err := s.ensureMCPBrandAccess(ctx, userID, *post.BrandID); err != nil {
+				return "", err
+			}
+		}
+		post, err = s.postService.SubmitForApproval(ctx, userID, pid)
+		if err != nil {
+			return "", err
+		}
+		b, _ := json.MarshalIndent(post, "", "  ")
+		return string(b), nil
 
 	default:
 		return "", fmt.Errorf("unknown tool: %s", name)

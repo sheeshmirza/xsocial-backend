@@ -33,6 +33,31 @@ var usedMCPAuthCodes sync.Map
 var usedMCPRefreshTokens sync.Map
 var mcpRefreshTokenStore sync.Map
 
+func init() {
+	// Background reaper to clean up in-memory auth codes and refresh token tracking
+	// so memory doesn't grow unbounded when Redis is not configured.
+	go func() {
+		ticker := time.NewTicker(15 * time.Minute)
+		for range ticker.C {
+			cutoffCodes := time.Now().Add(-10 * time.Minute)
+			usedMCPAuthCodes.Range(func(key, val any) bool {
+				if t, ok := val.(time.Time); ok && t.Before(cutoffCodes) {
+					usedMCPAuthCodes.Delete(key)
+				}
+				return true
+			})
+
+			cutoffTokens := time.Now().Add(-48 * time.Hour)
+			usedMCPRefreshTokens.Range(func(key, val any) bool {
+				if t, ok := val.(time.Time); ok && t.Before(cutoffTokens) {
+					usedMCPRefreshTokens.Delete(key)
+				}
+				return true
+			})
+		}
+	}()
+}
+
 func (s *Server) mcpOAuthResource(r *http.Request) string {
 	if s.cfg.MCPOAuthResource != "" {
 		return s.cfg.MCPOAuthResource

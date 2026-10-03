@@ -2,7 +2,16 @@ package api
 
 import (
 	"net/http"
+	"regexp"
 	"strings"
+)
+
+// emailRegexp is a minimal RFC 5321 email validator.
+var emailRegexp = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
+
+const (
+	passwordMinLen = 8
+	passwordMaxLen = 128
 )
 
 func (s *Server) signupUser(w http.ResponseWriter, r *http.Request) {
@@ -13,9 +22,21 @@ func (s *Server) signupUser(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, 0, &req) {
 		return
 	}
-	req.Email = strings.TrimSpace(req.Email)
+	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
 	if req.Email == "" || req.Password == "" {
 		writeError(w, http.StatusBadRequest, "email and password are required")
+		return
+	}
+	if !emailRegexp.MatchString(req.Email) {
+		writeError(w, http.StatusBadRequest, "invalid email address format")
+		return
+	}
+	if len(req.Password) < passwordMinLen {
+		writeError(w, http.StatusBadRequest, "password must be at least 8 characters")
+		return
+	}
+	if len(req.Password) > passwordMaxLen {
+		writeError(w, http.StatusBadRequest, "password must not exceed 128 characters")
 		return
 	}
 	res, err := s.authService.Signup(r.Context(), req.Email, req.Password)
@@ -130,6 +151,18 @@ func (s *Server) resetPassword(w http.ResponseWriter, r *http.Request) {
 		NewPassword string `json:"newPassword"`
 	}
 	if !decode(w, r, 0, &req) {
+		return
+	}
+	if req.Token == "" {
+		writeError(w, http.StatusBadRequest, "reset token is required")
+		return
+	}
+	if len(req.NewPassword) < passwordMinLen {
+		writeError(w, http.StatusBadRequest, "password must be at least 8 characters")
+		return
+	}
+	if len(req.NewPassword) > passwordMaxLen {
+		writeError(w, http.StatusBadRequest, "password must not exceed 128 characters")
 		return
 	}
 	if err := s.authService.ResetPassword(r.Context(), req.Token, req.NewPassword); err != nil {

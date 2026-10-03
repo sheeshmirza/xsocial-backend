@@ -42,7 +42,15 @@ func (s *BrandService) CreateBrand(ctx context.Context, userID bson.ObjectID, re
 		WebsiteURL:  req.WebsiteURL,
 	}
 
-	if err := s.repo.CreateBrand(ctx, brand); err != nil {
+	owner, _ := s.userRepo.FindByID(ctx, userID)
+	ownerEmail := ""
+	ownerName := ""
+	if owner != nil {
+		ownerEmail = owner.Email
+		ownerName = owner.FullName
+	}
+
+	if err := s.repo.CreateBrandWithOwner(ctx, brand, ownerEmail, ownerName); err != nil {
 		return nil, utils.InternalServerError("Failed to create brand")
 	}
 	return brand, nil

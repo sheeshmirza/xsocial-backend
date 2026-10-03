@@ -10,7 +10,6 @@ import (
 	mathrand "math/rand/v2"
 	"net"
 	"net/http"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -419,16 +418,50 @@ func currentBrandOID(r *http.Request) (bson.ObjectID, bool) {
 	return oid, err == nil
 }
 
+// clientIP returns the real client IP. X-Forwarded-For is used only when
+// the connection comes from a loopback/private address (i.e. behind a trusted
+// local proxy/load-balancer). In untrusted environments the direct RemoteAddr
+// is used to prevent IP spoofing via the X-Forwarded-For header.
 func clientIP(r *http.Request) string {
-	if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
-		parts := strings.Split(fwd, ",")
-		return strings.TrimSpace(parts[0])
-	}
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
-	if err == nil {
-		return host
+	if err != nil {
+		host = r.RemoteAddr
 	}
-	return r.RemoteAddr
+	// Only trust X-Forwarded-For if the immediate connection is from a
+	// private/loopback address (the proxy is local to us).
+	if isPrivateIP(host) {
+		if fwd := r.Header.Get("X-Forwarded-For"); fwd != "" {
+			// The leftmost non-private address is the real client IP.
+			parts := strings.Split(fwd, ",")
+			for _, p := range parts {
+				candidate := strings.TrimSpace(p)
+				if candidate != "" && !isPrivateIP(candidate) {
+					return candidate
+				}
+			}
+			// All hops are private — return the first one.
+			if len(parts) > 0 {
+				return strings.TrimSpace(parts[0])
+			}
+		}
+	}
+	return host
+}
+
+// isPrivateIP reports whether ip is a loopback or RFC1918/RFC4193 private address.
+func isPrivateIP(ip string) bool {
+	if ip == "localhost" || ip == "::1" || ip == "127.0.0.1" {
+		return true
+	}
+	privateRanges := []string{"10.", "172.16.", "172.17.", "172.18.", "172.19.",
+		"172.20.", "172.21.", "172.22.", "172.23.", "172.24.", "172.25.", "172.26.",
+		"172.27.", "172.28.", "172.29.", "172.30.", "172.31.", "192.168.", "fd", "::"}
+	for _, prefix := range privateRanges {
+		if strings.HasPrefix(ip, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 func (s *Server) checkAuthRate(ip string) (bool, time.Duration) {
@@ -440,10 +473,8 @@ func (s *Server) checkAuthRate(ip string) (bool, time.Duration) {
 	}
 	now := time.Now()
 	if rec.blockedTo.After(now) {
-		return true, 0
-	}
-	if rec.count >= 4 {
-		return false, time.Second
+		remaining := time.Until(rec.blockedTo)
+		return true, remaining
 	}
 	return false, 0
 }
@@ -611,17 +642,16 @@ func decode(w http.ResponseWriter, r *http.Request, limit int64, v any) bool {
 	return true
 }
 
-func page(r *http.Request) (int, int) {
-	page, limit := 1, 20
-	if p := r.URL.Query().Get("page"); p != "" {
-		if n, err := strconv.Atoi(p); err == nil && n > 0 {
-			page = n
-		}
+// page parses page/limit query parameters using the shared utils.ParsePagination
+// implementation which caps limit at 100 and defaults to page=1 / limit=20.
+func page(r *http.Request) (pageNum, limit int) {
+	p, l, _ := utils.ParsePagination(
+		r.URL.Query().Get("page"),
+		r.URL.Query().Get("limit"),
+	)
+	// utils.ParsePagination defaults to limit=10; keep our API default of 20.
+	if l == 10 && r.URL.Query().Get("limit") == "" {
+		l = 20
 	}
-	if l := r.URL.Query().Get("limit"); l != "" {
-		if n, err := strconv.Atoi(l); err == nil && n > 0 && n <= 100 {
-			limit = n
-		}
-	}
-	return page, limit
+	return p, l
 }

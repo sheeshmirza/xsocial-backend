@@ -1,6 +1,7 @@
 package config
 
 import (
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -8,6 +9,18 @@ import (
 
 	"github.com/joho/godotenv"
 )
+
+// weakSecrets is a set of known-dangerous placeholder values that must never
+// be used in production. LoadConfig will fatal if any JWT secret matches.
+var weakSecrets = map[string]bool{
+	"your_jwt_access_secret_here_change_in_production":   true,
+	"your_jwt_refresh_secret_here_change_in_production":  true,
+	"secret":       true,
+	"changeme":     true,
+	"test":         true,
+	"password":     true,
+	"jwt_secret":   true,
+}
 
 type OAuthPlatformConfig struct {
 	ClientID     string
@@ -87,6 +100,22 @@ func parseOrigins(value string) []string {
 func LoadConfig() *Config {
 	_ = godotenv.Load()
 
+	// Validate JWT secrets before proceeding — fatal on weak/placeholder values.
+	jwtAccessSecret := cleanEnvValue(os.Getenv("JWT_ACCESS_SECRET"))
+	jwtRefreshSecret := cleanEnvValue(os.Getenv("JWT_REFRESH_SECRET"))
+	nodeEnv := cleanEnvValue(os.Getenv("NODE_ENV"))
+	if nodeEnv == "" {
+		nodeEnv = "development"
+	}
+	if nodeEnv != "test" {
+		if weakSecrets[strings.ToLower(jwtAccessSecret)] || len(jwtAccessSecret) < 32 {
+			log.Fatalf("[FATAL] JWT_ACCESS_SECRET is missing, too short (<32 chars), or uses a known-weak placeholder. Set a strong random secret before starting.")
+		}
+		if weakSecrets[strings.ToLower(jwtRefreshSecret)] || len(jwtRefreshSecret) < 32 {
+			log.Fatalf("[FATAL] JWT_REFRESH_SECRET is missing, too short (<32 chars), or uses a known-weak placeholder. Set a strong random secret before starting.")
+		}
+	}
+
 	port, err := strconv.Atoi(cleanEnvValue(os.Getenv("PORT")))
 	if err != nil || port <= 0 {
 		port = 5000
@@ -136,12 +165,12 @@ func LoadConfig() *Config {
 		Port:                port,
 		ApiPrefix:           apiPrefix,
 		PublicBaseURL:       cleanEnvValue(os.Getenv("PUBLIC_BASE_URL")),
-		NodeEnv:             cleanEnvValue(os.Getenv("NODE_ENV")),
+		NodeEnv:             nodeEnv,
 		MongoURI:            mongoURI,
 		MongoDBName:         dbName,
 		RedisURL:            cleanEnvValue(os.Getenv("REDIS_URL")),
-		JWTAccessSecret:     cleanEnvValue(os.Getenv("JWT_ACCESS_SECRET")),
-		JWTRefreshSecret:    cleanEnvValue(os.Getenv("JWT_REFRESH_SECRET")),
+		JWTAccessSecret:     jwtAccessSecret,
+		JWTRefreshSecret:    jwtRefreshSecret,
 		JWTAccessExpiresIn:  parseDuration(os.Getenv("JWT_ACCESS_EXPIRES_IN"), 15*time.Minute),
 		JWTRefreshExpiresIn: parseDuration(os.Getenv("JWT_REFRESH_EXPIRES_IN"), 30*24*time.Hour),
 		BcryptSaltRounds:    bcryptRounds,

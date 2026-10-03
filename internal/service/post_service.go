@@ -703,14 +703,20 @@ func (s *PostService) PublicReviewAction(ctx context.Context, token, action, rev
 }
 
 func (s *PostService) deleteLinkedInPlatformPosts(ctx context.Context, userID bson.ObjectID, post *models.Post) {
+	if post == nil {
+		return
+	}
+	tCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
 	for _, r := range post.PlatformResponses {
 		if strings.ToLower(r.Platform) == "linkedin" && r.Status == "success" && r.PlatformPostID != "" {
 			if r.SocialHandleID != "" {
 				if hid, err := bson.ObjectIDFromHex(r.SocialHandleID); err == nil {
-					handle, _ := s.socialHandleRepo.FindByIDAndUserID(ctx, hid, userID)
+					handle, _ := s.socialHandleRepo.FindByIDAndUserID(tCtx, hid, userID)
 					if handle != nil {
-						fresh := s.socialService.RefreshPlatformTokenIfNeeded(ctx, userID, handle)
-						_ = s.postPublishService.linkedinService.DeletePost(ctx, fresh.PlatformAccessToken, r.PlatformPostID)
+						fresh := s.socialService.RefreshPlatformTokenIfNeeded(tCtx, userID, handle)
+						_ = s.postPublishService.linkedinService.DeletePost(tCtx, fresh.PlatformAccessToken, r.PlatformPostID)
 					}
 				}
 			}
@@ -1313,19 +1319,14 @@ func (s *PostService) PublishScheduledPost(ctx context.Context, postIDStr string
 		occurrence, err := s.createRecurringOccurrence(ctx, post)
 		if err != nil {
 			log.Printf("[PostService] Recurring occurrence creation failed for %s: %v", postIDStr, err)
-			shouldAdvanceRecurrence = true
 		} else {
-			published, err := s.PublishPost(ctx, post.UserID, occurrence.ID, post.SelectedPlatforms, post.SelectedAccountIds, nil)
-			if err == nil && published != nil && published.Status == models.PostStatusPublished {
-				shouldAdvanceRecurrence = true
-			} else {
-				shouldAdvanceRecurrence = true
-			}
+			_, _ = s.PublishPost(ctx, post.UserID, occurrence.ID, post.SelectedPlatforms, post.SelectedAccountIds, nil)
 		}
+		shouldAdvanceRecurrence = true
 	} else {
 		published, err := s.PublishPost(ctx, post.UserID, post.ID, post.SelectedPlatforms, post.SelectedAccountIds, nil)
 		if err == nil && published != nil && published.Status == models.PostStatusPublished {
-			shouldAdvanceRecurrence = isRecurring
+			shouldAdvanceRecurrence = false
 		}
 	}
 

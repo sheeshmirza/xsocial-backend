@@ -20,7 +20,8 @@ func (s *Server) listSocialAccounts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	handles, err := s.handleRepo.ListByUserID(r.Context(), userOID, bson.M{}, 0, 100, nil)
+	platformFilter := r.URL.Query().Get("platform")
+	handles, total, err := s.socialService.ListAccounts(r.Context(), userOID, platformFilter, 0, 100, bson.D{{Key: "updatedAt", Value: -1}})
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to list social accounts")
 		return
@@ -32,6 +33,7 @@ func (s *Server) listSocialAccounts(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"data":  handles,
 		"count": len(handles),
+		"total": total,
 	})
 }
 

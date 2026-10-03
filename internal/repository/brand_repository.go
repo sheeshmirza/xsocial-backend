@@ -41,6 +41,10 @@ func NewBrandRepository(db *mongo.Database) *BrandRepository {
 }
 
 func (r *BrandRepository) CreateBrand(ctx context.Context, brand *models.Brand) error {
+	return r.CreateBrandWithOwner(ctx, brand, "", "")
+}
+
+func (r *BrandRepository) CreateBrandWithOwner(ctx context.Context, brand *models.Brand, ownerEmail, ownerName string) error {
 	now := time.Now()
 	brand.CreatedAt = now
 	brand.UpdatedAt = now
@@ -52,10 +56,12 @@ func (r *BrandRepository) CreateBrand(ctx context.Context, brand *models.Brand) 
 		brand.ID = oid
 	}
 
-	// Add owner as brand member
+	// Add owner as brand member with populated identity
 	member := &models.BrandMember{
 		BrandID:   brand.ID,
 		UserID:    brand.OwnerID,
+		Email:     ownerEmail,
+		Name:      ownerName,
 		Role:      models.BrandRoleOwner,
 		CreatedAt: now,
 		UpdatedAt: now,
