@@ -1,6 +1,8 @@
 package models
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -34,10 +36,24 @@ type ApiKeyView struct {
 }
 
 type CreateApiKeyRequest struct {
-	Name        string   `json:"name" binding:"required"`
-	Permissions []string `json:"permissions"`
-	BrandID     string   `json:"brandId"`
-	ExpiresInDays int    `json:"expiresInDays"`
+	Name          string   `json:"name" binding:"required"`
+	Permissions   []string `json:"permissions"`
+	BrandID       string   `json:"brandId"`
+	ExpiresInDays int      `json:"expiresInDays"`
+}
+
+func (r *CreateApiKeyRequest) Validate() error {
+	r.Name = strings.TrimSpace(r.Name)
+	if r.Name == "" {
+		return fmt.Errorf("API key name is required")
+	}
+	if len(r.Name) > 100 {
+		return fmt.Errorf("API key name must not exceed 100 characters")
+	}
+	if r.ExpiresInDays < 0 || r.ExpiresInDays > 365 {
+		return fmt.Errorf("expiresInDays must be between 1 and 365 days")
+	}
+	return nil
 }
 
 type CreateApiKeyResponse struct {

@@ -45,6 +45,10 @@ func generateSecureToken(prefix string, byteLen int) (string, error) {
 }
 
 func (s *ApiKeyService) CreateApiKey(ctx context.Context, userID bson.ObjectID, req models.CreateApiKeyRequest) (*models.CreateApiKeyResponse, error) {
+	if err := req.Validate(); err != nil {
+		return nil, utils.BadRequest(err.Error())
+	}
+
 	rawKey, err := generateSecureToken("mc_live_", 24)
 	if err != nil {
 		return nil, utils.InternalServerError("Failed to generate API key")

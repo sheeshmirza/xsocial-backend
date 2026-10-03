@@ -337,6 +337,10 @@ func (s *PostService) enrichPostWithLinkedInActivity(ctx context.Context, userID
 }
 
 func (s *PostService) CreatePost(ctx context.Context, userID bson.ObjectID, payload models.CreatePostInput) (*models.Post, error) {
+	if err := payload.Validate(); err != nil {
+		return nil, utils.BadRequest(err.Error())
+	}
+
 	if err := s.resolveAIGeneratedContent(ctx, &payload); err != nil {
 		return nil, err
 	}

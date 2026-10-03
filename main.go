@@ -62,7 +62,7 @@ func main() {
 	// 6. Initialize Core & Platform Domain Services
 	tokenService := service.NewTokenService(cfg, rfRepo)
 	authService := service.NewAuthService(cfg, userRepo, tokenService)
-	userService := service.NewUserService(cfg, userRepo, rfRepo)
+	userService := service.NewUserService(cfg, userRepo, rfRepo, redisClient)
 	aiService := service.NewAIService(cfg)
 	uploadService := service.NewUploadService(cfg)
 	socialService := service.NewSocialService(cfg, handleRepo, igService, liService)
@@ -83,7 +83,7 @@ func main() {
 
 	// 7. Initialize Workspaces and Keys Services
 	apiKeyService := service.NewApiKeyService(apiKeyRepo, redisClient, brandRepo)
-	brandService := service.NewBrandService(brandRepo, userRepo)
+	brandService := service.NewBrandService(brandRepo, userRepo, redisClient)
 	auditLogService := service.NewAuditLogService(auditLogRepo)
 
 	// 8. Initialize Queue & Dispatcher

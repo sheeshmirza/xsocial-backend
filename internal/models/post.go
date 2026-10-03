@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"strings"
 	"time"
 
@@ -258,6 +259,64 @@ type CreatePostInput struct {
 	InstagramTrial     *InstagramTrialSettings `json:"instagramTrial,omitempty"`
 	Poll               *PollData               `json:"poll,omitempty"`
 	AI                 *AISettings             `json:"ai"`
+}
+
+func (in *CreatePostInput) Validate() error {
+	in.Title = strings.TrimSpace(in.Title)
+	if len(in.Title) > 500 {
+		return fmt.Errorf("title exceeds maximum allowed length of 500 characters")
+	}
+	in.Caption = strings.TrimSpace(in.Caption)
+	if len(in.Caption) > 50000 {
+		return fmt.Errorf("caption exceeds maximum allowed length of 50,000 characters")
+	}
+	if in.PostType != "" {
+		validTypes := map[string]bool{
+			"text": true, "image": true, "video": true, "gif": true,
+			"mixed": true, "reel": true, "story": true, "carousel": true,
+			"poll": true, "article": true,
+		}
+		if !validTypes[strings.ToLower(in.PostType)] {
+			return fmt.Errorf("invalid postType: %s", in.PostType)
+		}
+	}
+	if in.Visibility != "" {
+		v := strings.ToLower(in.Visibility)
+		if v != "public" && v != "private" {
+			return fmt.Errorf("visibility must be either 'public' or 'private'")
+		}
+	}
+	if in.Timezone != "" && in.Timezone != "UTC" {
+		if _, err := time.LoadLocation(in.Timezone); err != nil {
+			return fmt.Errorf("invalid timezone: %s", in.Timezone)
+		}
+	}
+	if in.Recurrence != "" {
+		validRec := map[string]bool{
+			RecurrenceOnce: true, RecurrenceHourly: true, RecurrenceDaily: true,
+			RecurrenceWeekly: true, RecurrenceMonthly: true, RecurrenceYearly: true,
+		}
+		if !validRec[strings.ToLower(in.Recurrence)] {
+			return fmt.Errorf("invalid recurrence: %s", in.Recurrence)
+		}
+	}
+	for i, m := range in.Media {
+		if m.URL != "" {
+			trimmedURL := strings.TrimSpace(m.URL)
+			if !strings.HasPrefix(trimmedURL, "http://") && !strings.HasPrefix(trimmedURL, "https://") {
+				return fmt.Errorf("media[%d] URL must start with http:// or https://", i)
+			}
+		}
+	}
+	if in.Poll != nil {
+		if len(in.Poll.Options) < 2 {
+			return fmt.Errorf("poll requires at least 2 options")
+		}
+		if len(in.Poll.Options) > 10 {
+			return fmt.Errorf("poll cannot have more than 10 options")
+		}
+	}
+	return nil
 }
 
 type UpdatePostInput struct {

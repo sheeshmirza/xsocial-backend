@@ -1,6 +1,8 @@
 package models
 
 import (
+	"fmt"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -49,6 +51,28 @@ type CreateBrandRequest struct {
 	Timezone    string `json:"timezone"`
 	Currency    string `json:"currency"`
 	WebsiteURL  string `json:"websiteUrl"`
+}
+
+func (r *CreateBrandRequest) Validate() error {
+	r.Name = strings.TrimSpace(r.Name)
+	if r.Name == "" {
+		return fmt.Errorf("brand name is required")
+	}
+	if len(r.Name) > 100 {
+		return fmt.Errorf("brand name must not exceed 100 characters")
+	}
+	if r.Currency != "" {
+		r.Currency = strings.ToUpper(strings.TrimSpace(r.Currency))
+		if len(r.Currency) != 3 {
+			return fmt.Errorf("currency must be a 3-letter ISO code")
+		}
+	}
+	if r.Timezone != "" {
+		if _, err := time.LoadLocation(r.Timezone); err != nil {
+			return fmt.Errorf("invalid timezone: %s", r.Timezone)
+		}
+	}
+	return nil
 }
 
 type UpdateBrandRequest struct {

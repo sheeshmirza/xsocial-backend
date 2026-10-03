@@ -610,11 +610,16 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 }
 
 func writeError(w http.ResponseWriter, status int, msg string) {
-	writeJSON(w, status, map[string]any{
-		"success": false,
-		"error":   msg,
-		"message": msg,
-	})
+	resp := map[string]any{
+		"success":   false,
+		"error":     msg,
+		"message":   msg,
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	}
+	if reqID := w.Header().Get("X-Request-ID"); reqID != "" {
+		resp["requestId"] = reqID
+	}
+	writeJSON(w, status, resp)
 }
 
 func writeApiError(w http.ResponseWriter, err error) {
@@ -623,10 +628,37 @@ func writeApiError(w http.ResponseWriter, err error) {
 	}
 	var apiErr *utils.ApiError
 	if errors.As(err, &apiErr) {
-		writeError(w, apiErr.StatusCode, apiErr.Message)
+		resp := map[string]any{
+			"success":   false,
+			"error":     apiErr.Message,
+			"message":   apiErr.Message,
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
+		}
+		if apiErr.Details != nil {
+			resp["details"] = apiErr.Details
+		}
+		if reqID := w.Header().Get("X-Request-ID"); reqID != "" {
+			resp["requestId"] = reqID
+		}
+		writeJSON(w, apiErr.StatusCode, resp)
 		return
 	}
 	writeError(w, http.StatusBadRequest, err.Error())
+}
+
+func writeSuccess(w http.ResponseWriter, status int, data any, message string) {
+	resp := map[string]any{
+		"success":   true,
+		"data":      data,
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	}
+	if message != "" {
+		resp["message"] = message
+	}
+	if reqID := w.Header().Get("X-Request-ID"); reqID != "" {
+		resp["requestId"] = reqID
+	}
+	writeJSON(w, status, resp)
 }
 
 func decode(w http.ResponseWriter, r *http.Request, limit int64, v any) bool {

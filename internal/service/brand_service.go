@@ -3,8 +3,12 @@ package service
 import (
 	"context"
 
+	"encoding/json"
+	"time"
+
 	"go.mongodb.org/mongo-driver/v2/bson"
 
+	"xsocial-backend/internal/database"
 	"xsocial-backend/internal/models"
 	"xsocial-backend/internal/repository"
 	"xsocial-backend/internal/utils"
@@ -13,16 +17,22 @@ import (
 type BrandService struct {
 	repo     *repository.BrandRepository
 	userRepo *repository.UserRepository
+	redis    *database.RedisClient
 }
 
-func NewBrandService(repo *repository.BrandRepository, userRepo *repository.UserRepository) *BrandService {
+func NewBrandService(repo *repository.BrandRepository, userRepo *repository.UserRepository, redis *database.RedisClient) *BrandService {
 	return &BrandService{
 		repo:     repo,
 		userRepo: userRepo,
+		redis:    redis,
 	}
 }
 
 func (s *BrandService) CreateBrand(ctx context.Context, userID bson.ObjectID, req models.CreateBrandRequest) (*models.Brand, error) {
+	if err := req.Validate(); err != nil {
+		return nil, utils.BadRequest(err.Error())
+	}
+
 	tz := req.Timezone
 	if tz == "" {
 		tz = "UTC"
@@ -63,6 +73,17 @@ func (s *BrandService) GetBrand(ctx context.Context, id, userID bson.ObjectID) (
 		return nil, utils.Forbidden("Access to brand denied")
 	}
 
+	// 1. Check Redis cache first for sub-millisecond retrieval
+	cacheKey := "brand:" + id.Hex()
+	if s.redis != nil {
+		if cachedJSON, err := s.redis.Get(ctx, cacheKey); err == nil && cachedJSON != "" {
+			var cached models.Brand
+			if json.Unmarshal([]byte(cachedJSON), &cached) == nil {
+				return &cached, nil
+			}
+		}
+	}
+
 	brand, err := s.repo.FindBrandByID(ctx, id)
 	if err != nil {
 		return nil, utils.InternalServerError("Failed to retrieve brand")
@@ -70,6 +91,14 @@ func (s *BrandService) GetBrand(ctx context.Context, id, userID bson.ObjectID) (
 	if brand == nil {
 		return nil, utils.NotFound("Brand not found")
 	}
+
+	// 2. Populate cache in background (15-min TTL)
+	if s.redis != nil {
+		if b, err := json.Marshal(brand); err == nil {
+			_ = s.redis.Set(ctx, cacheKey, string(b), 15*time.Minute)
+		}
+	}
+
 	return brand, nil
 }
 
@@ -116,6 +145,12 @@ func (s *BrandService) UpdateBrand(ctx context.Context, id, userID bson.ObjectID
 	if err != nil {
 		return nil, utils.InternalServerError("Failed to update brand")
 	}
+
+	// Invalidate cache
+	if s.redis != nil {
+		_ = s.redis.Del(ctx, "brand:"+id.Hex())
+	}
+
 	return updated, nil
 }
 
@@ -136,6 +171,12 @@ func (s *BrandService) DeleteBrand(ctx context.Context, id, userID bson.ObjectID
 	if !deleted {
 		return utils.NotFound("Brand not found")
 	}
+
+	// Invalidate cache
+	if s.redis != nil {
+		_ = s.redis.Del(ctx, "brand:"+id.Hex())
+	}
+
 	return nil
 }
 
