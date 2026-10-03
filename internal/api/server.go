@@ -37,31 +37,31 @@ type reqIDKey struct{}
 
 // Server owns API dependencies, request middleware, and endpoint handlers.
 type Server struct {
-	cfg            *config.Config
-	log            *slog.Logger
-	redis          *database.RedisClient
-	userRepo       *repository.UserRepository
-	rfRepo         *repository.RefreshTokenRepository
-	handleRepo     *repository.SocialHandleRepository
-	postRepo       *repository.PostRepository
-	postActRepo    *repository.PostActivityRepository
-	apiKeyRepo     *repository.ApiKeyRepository
-	brandRepo      *repository.BrandRepository
-	auditLogRepo   *repository.AuditLogRepository
+	cfg          *config.Config
+	log          *slog.Logger
+	redis        *database.RedisClient
+	userRepo     *repository.UserRepository
+	rfRepo       *repository.RefreshTokenRepository
+	handleRepo   *repository.SocialHandleRepository
+	postRepo     *repository.PostRepository
+	postActRepo  *repository.PostActivityRepository
+	apiKeyRepo   *repository.ApiKeyRepository
+	brandRepo    *repository.BrandRepository
+	auditLogRepo *repository.AuditLogRepository
 
 	// Services
-	tokenService     *service.TokenService
-	authService      *service.AuthService
-	userService      *service.UserService
-	aiService        *service.AIService
-	uploadService    *service.UploadService
-	socialService    *service.SocialService
-	postPubService   *service.PostPublishService
-	liActService     *service.LinkedInActivityService
-	postService      *service.PostService
-	apiKeyService    *service.ApiKeyService
-	brandService     *service.BrandService
-	auditLogService  *service.AuditLogService
+	tokenService    *service.TokenService
+	authService     *service.AuthService
+	userService     *service.UserService
+	aiService       *service.AIService
+	uploadService   *service.UploadService
+	socialService   *service.SocialService
+	postPubService  *service.PostPublishService
+	liActService    *service.LinkedInActivityService
+	postService     *service.PostService
+	apiKeyService   *service.ApiKeyService
+	brandService    *service.BrandService
+	auditLogService *service.AuditLogService
 
 	// Platforms
 	igService *instagram.Service

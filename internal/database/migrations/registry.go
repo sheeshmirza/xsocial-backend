@@ -2,6 +2,7 @@ package migrations
 
 import (
 	"context"
+	"strings"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -15,6 +16,22 @@ func (m *Migrator) registerBuiltInMigrations() {
 	m.Register(&Migration004AuditAndSecurityTTL{})
 }
 
+func createIndexesSafe(ctx context.Context, coll *mongo.Collection, models []mongo.IndexModel) error {
+	for _, model := range models {
+		_, err := coll.Indexes().CreateOne(ctx, model)
+		if err != nil {
+			errStr := err.Error()
+			if strings.Contains(errStr, "IndexOptionsConflict") ||
+				strings.Contains(errStr, "IndexKeySpecsConflict") ||
+				strings.Contains(errStr, "already exists") {
+				continue
+			}
+			return err
+		}
+	}
+	return nil
+}
+
 // Migration 001: Initial Core Schema & Indexes
 type Migration001InitialSchema struct{}
 
@@ -24,7 +41,7 @@ func (m *Migration001InitialSchema) Name() string { return "001_initial_schema_i
 func (m *Migration001InitialSchema) Up(ctx context.Context, db *mongo.Database) error {
 	// 1. Users collection
 	users := db.Collection("users")
-	_, err := users.Indexes().CreateMany(ctx, []mongo.IndexModel{
+	if err := createIndexesSafe(ctx, users, []mongo.IndexModel{
 		{
 			Keys:    bson.D{{Key: "email", Value: 1}},
 			Options: options.Index().SetUnique(true).SetName("uniq_user_email"),
@@ -37,30 +54,33 @@ func (m *Migration001InitialSchema) Up(ctx context.Context, db *mongo.Database) 
 			Keys:    bson.D{{Key: "resetPasswordToken", Value: 1}},
 			Options: options.Index().SetSparse(true).SetName("idx_user_reset_pwd_token"),
 		},
-	})
-	if err != nil {
+	}); err != nil {
 		return err
 	}
 
 	// 2. Brands and Brand Members
 	brands := db.Collection("brands")
-	_, _ = brands.Indexes().CreateOne(ctx, mongo.IndexModel{
-		Keys: bson.D{{Key: "ownerId", Value: 1}},
-	})
+	if err := createIndexesSafe(ctx, brands, []mongo.IndexModel{
+		{Keys: bson.D{{Key: "ownerId", Value: 1}}},
+	}); err != nil {
+		return err
+	}
 
 	members := db.Collection("brand_members")
-	_, _ = members.Indexes().CreateMany(ctx, []mongo.IndexModel{
+	if err := createIndexesSafe(ctx, members, []mongo.IndexModel{
 		{
 			Keys:    bson.D{{Key: "brandId", Value: 1}, {Key: "userId", Value: 1}},
 			Options: options.Index().SetUnique(true).SetName("uniq_brand_member"),
 		},
 		{Keys: bson.D{{Key: "userId", Value: 1}}},
 		{Keys: bson.D{{Key: "brandId", Value: 1}}},
-	})
+	}); err != nil {
+		return err
+	}
 
 	// 3. API Keys
 	apiKeys := db.Collection("api_keys")
-	_, _ = apiKeys.Indexes().CreateMany(ctx, []mongo.IndexModel{
+	return createIndexesSafe(ctx, apiKeys, []mongo.IndexModel{
 		{
 			Keys:    bson.D{{Key: "keyHash", Value: 1}},
 			Options: options.Index().SetUnique(true).SetName("uniq_api_key_hash"),
@@ -68,8 +88,6 @@ func (m *Migration001InitialSchema) Up(ctx context.Context, db *mongo.Database) 
 		{Keys: bson.D{{Key: "userId", Value: 1}, {Key: "createdAt", Value: -1}}},
 		{Keys: bson.D{{Key: "brandId", Value: 1}}, Options: options.Index().SetSparse(true)},
 	})
-
-	return nil
 }
 
 func (m *Migration001InitialSchema) Down(ctx context.Context, db *mongo.Database) error {
@@ -87,7 +105,7 @@ func (m *Migration002PostCollaboration) Name() string { return "002_post_collabo
 
 func (m *Migration002PostCollaboration) Up(ctx context.Context, db *mongo.Database) error {
 	posts := db.Collection("posts")
-	_, err := posts.Indexes().CreateMany(ctx, []mongo.IndexModel{
+	return createIndexesSafe(ctx, posts, []mongo.IndexModel{
 		{Keys: bson.D{{Key: "userId", Value: 1}, {Key: "status", Value: 1}}},
 		{Keys: bson.D{{Key: "userId", Value: 1}, {Key: "createdAt", Value: -1}}},
 		{Keys: bson.D{{Key: "userId", Value: 1}, {Key: "scheduledTime", Value: 1}, {Key: "status", Value: 1}}},
@@ -98,7 +116,6 @@ func (m *Migration002PostCollaboration) Up(ctx context.Context, db *mongo.Databa
 		},
 		{Keys: bson.D{{Key: "publishedExpiresAt", Value: 1}}},
 	})
-	return err
 }
 
 func (m *Migration002PostCollaboration) Down(ctx context.Context, db *mongo.Database) error {
@@ -116,7 +133,7 @@ func (m *Migration003SocialPlatformUniqueness) Up(ctx context.Context, db *mongo
 	handles := db.Collection("socialhandles")
 	_ = handles.Indexes().DropOne(ctx, "uniq_user_platform")
 
-	_, err := handles.Indexes().CreateMany(ctx, []mongo.IndexModel{
+	return createIndexesSafe(ctx, handles, []mongo.IndexModel{
 		{
 			Keys: bson.D{
 				{Key: "userId", Value: 1},
@@ -128,7 +145,6 @@ func (m *Migration003SocialPlatformUniqueness) Up(ctx context.Context, db *mongo
 		{Keys: bson.D{{Key: "userId", Value: 1}, {Key: "brandId", Value: 1}}},
 		{Keys: bson.D{{Key: "platformAccessTokenExpiry", Value: 1}}},
 	})
-	return err
 }
 
 func (m *Migration003SocialPlatformUniqueness) Down(ctx context.Context, db *mongo.Database) error {
@@ -145,7 +161,7 @@ func (m *Migration004AuditAndSecurityTTL) Name() string { return "004_audit_and_
 func (m *Migration004AuditAndSecurityTTL) Up(ctx context.Context, db *mongo.Database) error {
 	// Refresh tokens TTL
 	rf := db.Collection("refreshtokens")
-	_, err := rf.Indexes().CreateMany(ctx, []mongo.IndexModel{
+	if err := createIndexesSafe(ctx, rf, []mongo.IndexModel{
 		{
 			Keys:    bson.D{{Key: "tokenHash", Value: 1}},
 			Options: options.Index().SetUnique(true).SetName("uniq_rf_token_hash"),
@@ -155,20 +171,17 @@ func (m *Migration004AuditAndSecurityTTL) Up(ctx context.Context, db *mongo.Data
 			Keys:    bson.D{{Key: "tokenExpiresAt", Value: 1}},
 			Options: options.Index().SetExpireAfterSeconds(0).SetName("ttl_rf_token_expires"),
 		},
-	})
-	if err != nil {
+	}); err != nil {
 		return err
 	}
 
 	// Audit logs
 	audit := db.Collection("audit_logs")
-	_, err = audit.Indexes().CreateMany(ctx, []mongo.IndexModel{
+	return createIndexesSafe(ctx, audit, []mongo.IndexModel{
 		{Keys: bson.D{{Key: "userId", Value: 1}, {Key: "createdAt", Value: -1}}},
 		{Keys: bson.D{{Key: "brandId", Value: 1}, {Key: "createdAt", Value: -1}}},
 		{Keys: bson.D{{Key: "resourceType", Value: 1}, {Key: "resourceId", Value: 1}}},
 	})
-
-	return err
 }
 
 func (m *Migration004AuditAndSecurityTTL) Down(ctx context.Context, db *mongo.Database) error {
