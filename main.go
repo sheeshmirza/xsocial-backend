@@ -14,6 +14,7 @@ import (
 	"xsocial-backend/internal/api"
 	"xsocial-backend/internal/config"
 	"xsocial-backend/internal/database"
+	"xsocial-backend/internal/database/migrations"
 	"xsocial-backend/internal/platform/instagram"
 	"xsocial-backend/internal/platform/linkedin"
 	"xsocial-backend/internal/queue"
@@ -30,6 +31,14 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to connect MongoDB: %v", err)
 	}
+
+	// 1.1 Apply database schema migrations & ensure indexing
+	migrator := migrations.NewMigrator(mongoDB.Database)
+	migCtx, migCancel := context.WithTimeout(context.Background(), 30*time.Second)
+	if err := migrator.ApplyAll(migCtx); err != nil {
+		log.Fatalf("Database migration failed: %v", err)
+	}
+	migCancel()
 
 	// 2. Connect Redis
 	redisClient := database.ConnectRedis(cfg)

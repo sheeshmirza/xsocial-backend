@@ -100,6 +100,11 @@ func (s *UploadService) ProcessUploads(files []*multipart.FileHeader, requestHos
 			return nil, utils.BadRequest(fmt.Sprintf("Failed to open file %s", fileHeader.Filename))
 		}
 
+		const maxMediaFileSize = 25 * 1024 * 1024 // 25 MB
+		if fileHeader.Size > maxMediaFileSize {
+			return nil, utils.BadRequest(fmt.Sprintf("File %s exceeds maximum allowed size of 25MB", fileHeader.Filename))
+		}
+
 		buffer, err := io.ReadAll(file)
 		_ = file.Close()
 		if err != nil {
@@ -107,8 +112,9 @@ func (s *UploadService) ProcessUploads(files []*multipart.FileHeader, requestHos
 		}
 
 		mimeType := fileHeader.Header.Get("Content-Type")
-		if mimeType == "" {
-			mimeType = "application/octet-stream"
+		detected := http.DetectContentType(buffer)
+		if mimeType == "" || mimeType == "application/octet-stream" {
+			mimeType = detected
 		}
 
 		mediaID := uuid.New().String()

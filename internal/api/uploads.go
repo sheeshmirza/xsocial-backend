@@ -15,9 +15,6 @@ func (s *Server) uploadMedia(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var allFiles []*http.Request
-	_ = allFiles
-
 	files := r.MultipartForm.File["file"]
 	if len(files) == 0 {
 		files = r.MultipartForm.File["media"]

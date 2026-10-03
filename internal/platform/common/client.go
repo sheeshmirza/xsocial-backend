@@ -23,8 +23,18 @@ func NewHTTPClient(timeout time.Duration) *HTTPClient {
 	if timeout <= 0 {
 		timeout = 30 * time.Second
 	}
+	transport := &http.Transport{
+		MaxIdleConns:        100,
+		MaxIdleConnsPerHost: 20,
+		IdleConnTimeout:     90 * time.Second,
+		TLSHandshakeTimeout: 10 * time.Second,
+		ForceAttemptHTTP2:   true,
+	}
 	return &HTTPClient{
-		client: &http.Client{Timeout: timeout},
+		client: &http.Client{
+			Timeout:   timeout,
+			Transport: transport,
+		},
 	}
 }
 
@@ -186,6 +196,10 @@ func (c *HTTPClient) do(req *http.Request) ([]byte, int, error) {
 }
 
 func (c *HTTPClient) FetchMediaBytes(ctx context.Context, mediaURL string) ([]byte, string, error) {
+	if err := utils.ValidatePublicURL(mediaURL); err != nil {
+		return nil, "", utils.BadRequest(fmt.Sprintf("media URL rejected for security: %v", err))
+	}
+
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, mediaURL, nil)
 	if err != nil {
 		return nil, "", err
