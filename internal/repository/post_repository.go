@@ -47,6 +47,13 @@ func (r *PostRepository) ensureIndexes(ctx context.Context) error {
 		{
 			Keys: bson.D{{Key: "publishedExpiresAt", Value: 1}},
 		},
+		{
+			Keys: bson.D{{Key: "brandId", Value: 1}, {Key: "status", Value: 1}},
+		},
+		{
+			Keys:    bson.D{{Key: "approvalToken", Value: 1}},
+			Options: options.Index().SetSparse(true),
+		},
 	}
 	_, err := r.collection.Indexes().CreateMany(ctx, indexes)
 	return err

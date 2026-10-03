@@ -33,7 +33,8 @@ func (r *RefreshTokenRepository) ensureIndexes(ctx context.Context) error {
 			Keys: bson.D{{Key: "userId", Value: 1}},
 		},
 		{
-			Keys: bson.D{{Key: "tokenExpiresAt", Value: 1}},
+			Keys:    bson.D{{Key: "tokenExpiresAt", Value: 1}},
+			Options: options.Index().SetExpireAfterSeconds(0),
 		},
 	}
 	_, err := r.collection.Indexes().CreateMany(ctx, indexes)

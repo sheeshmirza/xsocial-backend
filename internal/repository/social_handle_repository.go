@@ -28,15 +28,23 @@ func (r *SocialHandleRepository) EnsureIndexes(ctx context.Context) error {
 	// Drop deprecated index if present
 	_ = r.collection.Indexes().DropOne(ctx, "uniq_user_platform")
 
-	indexModel := mongo.IndexModel{
-		Keys: bson.D{
-			{Key: "userId", Value: 1},
-			{Key: "platform", Value: 1},
-			{Key: "platformId", Value: 1},
+	indexModels := []mongo.IndexModel{
+		{
+			Keys: bson.D{
+				{Key: "userId", Value: 1},
+				{Key: "platform", Value: 1},
+				{Key: "platformId", Value: 1},
+			},
+			Options: options.Index().SetUnique(true).SetName("uniq_user_platform_identity"),
 		},
-		Options: options.Index().SetUnique(true).SetName("uniq_user_platform_identity"),
+		{
+			Keys: bson.D{{Key: "userId", Value: 1}, {Key: "brandId", Value: 1}},
+		},
+		{
+			Keys: bson.D{{Key: "platformAccessTokenExpiry", Value: 1}},
+		},
 	}
-	_, err := r.collection.Indexes().CreateOne(ctx, indexModel)
+	_, err := r.collection.Indexes().CreateMany(ctx, indexModels)
 	return err
 }
 
