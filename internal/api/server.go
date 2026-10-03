@@ -79,6 +79,70 @@ type authFailureRecord struct {
 	blockedTo time.Time
 }
 
+// ServerDeps groups all dependencies for Server to establish a clean DI pattern.
+type ServerDeps struct {
+	Config                  *config.Config
+	Logger                  *slog.Logger
+	Redis                   *database.RedisClient
+	UserRepo                *repository.UserRepository
+	RefreshTokenRepo        *repository.RefreshTokenRepository
+	SocialHandleRepo        *repository.SocialHandleRepository
+	PostRepo                *repository.PostRepository
+	PostActivityRepo        *repository.PostActivityRepository
+	ApiKeyRepo              *repository.ApiKeyRepository
+	BrandRepo               *repository.BrandRepository
+	AuditLogRepo            *repository.AuditLogRepository
+	TokenService            *service.TokenService
+	AuthService             *service.AuthService
+	UserService             *service.UserService
+	AIService               *service.AIService
+	UploadService           *service.UploadService
+	SocialService           *service.SocialService
+	PostPublishService      *service.PostPublishService
+	LinkedInActivityService *service.LinkedInActivityService
+	PostService             *service.PostService
+	ApiKeyService           *service.ApiKeyService
+	BrandService            *service.BrandService
+	AuditLogService         *service.AuditLogService
+	InstagramService        *instagram.Service
+	LinkedInService         *linkedin.Service
+}
+
+func NewWithDeps(deps ServerDeps) *Server {
+	logger := deps.Logger
+	if logger == nil {
+		logger = slog.Default()
+	}
+	return &Server{
+		cfg:             deps.Config,
+		log:             logger,
+		redis:           deps.Redis,
+		userRepo:        deps.UserRepo,
+		rfRepo:          deps.RefreshTokenRepo,
+		handleRepo:      deps.SocialHandleRepo,
+		postRepo:        deps.PostRepo,
+		postActRepo:     deps.PostActivityRepo,
+		apiKeyRepo:      deps.ApiKeyRepo,
+		brandRepo:       deps.BrandRepo,
+		auditLogRepo:    deps.AuditLogRepo,
+		tokenService:    deps.TokenService,
+		authService:     deps.AuthService,
+		userService:     deps.UserService,
+		aiService:       deps.AIService,
+		uploadService:   deps.UploadService,
+		socialService:   deps.SocialService,
+		postPubService:  deps.PostPublishService,
+		liActService:    deps.LinkedInActivityService,
+		postService:     deps.PostService,
+		apiKeyService:   deps.ApiKeyService,
+		brandService:    deps.BrandService,
+		auditLogService: deps.AuditLogService,
+		igService:       deps.InstagramService,
+		liService:       deps.LinkedInService,
+		authFailures:    make(map[string]*authFailureRecord),
+	}
+}
+
 func New(
 	cfg *config.Config,
 	log *slog.Logger,
@@ -106,37 +170,33 @@ func New(
 	igService *instagram.Service,
 	liService *linkedin.Service,
 ) *Server {
-	if log == nil {
-		log = slog.Default()
-	}
-	return &Server{
-		cfg:             cfg,
-		log:             log,
-		redis:           redis,
-		userRepo:        userRepo,
-		rfRepo:          rfRepo,
-		handleRepo:      handleRepo,
-		postRepo:        postRepo,
-		postActRepo:     postActRepo,
-		apiKeyRepo:      apiKeyRepo,
-		brandRepo:       brandRepo,
-		auditLogRepo:    auditLogRepo,
-		tokenService:    tokenService,
-		authService:     authService,
-		userService:     userService,
-		aiService:       aiService,
-		uploadService:   uploadService,
-		socialService:   socialService,
-		postPubService:  postPubService,
-		liActService:    liActService,
-		postService:     postService,
-		apiKeyService:   apiKeyService,
-		brandService:    brandService,
-		auditLogService: auditLogService,
-		igService:       igService,
-		liService:       liService,
-		authFailures:    make(map[string]*authFailureRecord),
-	}
+	return NewWithDeps(ServerDeps{
+		Config:                  cfg,
+		Logger:                  log,
+		Redis:                   redis,
+		UserRepo:                userRepo,
+		RefreshTokenRepo:        rfRepo,
+		SocialHandleRepo:        handleRepo,
+		PostRepo:                postRepo,
+		PostActivityRepo:        postActRepo,
+		ApiKeyRepo:              apiKeyRepo,
+		BrandRepo:               brandRepo,
+		AuditLogRepo:            auditLogRepo,
+		TokenService:            tokenService,
+		AuthService:             authService,
+		UserService:             userService,
+		AIService:               aiService,
+		UploadService:           uploadService,
+		SocialService:           socialService,
+		PostPublishService:      postPubService,
+		LinkedInActivityService: liActService,
+		PostService:             postService,
+		ApiKeyService:           apiKeyService,
+		BrandService:            brandService,
+		AuditLogService:         auditLogService,
+		InstagramService:        igService,
+		LinkedInService:         liService,
+	})
 }
 
 // Handler constructs the complete HTTP handler matching the routing architecture of mailhost-backend

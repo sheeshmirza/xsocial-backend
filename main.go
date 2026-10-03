@@ -96,34 +96,34 @@ func main() {
 	postService.RequeueRecurringScheduledPostsOnStartup(ctxStartup)
 	cancelStartup()
 
-	// 10. Instantiate API Server with social platform routing
-	apiServer := api.New(
-		cfg,
-		logger,
-		redisClient,
-		userRepo,
-		rfRepo,
-		handleRepo,
-		postRepo,
-		postActivityRepo,
-		apiKeyRepo,
-		brandRepo,
-		auditLogRepo,
-		tokenService,
-		authService,
-		userService,
-		aiService,
-		uploadService,
-		socialService,
-		postPublishService,
-		liActivityService,
-		postService,
-		apiKeyService,
-		brandService,
-		auditLogService,
-		igService,
-		liService,
-	)
+	// 10. Instantiate API Server with clean dependency injection
+	apiServer := api.NewWithDeps(api.ServerDeps{
+		Config:                  cfg,
+		Logger:                  logger,
+		Redis:                   redisClient,
+		UserRepo:                userRepo,
+		RefreshTokenRepo:        rfRepo,
+		SocialHandleRepo:        handleRepo,
+		PostRepo:                postRepo,
+		PostActivityRepo:        postActivityRepo,
+		ApiKeyRepo:              apiKeyRepo,
+		BrandRepo:               brandRepo,
+		AuditLogRepo:            auditLogRepo,
+		TokenService:            tokenService,
+		AuthService:             authService,
+		UserService:             userService,
+		AIService:               aiService,
+		UploadService:           uploadService,
+		SocialService:           socialService,
+		PostPublishService:      postPublishService,
+		LinkedInActivityService: liActivityService,
+		PostService:             postService,
+		ApiKeyService:           apiKeyService,
+		BrandService:            brandService,
+		AuditLogService:         auditLogService,
+		InstagramService:        igService,
+		LinkedInService:         liService,
+	})
 
 	srv := &http.Server{
 		Addr:              fmt.Sprintf(":%d", cfg.Port),

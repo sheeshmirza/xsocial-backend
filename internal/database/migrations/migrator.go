@@ -36,6 +36,9 @@ func (m *Migrator) Register(migration Migration) {
 }
 
 func (m *Migrator) ensureMigrationsTable(ctx context.Context) error {
+	if m.db == nil {
+		return fmt.Errorf("database connection is nil")
+	}
 	coll := m.db.Collection(MigrationsCollection)
 	indexModel := mongo.IndexModel{
 		Keys:    bson.D{{Key: "version", Value: 1}},
@@ -46,6 +49,9 @@ func (m *Migrator) ensureMigrationsTable(ctx context.Context) error {
 }
 
 func (m *Migrator) getAppliedVersions(ctx context.Context) (map[int]MigrationRecord, error) {
+	if m.db == nil {
+		return make(map[int]MigrationRecord), nil
+	}
 	coll := m.db.Collection(MigrationsCollection)
 	cursor, err := coll.Find(ctx, bson.M{"status": "applied"})
 	if err != nil {
