@@ -14,14 +14,14 @@ import (
 )
 
 type PostPublishService struct {
-	socialHandleRepo *repository.SocialHandleRepository
+	socialHandleRepo repository.ISocialHandleRepository
 	socialService    *SocialService
 	instagramService *instagram.Service
 	linkedinService  *linkedin.Service
 }
 
 func NewPostPublishService(
-	repo *repository.SocialHandleRepository,
+	repo repository.ISocialHandleRepository,
 	socialService *SocialService,
 	igService *instagram.Service,
 	liService *linkedin.Service,

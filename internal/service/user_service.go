@@ -18,12 +18,12 @@ import (
 
 type UserService struct {
 	config           *config.Config
-	userRepo         *repository.UserRepository
-	refreshTokenRepo *repository.RefreshTokenRepository
+	userRepo         repository.IUserRepository
+	refreshTokenRepo repository.IRefreshTokenRepository
 	redis            *database.RedisClient
 }
 
-func NewUserService(cfg *config.Config, userRepo *repository.UserRepository, rfRepo *repository.RefreshTokenRepository, redis *database.RedisClient) *UserService {
+func NewUserService(cfg *config.Config, userRepo repository.IUserRepository, rfRepo repository.IRefreshTokenRepository, redis *database.RedisClient) *UserService {
 	return &UserService{
 		config:           cfg,
 		userRepo:         userRepo,

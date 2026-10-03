@@ -26,11 +26,11 @@ type LoginResult struct {
 
 type AuthService struct {
 	config       *config.Config
-	userRepo     *repository.UserRepository
+	userRepo     repository.IUserRepository
 	tokenService *TokenService
 }
 
-func NewAuthService(cfg *config.Config, userRepo *repository.UserRepository, tokenService *TokenService) *AuthService {
+func NewAuthService(cfg *config.Config, userRepo repository.IUserRepository, tokenService *TokenService) *AuthService {
 	return &AuthService{
 		config:       cfg,
 		userRepo:     userRepo,

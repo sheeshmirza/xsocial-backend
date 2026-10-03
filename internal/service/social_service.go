@@ -19,14 +19,14 @@ import (
 
 type SocialService struct {
 	config           *config.Config
-	socialHandleRepo *repository.SocialHandleRepository
+	socialHandleRepo repository.ISocialHandleRepository
 	instagramService *instagram.Service
 	linkedinService  *linkedin.Service
 }
 
 func NewSocialService(
 	cfg *config.Config,
-	repo *repository.SocialHandleRepository,
+	repo repository.ISocialHandleRepository,
 	igService *instagram.Service,
 	liService *linkedin.Service,
 ) *SocialService {

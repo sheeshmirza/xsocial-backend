@@ -21,10 +21,10 @@ type RotateResult struct {
 
 type TokenService struct {
 	config           *config.Config
-	refreshTokenRepo *repository.RefreshTokenRepository
+	refreshTokenRepo repository.IRefreshTokenRepository
 }
 
-func NewTokenService(cfg *config.Config, repo *repository.RefreshTokenRepository) *TokenService {
+func NewTokenService(cfg *config.Config, repo repository.IRefreshTokenRepository) *TokenService {
 	return &TokenService{
 		config:           cfg,
 		refreshTokenRepo: repo,

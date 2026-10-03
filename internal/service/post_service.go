@@ -18,10 +18,10 @@ import (
 )
 
 type PostService struct {
-	postRepo            *repository.PostRepository
-	postActivityRepo    *repository.PostActivityRepository
-	socialHandleRepo    *repository.SocialHandleRepository
-	brandRepo           *repository.BrandRepository
+	postRepo            repository.IPostRepository
+	postActivityRepo    repository.IPostActivityRepository
+	socialHandleRepo    repository.ISocialHandleRepository
+	brandRepo           repository.IBrandRepository
 	postPublishService  *PostPublishService
 	aiService           *AIService
 	activityService     *LinkedInActivityService
@@ -30,10 +30,10 @@ type PostService struct {
 }
 
 func NewPostService(
-	postRepo *repository.PostRepository,
-	activityRepo *repository.PostActivityRepository,
-	handleRepo *repository.SocialHandleRepository,
-	brandRepo *repository.BrandRepository,
+	postRepo repository.IPostRepository,
+	activityRepo repository.IPostActivityRepository,
+	handleRepo repository.ISocialHandleRepository,
+	brandRepo repository.IBrandRepository,
 	publishService *PostPublishService,
 	aiService *AIService,
 	actService *LinkedInActivityService,

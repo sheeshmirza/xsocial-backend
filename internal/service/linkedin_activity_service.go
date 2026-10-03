@@ -14,16 +14,16 @@ import (
 )
 
 type LinkedInActivityService struct {
-	postRepo           *repository.PostRepository
-	socialHandleRepo   *repository.SocialHandleRepository
-	postActivityRepo   *repository.PostActivityRepository
-	linkedinService    *linkedin.Service
+	postRepo         repository.IPostRepository
+	socialHandleRepo repository.ISocialHandleRepository
+	postActivityRepo repository.IPostActivityRepository
+	linkedinService  *linkedin.Service
 }
 
 func NewLinkedInActivityService(
-	postRepo *repository.PostRepository,
-	handleRepo *repository.SocialHandleRepository,
-	activityRepo *repository.PostActivityRepository,
+	postRepo repository.IPostRepository,
+	handleRepo repository.ISocialHandleRepository,
+	activityRepo repository.IPostActivityRepository,
 	liService *linkedin.Service,
 ) *LinkedInActivityService {
 	return &LinkedInActivityService{

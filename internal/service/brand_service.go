@@ -15,12 +15,12 @@ import (
 )
 
 type BrandService struct {
-	repo     *repository.BrandRepository
-	userRepo *repository.UserRepository
+	repo     repository.IBrandRepository
+	userRepo repository.IUserRepository
 	redis    *database.RedisClient
 }
 
-func NewBrandService(repo *repository.BrandRepository, userRepo *repository.UserRepository, redis *database.RedisClient) *BrandService {
+func NewBrandService(repo repository.IBrandRepository, userRepo repository.IUserRepository, redis *database.RedisClient) *BrandService {
 	return &BrandService{
 		repo:     repo,
 		userRepo: userRepo,
