@@ -30,9 +30,10 @@ func (s *Server) listSocialAccounts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
-		"data":  handles,
-		"count": len(handles),
-		"total": total,
+		"success": true,
+		"data":    handles,
+		"count":   len(handles),
+		"total":   total,
 	})
 }
 

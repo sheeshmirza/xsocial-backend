@@ -62,10 +62,11 @@ func (s *Server) listPosts(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
-		"data":  posts,
-		"page":  pageNum,
-		"limit": limitNum,
-		"total": total,
+		"success": true,
+		"data":    posts,
+		"page":    pageNum,
+		"limit":   limitNum,
+		"total":   total,
 	})
 }
 
@@ -366,11 +367,15 @@ func (s *Server) approvePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		Comment string `json:"comment"`
-	}
+	var req models.ApprovePostRequest
 	if r.Body != nil && r.ContentLength > 0 {
-		_ = decode(w, r, 0, &req)
+		if !decode(w, r, 0, &req) {
+			return
+		}
+	}
+	if err := req.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
 	}
 
 	post, err := s.postService.ApprovePost(r.Context(), userOID, postOID, req.Comment)
@@ -397,11 +402,15 @@ func (s *Server) rejectPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		Reason string `json:"reason"`
-	}
+	var req models.RejectPostRequest
 	if r.Body != nil && r.ContentLength > 0 {
-		_ = decode(w, r, 0, &req)
+		if !decode(w, r, 0, &req) {
+			return
+		}
+	}
+	if err := req.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
 	}
 
 	post, err := s.postService.RejectPost(r.Context(), userOID, postOID, req.Reason)
@@ -440,12 +449,12 @@ func (s *Server) publicReviewAction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		Action       string `json:"action"` // "approve" or "reject"
-		ReviewerName string `json:"reviewerName"`
-		Feedback     string `json:"feedback"`
-	}
+	var req models.PublicReviewActionRequest
 	if !decode(w, r, 0, &req) {
+		return
+	}
+	if err := req.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -502,16 +511,18 @@ func (s *Server) publishPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var req struct {
-		Platforms  []string `json:"platforms"`
-		AccountIDs []string `json:"accountIds"`
-		Recurrence *string  `json:"recurrence"`
-	}
+	var req models.PublishPostInput
 	if r.Body != nil && r.ContentLength > 0 {
-		_ = decode(w, r, 0, &req)
+		if !decode(w, r, 0, &req) {
+			return
+		}
+	}
+	if err := req.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
 	}
 
-	post, err := s.postService.PublishPost(r.Context(), userOID, postOID, req.Platforms, req.AccountIDs, req.Recurrence)
+	post, err := s.postService.PublishPost(r.Context(), userOID, postOID, req.Platforms, req.AccountIds, req.Recurrence)
 	if err != nil {
 		writeApiError(w, err)
 		return

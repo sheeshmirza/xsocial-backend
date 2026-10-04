@@ -2,44 +2,19 @@ package api
 
 import (
 	"net/http"
-	"regexp"
-	"strings"
 	"time"
 
+	"xsocial-backend/internal/models"
 	"xsocial-backend/internal/utils"
 )
 
-// emailRegexp is a minimal RFC 5321 email validator.
-var emailRegexp = regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
-
-const (
-	passwordMinLen = 8
-	passwordMaxLen = 128
-)
-
 func (s *Server) signupUser(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
+	var req models.SignupRequest
 	if !decode(w, r, 0, &req) {
 		return
 	}
-	req.Email = strings.ToLower(strings.TrimSpace(req.Email))
-	if req.Email == "" || req.Password == "" {
-		writeError(w, http.StatusBadRequest, "email and password are required")
-		return
-	}
-	if !emailRegexp.MatchString(req.Email) {
-		writeError(w, http.StatusBadRequest, "invalid email address format")
-		return
-	}
-	if len(req.Password) < passwordMinLen {
-		writeError(w, http.StatusBadRequest, "password must be at least 8 characters")
-		return
-	}
-	if len(req.Password) > passwordMaxLen {
-		writeError(w, http.StatusBadRequest, "password must not exceed 128 characters")
+	if err := req.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	res, err := s.authService.Signup(r.Context(), req.Email, req.Password)
@@ -61,18 +36,17 @@ func (s *Server) signupUser(w http.ResponseWriter, r *http.Request) {
 func (s *Server) verifyEmail(w http.ResponseWriter, r *http.Request) {
 	token := r.URL.Query().Get("token")
 	if token == "" {
-		var req struct {
-			Token string `json:"token"`
-		}
+		var req models.VerifyEmailRequest
 		if decode(w, r, 0, &req) {
 			token = req.Token
 		}
 	}
-	if token == "" {
-		writeError(w, http.StatusBadRequest, "verification token is required")
+	req := models.VerifyEmailRequest{Token: token}
+	if err := req.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	if err := s.authService.VerifyEmail(r.Context(), token); err != nil {
+	if err := s.authService.VerifyEmail(r.Context(), req.Token); err != nil {
 		writeApiError(w, err)
 		return
 	}
@@ -83,11 +57,12 @@ func (s *Server) verifyEmail(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) loginUser(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Email    string `json:"email"`
-		Password string `json:"password"`
-	}
+	var req models.LoginRequest
 	if !decode(w, r, 0, &req) {
+		return
+	}
+	if err := req.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	ip := clientIP(r)
@@ -112,10 +87,12 @@ func (s *Server) loginUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) refreshToken(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		RefreshToken string `json:"refreshToken"`
-	}
+	var req models.RefreshTokenRequest
 	if !decode(w, r, 0, &req) {
+		return
+	}
+	if err := req.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	ip := clientIP(r)
@@ -139,10 +116,12 @@ func (s *Server) refreshToken(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) forgotPassword(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Email string `json:"email"`
-	}
+	var req models.ForgotPasswordRequest
 	if !decode(w, r, 0, &req) {
+		return
+	}
+	if err := req.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	token, _ := s.authService.ForgotPassword(r.Context(), req.Email)
@@ -157,23 +136,12 @@ func (s *Server) forgotPassword(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) resetPassword(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		Token       string `json:"token"`
-		NewPassword string `json:"newPassword"`
-	}
+	var req models.ResetPasswordRequest
 	if !decode(w, r, 0, &req) {
 		return
 	}
-	if req.Token == "" {
-		writeError(w, http.StatusBadRequest, "reset token is required")
-		return
-	}
-	if len(req.NewPassword) < passwordMinLen {
-		writeError(w, http.StatusBadRequest, "password must be at least 8 characters")
-		return
-	}
-	if len(req.NewPassword) > passwordMaxLen {
-		writeError(w, http.StatusBadRequest, "password must not exceed 128 characters")
+	if err := req.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	if err := s.authService.ResetPassword(r.Context(), req.Token, req.NewPassword); err != nil {
@@ -225,20 +193,13 @@ func (s *Server) updateCurrentUser(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	var req struct {
-		FullName string `json:"fullName"`
-		Timezone string `json:"timezone"`
-	}
+	var req models.UpdateProfileRequest
 	if !decode(w, r, 0, &req) {
 		return
 	}
 	req.FullName = utils.SanitizeString(req.FullName)
-	if len(req.FullName) > 100 {
-		writeError(w, http.StatusBadRequest, "fullName must not exceed 100 characters")
-		return
-	}
-	if req.Timezone != "" && !utils.IsValidTimezone(req.Timezone) {
-		writeError(w, http.StatusBadRequest, "invalid timezone")
+	if err := req.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	updated, err := s.userService.UpdateProfile(r.Context(), userOID, req.FullName, req.Timezone)
@@ -259,19 +220,12 @@ func (s *Server) changePassword(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
-	var req struct {
-		OldPassword string `json:"oldPassword"`
-		NewPassword string `json:"newPassword"`
-	}
+	var req models.ChangePasswordRequest
 	if !decode(w, r, 0, &req) {
 		return
 	}
-	if len(req.NewPassword) < passwordMinLen {
-		writeError(w, http.StatusBadRequest, "new password must be at least 8 characters")
-		return
-	}
-	if len(req.NewPassword) > passwordMaxLen {
-		writeError(w, http.StatusBadRequest, "new password must not exceed 128 characters")
+	if err := req.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	if _, err := s.userService.ChangePassword(r.Context(), userOID, req.OldPassword, req.NewPassword); err != nil {

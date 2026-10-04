@@ -434,21 +434,21 @@ func (s *PostService) ListPosts(ctx context.Context, userID bson.ObjectID, query
 	}
 
 	filters := bson.M{}
-	if bStr := queryParams["brandId"]; bStr != "" {
+	if bStr := strings.TrimSpace(queryParams["brandId"]); bStr != "" {
 		if bOID, err := bson.ObjectIDFromHex(bStr); err == nil {
 			filters["brandId"] = bOID
 		}
 	}
-	if platform := queryParams["platform"]; platform != "" {
+	if platform := strings.ToLower(strings.TrimSpace(queryParams["platform"])); platform != "" {
 		filters["selectedPlatforms"] = platform
 	}
-	if reviewStatus := queryParams["reviewStatus"]; reviewStatus != "" {
+	if reviewStatus := strings.ToLower(strings.TrimSpace(queryParams["reviewStatus"])); reviewStatus != "" {
 		filters["reviewStatus"] = reviewStatus
 	}
-	if st := queryParams["status"]; st != "" {
+	if st := strings.ToLower(strings.TrimSpace(queryParams["status"])); st != "" {
 		filters["status"] = st
 	}
-	if pt := queryParams["postType"]; pt != "" {
+	if pt := strings.ToLower(strings.TrimSpace(queryParams["postType"])); pt != "" {
 		filters["postType"] = pt
 	}
 
@@ -460,7 +460,10 @@ func (s *PostService) ListPosts(ctx context.Context, userID bson.ObjectID, query
 		}
 	}
 
-	if search := queryParams["search"]; search != "" {
+	if search := strings.TrimSpace(queryParams["search"]); search != "" {
+		if len(search) > 200 {
+			search = search[:200]
+		}
 		escaped := regexp.QuoteMeta(search)
 		filters["$or"] = []bson.M{
 			{"title": bson.M{"$regex": escaped, "$options": "i"}},
@@ -1176,6 +1179,10 @@ func (s *PostService) PublishPost(
 }
 
 func (s *PostService) SchedulePost(ctx context.Context, userID, postID bson.ObjectID, input models.SchedulePostInput) (*models.Post, error) {
+	if err := input.Validate(); err != nil {
+		return nil, utils.BadRequest(err.Error())
+	}
+
 	post, err := s.GetPost(ctx, userID, postID)
 	if err != nil {
 		return nil, err

@@ -48,8 +48,9 @@ func (s *Server) listBrands(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
-		"data":  brands,
-		"count": len(brands),
+		"success": true,
+		"data":    brands,
+		"count":   len(brands),
 	})
 }
 
@@ -179,8 +180,9 @@ func (s *Server) listBrandMembers(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
-		"data":  members,
-		"count": len(members),
+		"success": true,
+		"data":    members,
+		"count":   len(members),
 	})
 }
 

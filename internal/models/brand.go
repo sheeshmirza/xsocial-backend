@@ -54,12 +54,29 @@ type CreateBrandRequest struct {
 }
 
 func (r *CreateBrandRequest) Validate() error {
+	r.Name = strings.ReplaceAll(r.Name, "\x00", "")
 	r.Name = strings.TrimSpace(r.Name)
 	if r.Name == "" {
 		return fmt.Errorf("brand name is required")
 	}
 	if len(r.Name) > 100 {
 		return fmt.Errorf("brand name must not exceed 100 characters")
+	}
+	r.Description = strings.ReplaceAll(r.Description, "\x00", "")
+	if len(r.Description) > 2000 {
+		return fmt.Errorf("description must not exceed 2000 characters")
+	}
+	if r.LogoURL != "" {
+		trimmed := strings.TrimSpace(r.LogoURL)
+		if !strings.HasPrefix(trimmed, "http://") && !strings.HasPrefix(trimmed, "https://") {
+			return fmt.Errorf("logoUrl must start with http:// or https://")
+		}
+	}
+	if r.WebsiteURL != "" {
+		trimmed := strings.TrimSpace(r.WebsiteURL)
+		if !strings.HasPrefix(trimmed, "http://") && !strings.HasPrefix(trimmed, "https://") {
+			return fmt.Errorf("websiteUrl must start with http:// or https://")
+		}
 	}
 	if r.Currency != "" {
 		r.Currency = strings.ToUpper(strings.TrimSpace(r.Currency))
@@ -86,12 +103,31 @@ type UpdateBrandRequest struct {
 
 func (r *UpdateBrandRequest) Validate() error {
 	if r.Name != nil {
+		*r.Name = strings.ReplaceAll(*r.Name, "\x00", "")
 		*r.Name = strings.TrimSpace(*r.Name)
 		if *r.Name == "" {
 			return fmt.Errorf("brand name cannot be empty")
 		}
 		if len(*r.Name) > 100 {
 			return fmt.Errorf("brand name must not exceed 100 characters")
+		}
+	}
+	if r.Description != nil {
+		*r.Description = strings.ReplaceAll(*r.Description, "\x00", "")
+		if len(*r.Description) > 2000 {
+			return fmt.Errorf("description must not exceed 2000 characters")
+		}
+	}
+	if r.LogoURL != nil && *r.LogoURL != "" {
+		trimmed := strings.TrimSpace(*r.LogoURL)
+		if !strings.HasPrefix(trimmed, "http://") && !strings.HasPrefix(trimmed, "https://") {
+			return fmt.Errorf("logoUrl must start with http:// or https://")
+		}
+	}
+	if r.WebsiteURL != nil && *r.WebsiteURL != "" {
+		trimmed := strings.TrimSpace(*r.WebsiteURL)
+		if !strings.HasPrefix(trimmed, "http://") && !strings.HasPrefix(trimmed, "https://") {
+			return fmt.Errorf("websiteUrl must start with http:// or https://")
 		}
 	}
 	if r.Currency != nil && *r.Currency != "" {

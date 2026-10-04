@@ -53,8 +53,9 @@ func (s *Server) listAPIKeys(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{
-		"data":  keys,
-		"count": len(keys),
+		"success": true,
+		"data":    keys,
+		"count":   len(keys),
 	})
 }
 
