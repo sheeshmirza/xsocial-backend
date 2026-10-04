@@ -1,7 +1,8 @@
 package utils
 
 import (
-	"log"
+	"fmt"
+	"log/slog"
 	"runtime/debug"
 )
 
@@ -11,7 +12,10 @@ func SafeGo(fn func()) {
 	go func() {
 		defer func() {
 			if r := recover(); r != nil {
-				log.Printf("[PANIC_RECOVERED] Background goroutine panic: %v\nStack trace:\n%s", r, string(debug.Stack()))
+				slog.Error("panic_recovered_in_goroutine",
+					"panic", fmt.Sprintf("%v", r),
+					"stack", string(debug.Stack()),
+				)
 			}
 		}()
 		fn()

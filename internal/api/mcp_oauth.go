@@ -611,7 +611,7 @@ func (s *Server) mcpOAuthError(w http.ResponseWriter, r *http.Request, redirectU
 		http.Redirect(w, r, u.String(), http.StatusFound)
 		return
 	}
-	http.Error(w, description, http.StatusBadRequest)
+	writeError(w, http.StatusBadRequest, description)
 }
 
 func (s *Server) authenticateMCPBearer(r *http.Request) (bson.ObjectID, bool) {

@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -87,6 +87,8 @@ func (c *HTTPClient) PostJSONWithRespHeaders(ctx context.Context, requestURL str
 		req.Header.Set(k, v)
 	}
 
+	utils.InjectTraceHeaders(ctx, req)
+
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, 0, nil, utils.BadGateway(fmt.Sprintf("Provider request failed: %v", err))
@@ -99,7 +101,12 @@ func (c *HTTPClient) PostJSONWithRespHeaders(ctx context.Context, requestURL str
 	}
 
 	if resp.StatusCode >= 400 {
-		log.Printf("[PlatformHTTP] Error %d on %s %s: %s", resp.StatusCode, req.Method, utils.MaskURL(req.URL.String()), string(bodyBytes))
+		slog.Default().ErrorContext(ctx, "platform_http_error",
+			"status", resp.StatusCode,
+			"method", req.Method,
+			"url", utils.MaskURL(req.URL.String()),
+			"body", utils.RedactString(string(bodyBytes)),
+		)
 	}
 
 	return bodyBytes, resp.StatusCode, resp.Header, nil
@@ -177,6 +184,7 @@ func (c *HTTPClient) Delete(ctx context.Context, requestURL string, headers map[
 }
 
 func (c *HTTPClient) do(req *http.Request) ([]byte, int, error) {
+	utils.InjectTraceHeaders(req.Context(), req)
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, 0, utils.BadGateway(fmt.Sprintf("Provider request failed: %v", err))
@@ -189,7 +197,12 @@ func (c *HTTPClient) do(req *http.Request) ([]byte, int, error) {
 	}
 
 	if resp.StatusCode >= 400 {
-		log.Printf("[PlatformHTTP] Error %d on %s %s: %s", resp.StatusCode, req.Method, utils.MaskURL(req.URL.String()), string(bodyBytes))
+		slog.Default().ErrorContext(req.Context(), "platform_http_error",
+			"status", resp.StatusCode,
+			"method", req.Method,
+			"url", utils.MaskURL(req.URL.String()),
+			"body", utils.RedactString(string(bodyBytes)),
+		)
 	}
 
 	return bodyBytes, resp.StatusCode, nil
@@ -204,6 +217,7 @@ func (c *HTTPClient) FetchMediaBytes(ctx context.Context, mediaURL string) ([]by
 	if err != nil {
 		return nil, "", err
 	}
+	utils.InjectTraceHeaders(ctx, req)
 	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, "", err

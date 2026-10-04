@@ -2,7 +2,7 @@ package database
 
 import (
 	"context"
-	"log"
+	"log/slog"
 	"time"
 
 	"xsocial-backend/internal/config"
@@ -17,12 +17,12 @@ type RedisClient struct {
 
 func ConnectRedis(cfg *config.Config) *RedisClient {
 	if cfg.RedisURL == "" {
-		log.Println("REDIS_URL is not configured; post queue will use memory fallback")
+		slog.Info("redis_not_configured_using_memory_fallback")
 		return nil
 	}
 	opt, err := redis.ParseURL(cfg.RedisURL)
 	if err != nil {
-		log.Printf("Failed to parse REDIS_URL: %v; running without Redis", err)
+		slog.Warn("redis_parse_url_failed", "error", err)
 		return nil
 	}
 	opt.PoolSize = 50
@@ -36,10 +36,10 @@ func ConnectRedis(cfg *config.Config) *RedisClient {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := client.Ping(ctx).Err(); err != nil {
-		log.Printf("Failed to connect to Redis at %s: %v; running without Redis", utils.MaskURL(cfg.RedisURL), err)
+		slog.Warn("redis_connect_failed", "url", utils.MaskURL(cfg.RedisURL), "error", err)
 		return nil
 	}
-	log.Println("Redis connected successfully")
+	slog.Info("redis_connected_successfully")
 	return &RedisClient{Client: client}
 }
 

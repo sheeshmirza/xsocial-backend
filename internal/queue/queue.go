@@ -4,12 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"sync"
 	"time"
 
 	"github.com/redis/go-redis/v9"
 	"xsocial-backend/internal/database"
+	"xsocial-backend/internal/utils"
 )
 
 const (
@@ -22,7 +23,9 @@ const (
 )
 
 type PublishJobData struct {
-	PostID string `json:"postId"`
+	PostID      string `json:"postId"`
+	Traceparent string `json:"traceparent,omitempty"`
+	RequestID   string `json:"requestId,omitempty"`
 }
 
 type ExpiryJobData struct {
@@ -31,14 +34,18 @@ type ExpiryJobData struct {
 	Platform       string `json:"platform"`
 	PlatformPostID string `json:"platformPostId"`
 	SocialHandleID string `json:"socialHandleId"`
+	Traceparent    string `json:"traceparent,omitempty"`
+	RequestID      string `json:"requestId,omitempty"`
 }
 
 type JobEnvelope struct {
-	ID        string `json:"id"`
-	Name      string `json:"name"`
-	Data      any    `json:"data"`
-	Retries   int    `json:"retries,omitempty"`
-	CreatedAt int64  `json:"createdAt"`
+	ID          string `json:"id"`
+	Name        string `json:"name"`
+	Data        any    `json:"data"`
+	Retries     int    `json:"retries,omitempty"`
+	Traceparent string `json:"traceparent,omitempty"`
+	RequestID   string `json:"requestId,omitempty"`
+	CreatedAt   int64  `json:"createdAt"`
 }
 
 type HandlerFunc func(name string, payload []byte) error
@@ -128,14 +135,14 @@ func (q *PostQueue) startRedisWorker() {
 func (q *PostQueue) processJob(jobID, name string, data []byte, retries int) {
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("[QueueWorker] PANIC in job %s (id: %s): %v", name, jobID, r)
+			slog.Error("queue_worker_panic", "job_id", jobID, "name", name, "panic", fmt.Sprintf("%v", r))
 		}
 	}()
 	if q.handler == nil {
 		return
 	}
 	if err := q.handler(name, data); err != nil {
-		log.Printf("[QueueWorker] Job %s (id: %s, attempt: %d) failed: %v", name, jobID, retries+1, err)
+		slog.Warn("queue_job_failed", "job_id", jobID, "name", name, "attempt", retries+1, "error", err)
 
 		if retries < MaxJobRetries {
 			// Retry with exponential backoff: 5s, 20s, 60s
@@ -148,16 +155,25 @@ func (q *PostQueue) processJob(jobID, name string, data []byte, retries int) {
 			}
 			backoffSec := backoffSecs[backoffIdx]
 			retryAt := time.Now().Add(time.Duration(backoffSec) * time.Second)
-			log.Printf("[QueueWorker] Requeuing job %s (id: %s) in %d seconds (attempt %d/%d)", name, jobID, backoffSec, retries+1, MaxJobRetries)
+			slog.Info("queue_job_requeue", "job_id", jobID, "name", name, "backoff_sec", backoffSec, "attempt", retries+1, "max_retries", MaxJobRetries)
 
-			var parsedData any
+			var parsedData map[string]any
 			_ = json.Unmarshal(data, &parsedData)
+			var traceparent, reqID string
+			if tp, ok := parsedData["traceparent"].(string); ok {
+				traceparent = tp
+			}
+			if rid, ok := parsedData["requestId"].(string); ok {
+				reqID = rid
+			}
 			env := JobEnvelope{
-				ID:        jobID,
-				Name:      name,
-				Data:      parsedData,
-				Retries:   retries + 1,
-				CreatedAt: time.Now().UnixMilli(),
+				ID:          jobID,
+				Name:        name,
+				Data:        parsedData,
+				Retries:     retries + 1,
+				Traceparent: traceparent,
+				RequestID:   reqID,
+				CreatedAt:   time.Now().UnixMilli(),
 			}
 			bytes, _ := json.Marshal(env)
 
@@ -174,7 +190,7 @@ func (q *PostQueue) processJob(jobID, name string, data []byte, retries int) {
 			}
 		} else {
 			// Dead letter queue
-			log.Printf("[QueueWorker] Job %s (id: %s) exceeded max retries (%d). Sent to dead-letter queue.", name, jobID, MaxJobRetries)
+			slog.Error("queue_job_dead_letter", "job_id", jobID, "name", name, "max_retries", MaxJobRetries)
 			if q.redisClient != nil {
 				ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 				defer cancel()
@@ -188,15 +204,28 @@ func (q *PostQueue) processJob(jobID, name string, data []byte, retries int) {
 }
 
 func (q *PostQueue) AddSchedulePublishJob(postID string, runAt time.Time) error {
+	return q.AddSchedulePublishJobCtx(context.Background(), postID, runAt)
+}
+
+func (q *PostQueue) AddSchedulePublishJobCtx(ctx context.Context, postID string, runAt time.Time) error {
 	_ = q.RemoveSchedulePublishJob(postID)
 
+	traceparent := utils.TraceparentFromContext(ctx)
+	reqID := utils.RequestIDFromContext(ctx)
+
 	jobID := "publish:" + postID
-	data := PublishJobData{PostID: postID}
+	data := PublishJobData{
+		PostID:      postID,
+		Traceparent: traceparent,
+		RequestID:   reqID,
+	}
 	env := JobEnvelope{
-		ID:        jobID,
-		Name:      PublishPostJobName,
-		Data:      data,
-		CreatedAt: time.Now().UnixMilli(),
+		ID:          jobID,
+		Name:        PublishPostJobName,
+		Data:        data,
+		Traceparent: traceparent,
+		RequestID:   reqID,
+		CreatedAt:   time.Now().UnixMilli(),
 	}
 	bytes, _ := json.Marshal(env)
 
@@ -206,16 +235,16 @@ func (q *PostQueue) AddSchedulePublishJob(postID string, runAt time.Time) error 
 	}
 
 	if q.redisClient != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		cmdCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
 		pipe := q.redisClient.TxPipeline()
-		pipe.ZAdd(ctx, RedisScheduledSet, redis.Z{
+		pipe.ZAdd(cmdCtx, RedisScheduledSet, redis.Z{
 			Score:  float64(runAt.UnixMilli()),
 			Member: string(bytes),
 		})
-		pipe.Set(ctx, RedisJobIndexKey+jobID, string(bytes), 30*24*time.Hour)
-		_, err := pipe.Exec(ctx)
+		pipe.Set(cmdCtx, RedisJobIndexKey+jobID, string(bytes), 30*24*time.Hour)
+		_, err := pipe.Exec(cmdCtx)
 		return err
 	}
 
@@ -226,7 +255,7 @@ func (q *PostQueue) AddSchedulePublishJob(postID string, runAt time.Time) error 
 	q.memTimers[timerKey] = time.AfterFunc(delay, func() {
 		defer func() {
 			if r := recover(); r != nil {
-				log.Printf("[QueueWorker] PANIC in memory publish job handler: %v", r)
+				slog.Error("queue_memory_publish_job_panic", "post_id", postID, "panic", fmt.Sprintf("%v", r))
 			}
 			q.mu.Lock()
 			delete(q.memTimers, timerKey)
@@ -284,6 +313,13 @@ func (q *PostQueue) RemoveSchedulePublishJob(postID string) error {
 }
 
 func (q *PostQueue) AddPostExpiryJob(postID, userID, platform, platformPostID, socialHandleID string, runAt time.Time) error {
+	return q.AddPostExpiryJobCtx(context.Background(), postID, userID, platform, platformPostID, socialHandleID, runAt)
+}
+
+func (q *PostQueue) AddPostExpiryJobCtx(ctx context.Context, postID, userID, platform, platformPostID, socialHandleID string, runAt time.Time) error {
+	traceparent := utils.TraceparentFromContext(ctx)
+	reqID := utils.RequestIDFromContext(ctx)
+
 	jobID := fmt.Sprintf("expiry:%s:%s", postID, platformPostID)
 	data := ExpiryJobData{
 		PostID:         postID,
@@ -291,12 +327,16 @@ func (q *PostQueue) AddPostExpiryJob(postID, userID, platform, platformPostID, s
 		Platform:       platform,
 		PlatformPostID: platformPostID,
 		SocialHandleID: socialHandleID,
+		Traceparent:    traceparent,
+		RequestID:      reqID,
 	}
 	env := JobEnvelope{
-		ID:        jobID,
-		Name:      ExpirePostPublicationJobName,
-		Data:      data,
-		CreatedAt: time.Now().UnixMilli(),
+		ID:          jobID,
+		Name:        ExpirePostPublicationJobName,
+		Data:        data,
+		Traceparent: traceparent,
+		RequestID:   reqID,
+		CreatedAt:   time.Now().UnixMilli(),
 	}
 	bytes, _ := json.Marshal(env)
 
@@ -306,16 +346,16 @@ func (q *PostQueue) AddPostExpiryJob(postID, userID, platform, platformPostID, s
 	}
 
 	if q.redisClient != nil {
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		cmdCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 
 		pipe := q.redisClient.TxPipeline()
-		pipe.ZAdd(ctx, RedisScheduledSet, redis.Z{
+		pipe.ZAdd(cmdCtx, RedisScheduledSet, redis.Z{
 			Score:  float64(runAt.UnixMilli()),
 			Member: string(bytes),
 		})
-		pipe.Set(ctx, RedisJobIndexKey+jobID, string(bytes), 30*24*time.Hour)
-		_, err := pipe.Exec(ctx)
+		pipe.Set(cmdCtx, RedisJobIndexKey+jobID, string(bytes), 30*24*time.Hour)
+		_, err := pipe.Exec(cmdCtx)
 		return err
 	}
 
@@ -325,7 +365,7 @@ func (q *PostQueue) AddPostExpiryJob(postID, userID, platform, platformPostID, s
 	q.memTimers[timerKey] = time.AfterFunc(delay, func() {
 		defer func() {
 			if r := recover(); r != nil {
-				log.Printf("[QueueWorker] PANIC in memory expiry job handler: %v", r)
+				slog.Error("queue_memory_expiry_job_panic", "post_id", postID, "panic", fmt.Sprintf("%v", r))
 			}
 			q.mu.Lock()
 			delete(q.memTimers, timerKey)

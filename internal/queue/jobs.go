@@ -3,7 +3,9 @@ package queue
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"log/slog"
+
+	"xsocial-backend/internal/utils"
 )
 
 type PostExecutor interface {
@@ -13,15 +15,14 @@ type PostExecutor interface {
 
 func CreateJobDispatcher(executor PostExecutor) HandlerFunc {
 	return func(name string, payload []byte) error {
-		ctx := context.Background()
-
 		switch name {
 		case PublishPostJobName:
 			var data PublishJobData
 			if err := json.Unmarshal(payload, &data); err != nil {
 				return err
 			}
-			log.Printf("[JobDispatcher] Processing publish post job for post %s", data.PostID)
+			ctx := utils.ContextWithTraceparent(context.Background(), data.Traceparent, data.RequestID)
+			slog.InfoContext(ctx, "job_dispatch_publish_post", "post_id", data.PostID)
 			return executor.PublishScheduledPost(ctx, data.PostID)
 
 		case ExpirePostPublicationJobName:
@@ -29,11 +30,12 @@ func CreateJobDispatcher(executor PostExecutor) HandlerFunc {
 			if err := json.Unmarshal(payload, &data); err != nil {
 				return err
 			}
-			log.Printf("[JobDispatcher] Processing expire post publication job for post %s, platform %s", data.PostID, data.Platform)
+			ctx := utils.ContextWithTraceparent(context.Background(), data.Traceparent, data.RequestID)
+			slog.InfoContext(ctx, "job_dispatch_expire_post", "post_id", data.PostID, "platform", data.Platform)
 			return executor.ExpirePublishedPlatformPost(ctx, data)
 
 		default:
-			log.Printf("[JobDispatcher] Unknown job name: %s", name)
+			slog.Warn("job_dispatch_unknown", "name", name)
 			return nil
 		}
 	}

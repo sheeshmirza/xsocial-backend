@@ -20,11 +20,13 @@ import (
 	"xsocial-backend/internal/queue"
 	"xsocial-backend/internal/repository"
 	"xsocial-backend/internal/service"
+	"xsocial-backend/internal/utils"
 )
 
 func main() {
 	cfg := config.LoadConfig()
-	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
+	logger := utils.NewRedactingLogger(os.Stdout, slog.LevelInfo, true)
+	slog.SetDefault(logger)
 
 	// 1. Connect MongoDB
 	mongoDB, err := database.ConnectMongoDB(cfg)

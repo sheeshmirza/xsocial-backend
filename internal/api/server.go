@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/v2/bson"
 	"golang.org/x/time/rate"
 
@@ -113,7 +112,7 @@ type ServerDeps struct {
 func NewWithDeps(deps ServerDeps) *Server {
 	logger := deps.Logger
 	if logger == nil {
-		logger = slog.Default()
+		logger = utils.NewRedactingLogger(nil, slog.LevelInfo, true)
 	}
 	return &Server{
 		cfg:             deps.Config,
@@ -371,6 +370,11 @@ func (s *Server) authed(h http.HandlerFunc) http.Handler {
 
 		// 1. API Key Auth Path (mc_live_... or xs_live_...)
 		if strings.HasPrefix(tok, "mc_live_") || strings.HasPrefix(tok, "xs_live_") {
+			if s.apiKeyService == nil {
+				s.recordAuthFailure(ip)
+				writeError(w, http.StatusUnauthorized, "invalid or expired API key")
+				return
+			}
 			key, err := s.apiKeyService.ValidateApiKey(r.Context(), tok)
 			if err != nil || key == nil {
 				if blocked, _ := s.checkAuthRate(ip); blocked {
@@ -638,18 +642,30 @@ func (s *Server) cors(next http.Handler) http.Handler {
 
 func (s *Server) securityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		id := r.Header.Get("X-Request-ID")
-		if id == "" {
-			id = uuid.NewString()
+		rawTraceparent := r.Header.Get("traceparent")
+		reqID := r.Header.Get("X-Request-ID")
+
+		tc, ok := utils.ParseTraceparent(rawTraceparent)
+		if !ok {
+			tc = utils.GenerateTraceContext(reqID)
+		} else {
+			if reqID == "" {
+				reqID = tc.TraceID
+			}
+			tc.RequestID = reqID
 		}
-		w.Header().Set("X-Request-ID", id)
+
+		w.Header().Set("X-Request-ID", tc.RequestID)
+		w.Header().Set("traceparent", tc.Traceparent())
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 		w.Header().Set("X-XSS-Protection", "0")
 		w.Header().Set("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
 		w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-		ctx := context.WithValue(r.Context(), reqIDKey{}, id)
+
+		ctx := utils.ContextWithTrace(r.Context(), tc)
+		ctx = context.WithValue(ctx, reqIDKey{}, tc.RequestID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
@@ -663,7 +679,7 @@ func (s *Server) accessLog(next http.Handler) http.Handler {
 			reqID := w.Header().Get("X-Request-ID")
 			durMs := time.Since(start).Milliseconds()
 			if rec.status >= http.StatusBadRequest || mathrand.Float64() < 0.10 {
-				s.log.Info("http_request",
+				s.log.InfoContext(r.Context(), "http_request",
 					"request_id", reqID,
 					"method", r.Method,
 					"path", r.URL.Path,
@@ -683,7 +699,7 @@ func (s *Server) recoverer(next http.Handler) http.Handler {
 				reqID := w.Header().Get("X-Request-ID")
 				stack := string(debug.Stack())
 				if s.log != nil {
-					s.log.Error("panic_recovered", "request_id", reqID, "panic", fmt.Sprintf("%v", v), "path", r.URL.Path, "stack", stack)
+					s.log.ErrorContext(r.Context(), "panic_recovered", "request_id", reqID, "panic", fmt.Sprintf("%v", v), "path", r.URL.Path, "stack", stack)
 				}
 				writeError(w, http.StatusInternalServerError, "internal server error")
 			}
@@ -778,7 +794,7 @@ func writeApiError(w http.ResponseWriter, err error) {
 		writeJSON(w, apiErr.StatusCode, resp)
 		return
 	}
-	writeError(w, http.StatusBadRequest, err.Error())
+	writeError(w, http.StatusBadRequest, utils.SanitizeErrorMessage(err.Error()))
 }
 
 func writeSuccess(w http.ResponseWriter, status int, data any, message string) {

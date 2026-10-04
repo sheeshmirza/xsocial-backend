@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"regexp"
 	"strings"
 	"time"
@@ -420,7 +420,7 @@ func (s *PostService) CreatePost(ctx context.Context, userID bson.ObjectID, payl
 		return nil, err
 	}
 	if post.IsScheduled() && post.ScheduledTime != nil && s.queue != nil {
-		_ = s.queue.AddSchedulePublishJob(post.ID.Hex(), *post.ScheduledTime)
+		_ = s.queue.AddSchedulePublishJobCtx(ctx, post.ID.Hex(), *post.ScheduledTime)
 	}
 	return post, nil
 }
@@ -615,7 +615,7 @@ func (s *PostService) UpdatePost(ctx context.Context, userID, postID bson.Object
 		// If scheduled time was changed or post moved to scheduled, update background publish job
 		if input.ScheduledTime != nil {
 			if (input.Status != nil && *input.Status == models.PostStatusScheduled) || existing.IsScheduled() {
-				_ = s.queue.AddSchedulePublishJob(postID.Hex(), *input.ScheduledTime)
+				_ = s.queue.AddSchedulePublishJobCtx(ctx, postID.Hex(), *input.ScheduledTime)
 			}
 		}
 	}
@@ -988,7 +988,7 @@ func (s *PostService) ResumeRecurringPost(ctx context.Context, userID, postID bs
 	}
 
 	if s.queue != nil {
-		_ = s.queue.AddSchedulePublishJob(postID.Hex(), *nextRunAt)
+		_ = s.queue.AddSchedulePublishJobCtx(ctx, postID.Hex(), *nextRunAt)
 	}
 
 	return updated, nil
@@ -1054,7 +1054,7 @@ func (s *PostService) BulkResumeRecurringPosts(ctx context.Context, userID bson.
 			if err == nil && updated != nil {
 				resumedCount++
 				if s.queue != nil {
-					_ = s.queue.AddSchedulePublishJob(p.ID.Hex(), *nextRunAt)
+					_ = s.queue.AddSchedulePublishJobCtx(ctx, p.ID.Hex(), *nextRunAt)
 				}
 			} else {
 				failedCount++
@@ -1172,7 +1172,7 @@ func (s *PostService) PublishPost(
 			})
 			if err == nil && recurrentPost != nil {
 				if s.queue != nil {
-					_ = s.queue.AddSchedulePublishJob(postID.Hex(), *nextRunAt)
+					_ = s.queue.AddSchedulePublishJobCtx(ctx, postID.Hex(), *nextRunAt)
 				}
 				return recurrentPost, nil
 			}
@@ -1261,7 +1261,7 @@ func (s *PostService) SchedulePost(ctx context.Context, userID, postID bson.Obje
 	}
 
 	if s.queue != nil {
-		_ = s.queue.AddSchedulePublishJob(postID.Hex(), scheduledTime)
+		_ = s.queue.AddSchedulePublishJobCtx(ctx, postID.Hex(), scheduledTime)
 	}
 
 	return updated, nil
@@ -1331,7 +1331,7 @@ func (s *PostService) PublishScheduledPost(ctx context.Context, postIDStr string
 	if isRecurring {
 		occurrence, err := s.createRecurringOccurrence(ctx, post)
 		if err != nil {
-			log.Printf("[PostService] Recurring occurrence creation failed for %s: %v", postIDStr, err)
+			slog.ErrorContext(ctx, "post_recurring_occurrence_creation_failed", "post_id", postIDStr, "error", err)
 		} else {
 			_, _ = s.PublishPost(ctx, post.UserID, occurrence.ID, post.SelectedPlatforms, post.SelectedAccountIds, nil)
 		}
@@ -1356,7 +1356,7 @@ func (s *PostService) PublishScheduledPost(ctx context.Context, postIDStr string
 				"status":           models.PostStatusScheduled,
 			})
 			if s.queue != nil {
-				_ = s.queue.AddSchedulePublishJob(post.ID.Hex(), *nextRunAt)
+				_ = s.queue.AddSchedulePublishJobCtx(ctx, post.ID.Hex(), *nextRunAt)
 			}
 		}
 	}
@@ -1438,7 +1438,7 @@ func (s *PostService) RequeueRecurringScheduledPostsOnStartup(ctx context.Contex
 			restoredCount++
 		}
 	}
-	log.Printf("[PostService] Restored %d recurring scheduled posts on startup", restoredCount)
+	slog.Info("post_restored_recurring_on_startup", "restored_count", restoredCount)
 }
 
 func (s *PostService) StatusBreakdown(ctx context.Context, userID bson.ObjectID, accountIDs []string) (map[string]int64, error) {
@@ -1549,7 +1549,7 @@ func (s *PostService) ResharePost(ctx context.Context, userID, sourcePostID bson
 	}
 
 	if resharePost.IsScheduled() && resharePost.ScheduledTime != nil && s.queue != nil {
-		_ = s.queue.AddSchedulePublishJob(resharePost.ID.Hex(), *resharePost.ScheduledTime)
+		_ = s.queue.AddSchedulePublishJobCtx(ctx, resharePost.ID.Hex(), *resharePost.ScheduledTime)
 	}
 
 	// 6. If immediate publication requested

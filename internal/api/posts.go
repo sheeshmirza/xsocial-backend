@@ -433,6 +433,11 @@ func (s *Server) publicReview(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if s.postService == nil {
+		writeError(w, http.StatusNotFound, "review link invalid or post not found")
+		return
+	}
+
 	post, err := s.postService.FindByApprovalToken(r.Context(), token)
 	if err != nil || post == nil {
 		writeError(w, http.StatusNotFound, "review link invalid or post not found")
@@ -455,6 +460,11 @@ func (s *Server) publicReviewAction(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := req.Validate(); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
+	if s.postService == nil {
+		writeError(w, http.StatusNotFound, "review link invalid or post not found")
 		return
 	}
 

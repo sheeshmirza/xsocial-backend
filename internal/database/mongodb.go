@@ -3,7 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/mongo"
@@ -40,7 +40,7 @@ func ConnectMongoDB(cfg *config.Config) (*MongoDB, error) {
 	if err := client.Ping(ctx, nil); err != nil {
 		return nil, fmt.Errorf("failed to ping MongoDB: %w", err)
 	}
-	log.Println("MongoDB connected successfully")
+	slog.Info("mongodb_connected_successfully")
 	return &MongoDB{
 		Client:   client,
 		Database: client.Database(cfg.MongoDBName),
