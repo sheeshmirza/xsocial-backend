@@ -184,6 +184,7 @@ func (s *SocialService) RefreshPlatformToken(ctx context.Context, userID, social
 		refreshed, err := s.instagramService.RefreshToken(ctx, refreshCred)
 		if err != nil || refreshed == nil || refreshed.AccessToken == "" {
 			_, _ = s.socialHandleRepo.DeleteByIDAndUserID(ctx, social.ID, userID)
+			s.invalidateUserSocialCache(ctx, userID)
 			return nil, utils.BadRequest("Failed to refresh Instagram token")
 		}
 
@@ -193,12 +194,16 @@ func (s *SocialService) RefreshPlatformToken(ctx context.Context, userID, social
 		}
 		expiryDate := time.Now().Add(time.Duration(expiresIn) * time.Second)
 
-		return s.socialHandleRepo.UpdateByIDAndUserID(ctx, social.ID, userID, bson.M{
+		updated, uErr := s.socialHandleRepo.UpdateByIDAndUserID(ctx, social.ID, userID, bson.M{
 			"platformAccessToken":        refreshed.AccessToken,
 			"platformRefreshToken":       refreshed.AccessToken,
 			"platformAccessTokenExpiry":  expiryDate,
 			"platformRefreshTokenExpiry": expiryDate,
 		})
+		if uErr == nil {
+			s.invalidateUserSocialCache(ctx, userID)
+		}
+		return updated, uErr
 
 	case models.PlatformLinkedIn:
 		if social.PlatformRefreshToken == "" {
@@ -208,6 +213,7 @@ func (s *SocialService) RefreshPlatformToken(ctx context.Context, userID, social
 		refreshed, err := s.linkedinService.RefreshToken(ctx, social.PlatformRefreshToken)
 		if err != nil || refreshed == nil || refreshed.AccessToken == "" {
 			_, _ = s.socialHandleRepo.DeleteByIDAndUserID(ctx, social.ID, userID)
+			s.invalidateUserSocialCache(ctx, userID)
 			return nil, utils.BadRequest("Failed to refresh LinkedIn token")
 		}
 
@@ -225,7 +231,11 @@ func (s *SocialService) RefreshPlatformToken(ctx context.Context, userID, social
 			update["platformRefreshToken"] = refreshed.RefreshToken
 		}
 
-		return s.socialHandleRepo.UpdateByIDAndUserID(ctx, social.ID, userID, update)
+		updated, uErr := s.socialHandleRepo.UpdateByIDAndUserID(ctx, social.ID, userID, update)
+		if uErr == nil {
+			s.invalidateUserSocialCache(ctx, userID)
+		}
+		return updated, uErr
 
 	default:
 		return nil, utils.BadRequest("Unsupported platform for token refresh")
