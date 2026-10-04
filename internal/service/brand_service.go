@@ -18,6 +18,7 @@ type BrandService struct {
 	repo       repository.IBrandRepository
 	userRepo   repository.IUserRepository
 	redis      *database.RedisClient
+	cache      *database.MultiTierCache
 	handleRepo repository.ISocialHandleRepository
 }
 
@@ -27,6 +28,10 @@ func NewBrandService(repo repository.IBrandRepository, userRepo repository.IUser
 		userRepo: userRepo,
 		redis:    redis,
 	}
+}
+
+func (s *BrandService) SetCache(cache *database.MultiTierCache) {
+	s.cache = cache
 }
 
 func (s *BrandService) SetDependencies(handleRepo repository.ISocialHandleRepository) {
@@ -78,9 +83,16 @@ func (s *BrandService) GetBrand(ctx context.Context, id, userID bson.ObjectID) (
 		return nil, utils.Forbidden("Access to brand denied")
 	}
 
-	// 1. Check Redis cache first for sub-millisecond retrieval
+	// 1. Check MultiTierCache first (L1 sharded memory micro-cache -> L2 Redis)
 	cacheKey := "brand:" + id.Hex()
-	if s.redis != nil {
+	if s.cache != nil {
+		if cachedJSON, found := s.cache.Get(ctx, cacheKey); found && cachedJSON != "" {
+			var cached models.Brand
+			if json.Unmarshal([]byte(cachedJSON), &cached) == nil {
+				return &cached, nil
+			}
+		}
+	} else if s.redis != nil {
 		if cachedJSON, err := s.redis.Get(ctx, cacheKey); err == nil && cachedJSON != "" {
 			var cached models.Brand
 			if json.Unmarshal([]byte(cachedJSON), &cached) == nil {
@@ -97,9 +109,11 @@ func (s *BrandService) GetBrand(ctx context.Context, id, userID bson.ObjectID) (
 		return nil, utils.NotFound("Brand not found")
 	}
 
-	// 2. Populate cache in background (15-min TTL)
-	if s.redis != nil {
-		if b, err := json.Marshal(brand); err == nil {
+	// 2. Populate cache (15-min TTL)
+	if b, err := json.Marshal(brand); err == nil {
+		if s.cache != nil {
+			s.cache.Set(ctx, cacheKey, string(b), 15*time.Minute)
+		} else if s.redis != nil {
 			_ = s.redis.Set(ctx, cacheKey, string(b), 15*time.Minute)
 		}
 	}
@@ -152,7 +166,9 @@ func (s *BrandService) UpdateBrand(ctx context.Context, id, userID bson.ObjectID
 	}
 
 	// Invalidate cache
-	if s.redis != nil {
+	if s.cache != nil {
+		s.cache.Delete(ctx, "brand:"+id.Hex())
+	} else if s.redis != nil {
 		_ = s.redis.Del(ctx, "brand:"+id.Hex())
 	}
 
@@ -178,7 +194,9 @@ func (s *BrandService) DeleteBrand(ctx context.Context, id, userID bson.ObjectID
 	}
 
 	// Invalidate cache
-	if s.redis != nil {
+	if s.cache != nil {
+		s.cache.Delete(ctx, "brand:"+id.Hex())
+	} else if s.redis != nil {
 		_ = s.redis.Del(ctx, "brand:"+id.Hex())
 	}
 

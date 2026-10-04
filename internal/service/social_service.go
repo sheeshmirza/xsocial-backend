@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
@@ -9,6 +10,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 
 	"xsocial-backend/internal/config"
+	"xsocial-backend/internal/database"
 	"xsocial-backend/internal/models"
 	"xsocial-backend/internal/platform/common"
 	"xsocial-backend/internal/platform/instagram"
@@ -22,6 +24,7 @@ type SocialService struct {
 	socialHandleRepo repository.ISocialHandleRepository
 	instagramService *instagram.Service
 	linkedinService  *linkedin.Service
+	cache            *database.MultiTierCache
 }
 
 func NewSocialService(
@@ -35,6 +38,16 @@ func NewSocialService(
 		socialHandleRepo: repo,
 		instagramService: igService,
 		linkedinService:  liService,
+	}
+}
+
+func (s *SocialService) SetCache(c *database.MultiTierCache) {
+	s.cache = c
+}
+
+func (s *SocialService) invalidateUserSocialCache(ctx context.Context, userID bson.ObjectID) {
+	if s.cache != nil {
+		s.cache.Delete(ctx, "social:list:"+userID.Hex())
 	}
 }
 
@@ -84,6 +97,7 @@ func (s *SocialService) ConnectFromCallback(ctx context.Context, userIDStr, plat
 		if err != nil {
 			return nil, err
 		}
+		s.invalidateUserSocialCache(ctx, userOID)
 		return saved, nil
 
 	case models.PlatformLinkedIn:
@@ -131,6 +145,7 @@ func (s *SocialService) ConnectFromCallback(ctx context.Context, userIDStr, plat
 		if linkedPagesCount == 0 {
 			savedPrimary.Warning = "No LinkedIn company pages were found. Reconnect LinkedIn with organization scopes."
 		}
+		s.invalidateUserSocialCache(ctx, userOID)
 		return savedPrimary, nil
 
 	default:
@@ -146,6 +161,7 @@ func (s *SocialService) DisconnectAccount(ctx context.Context, userID, socialID 
 	if deleted == nil {
 		return utils.NotFound("Social account not found")
 	}
+	s.invalidateUserSocialCache(ctx, userID)
 	return nil
 }
 

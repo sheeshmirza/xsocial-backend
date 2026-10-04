@@ -22,6 +22,7 @@ type UserService struct {
 	userRepo         repository.IUserRepository
 	refreshTokenRepo repository.IRefreshTokenRepository
 	redis            *database.RedisClient
+	cache            *database.MultiTierCache
 	postRepo         repository.IPostRepository
 	queue            *queue.PostQueue
 }
@@ -35,6 +36,10 @@ func NewUserService(cfg *config.Config, userRepo repository.IUserRepository, rfR
 	}
 }
 
+func (s *UserService) SetCache(cache *database.MultiTierCache) {
+	s.cache = cache
+}
+
 func (s *UserService) SetDependencies(postRepo repository.IPostRepository, q *queue.PostQueue) {
 	s.postRepo = postRepo
 	s.queue = q
@@ -42,7 +47,14 @@ func (s *UserService) SetDependencies(postRepo repository.IPostRepository, q *qu
 
 func (s *UserService) GetUserByID(ctx context.Context, userID bson.ObjectID) (*models.User, error) {
 	cacheKey := "user:" + userID.Hex()
-	if s.redis != nil {
+	if s.cache != nil {
+		if cachedJSON, found := s.cache.Get(ctx, cacheKey); found && cachedJSON != "" {
+			var cached models.User
+			if json.Unmarshal([]byte(cachedJSON), &cached) == nil {
+				return &cached, nil
+			}
+		}
+	} else if s.redis != nil {
 		if cachedJSON, err := s.redis.Get(ctx, cacheKey); err == nil && cachedJSON != "" {
 			var cached models.User
 			if json.Unmarshal([]byte(cachedJSON), &cached) == nil {
@@ -56,8 +68,10 @@ func (s *UserService) GetUserByID(ctx context.Context, userID bson.ObjectID) (*m
 		return user, err
 	}
 
-	if s.redis != nil {
-		if b, err := json.Marshal(user); err == nil {
+	if b, err := json.Marshal(user); err == nil {
+		if s.cache != nil {
+			s.cache.Set(ctx, cacheKey, string(b), 10*time.Minute)
+		} else if s.redis != nil {
 			_ = s.redis.Set(ctx, cacheKey, string(b), 10*time.Minute)
 		}
 	}
@@ -82,7 +96,9 @@ func (s *UserService) UpdateProfile(ctx context.Context, userID bson.ObjectID, f
 		return nil, utils.NotFound("User not found")
 	}
 
-	if s.redis != nil {
+	if s.cache != nil {
+		s.cache.Delete(ctx, "user:"+userID.Hex())
+	} else if s.redis != nil {
 		_ = s.redis.Del(ctx, "user:"+userID.Hex())
 	}
 
@@ -115,7 +131,9 @@ func (s *UserService) ChangePassword(ctx context.Context, userID bson.ObjectID, 
 		return false, err
 	}
 
-	if s.redis != nil {
+	if s.cache != nil {
+		s.cache.Delete(ctx, "user:"+userID.Hex())
+	} else if s.redis != nil {
 		_ = s.redis.Del(ctx, "user:"+userID.Hex())
 	}
 
@@ -124,7 +142,9 @@ func (s *UserService) ChangePassword(ctx context.Context, userID bson.ObjectID, 
 }
 
 func (s *UserService) DeleteUser(ctx context.Context, userID bson.ObjectID) error {
-	if s.redis != nil {
+	if s.cache != nil {
+		s.cache.Delete(ctx, "user:"+userID.Hex())
+	} else if s.redis != nil {
 		_ = s.redis.Del(ctx, "user:"+userID.Hex())
 	}
 	_ = s.refreshTokenRepo.RevokeAllByUserID(ctx, userID)

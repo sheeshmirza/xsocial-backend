@@ -20,6 +20,7 @@ import (
 type ApiKeyService struct {
 	repo      repository.IApiKeyRepository
 	redis     *database.RedisClient
+	cache     *database.MultiTierCache
 	brandRepo repository.IBrandRepository
 }
 
@@ -29,6 +30,10 @@ func NewApiKeyService(repo repository.IApiKeyRepository, redis *database.RedisCl
 		redis:     redis,
 		brandRepo: brandRepo,
 	}
+}
+
+func (s *ApiKeyService) SetCache(cache *database.MultiTierCache) {
+	s.cache = cache
 }
 
 func HashApiKey(key string) string {
@@ -127,10 +132,23 @@ func (s *ApiKeyService) CreateApiKey(ctx context.Context, userID bson.ObjectID, 
 
 func (s *ApiKeyService) ValidateApiKey(ctx context.Context, rawKey string) (*models.ApiKey, error) {
 	keyHash := HashApiKey(rawKey)
+	cacheKey := "apikey:" + keyHash
 
-	// Check Redis cache first
-	if s.redis != nil {
-		if cachedJSON, err := s.redis.Get(ctx, "apikey:"+keyHash); err == nil && cachedJSON != "" {
+	// 1. Check MultiTierCache first (L1 sharded memory micro-cache -> L2 Redis)
+	if s.cache != nil {
+		if cachedJSON, found := s.cache.Get(ctx, cacheKey); found && cachedJSON != "" {
+			var cached models.ApiKey
+			if json.Unmarshal([]byte(cachedJSON), &cached) == nil {
+				if s.repo != nil {
+					utils.SafeGo(func() {
+						s.repo.UpdateLastUsed(context.Background(), cached.ID)
+					})
+				}
+				return &cached, nil
+			}
+		}
+	} else if s.redis != nil {
+		if cachedJSON, err := s.redis.Get(ctx, cacheKey); err == nil && cachedJSON != "" {
 			var cached models.ApiKey
 			if json.Unmarshal([]byte(cachedJSON), &cached) == nil {
 				if s.repo != nil {
@@ -155,7 +173,7 @@ func (s *ApiKeyService) ValidateApiKey(ctx context.Context, rawKey string) (*mod
 		return nil, utils.Unauthorized("API key has expired")
 	}
 
-	// Cache key in Redis
+	// Cache key in MultiTierCache
 	s.cacheKeyInRedis(ctx, keyHash, key)
 
 	// Update last used asynchronously
@@ -169,11 +187,12 @@ func (s *ApiKeyService) ValidateApiKey(ctx context.Context, rawKey string) (*mod
 }
 
 func (s *ApiKeyService) cacheKeyInRedis(ctx context.Context, keyHash string, key *models.ApiKey) {
-	if s.redis == nil {
-		return
-	}
 	if b, err := json.Marshal(key); err == nil {
-		_ = s.redis.Set(ctx, "apikey:"+keyHash, string(b), 5*time.Minute)
+		if s.cache != nil {
+			s.cache.Set(ctx, "apikey:"+keyHash, string(b), 5*time.Minute)
+		} else if s.redis != nil {
+			_ = s.redis.Set(ctx, "apikey:"+keyHash, string(b), 5*time.Minute)
+		}
 	}
 }
 
@@ -205,6 +224,22 @@ func (s *ApiKeyService) ListApiKeys(ctx context.Context, userID bson.ObjectID) (
 }
 
 func (s *ApiKeyService) RevokeApiKey(ctx context.Context, id, userID bson.ObjectID) error {
+	// Look up user's keys to find keyHash for immediate multi-tier cache invalidation
+	if s.cache != nil || s.redis != nil {
+		if keys, err := s.repo.FindByUserID(ctx, userID); err == nil {
+			for _, k := range keys {
+				if k.ID == id {
+					if s.cache != nil {
+						s.cache.Delete(ctx, "apikey:"+k.KeyHash)
+					} else if s.redis != nil {
+						_ = s.redis.Del(ctx, "apikey:"+k.KeyHash)
+					}
+					break
+				}
+			}
+		}
+	}
+
 	deleted, err := s.repo.DeleteByIDAndUserID(ctx, id, userID)
 	if err != nil {
 		return utils.InternalServerError("Failed to revoke API key")

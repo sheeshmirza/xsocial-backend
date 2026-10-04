@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -41,7 +42,7 @@ func (s *AuditLogService) startWorker() {
 				return
 			}
 			if s.repo != nil && entry != nil {
-				_ = s.repo.Record(context.Background(), entry)
+				s.repo.Record(context.Background(), entry)
 			}
 		}
 	}
@@ -69,7 +70,7 @@ func (s *AuditLogService) Log(ctx context.Context, userID *bson.ObjectID, brandI
 	default:
 		// Queue full under extreme traffic spike: process asynchronously via SafeGo
 		utils.SafeGo(func() {
-			_ = s.repo.Record(context.Background(), logEntry)
+			s.repo.Record(context.Background(), logEntry)
 		})
 	}
 }

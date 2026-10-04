@@ -79,6 +79,16 @@ func NewPostQueue(redisDb *database.RedisClient, handler HandlerFunc) *PostQueue
 	return pq
 }
 
+var popScheduledJobsLua = redis.NewScript(`
+local vals = redis.call('ZRANGEBYSCORE', KEYS[1], '-inf', ARGV[1], 'LIMIT', 0, tonumber(ARGV[2]))
+if #vals > 0 then
+    for _, val in ipairs(vals) do
+        redis.call('ZREM', KEYS[1], val)
+    end
+end
+return vals
+`)
+
 func (q *PostQueue) startRedisWorker() {
 	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
@@ -91,26 +101,14 @@ func (q *PostQueue) startRedisWorker() {
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			nowScore := float64(time.Now().UnixMilli())
 
-			// Fetch items whose runAt is <= now
-			vals, err := q.redisClient.ZRangeByScore(ctx, RedisScheduledSet, &redis.ZRangeBy{
-				Min:    "-inf",
-				Max:    fmt.Sprintf("%f", nowScore),
-				Offset: 0,
-				Count:  10,
-			}).Result()
-
-			if err != nil || len(vals) == 0 {
+			// Atomically pop items whose runAt is <= now to prevent duplicate execution across horizontal workers
+			res, err := popScheduledJobsLua.Run(ctx, q.redisClient, []string{RedisScheduledSet}, fmt.Sprintf("%f", nowScore), 10).StringSlice()
+			if err != nil || len(res) == 0 {
 				cancel()
 				continue
 			}
 
-			for _, rawItem := range vals {
-				// Atomically pop item from scheduled set to prevent duplicate execution across workers
-				remCount, remErr := q.redisClient.ZRem(ctx, RedisScheduledSet, rawItem).Result()
-				if remErr != nil || remCount == 0 {
-					continue
-				}
-
+			for _, rawItem := range res {
 				var envelope struct {
 					ID        string          `json:"id"`
 					Name      string          `json:"name"`

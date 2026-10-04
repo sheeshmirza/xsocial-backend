@@ -2,7 +2,7 @@ package database
 
 import (
 	"context"
-	"crypto/fnv"
+	"hash/fnv"
 	"sync"
 	"time"
 )
@@ -163,15 +163,19 @@ func (c *MultiTierCache) Get(ctx context.Context, key string) (string, bool) {
 		return "", false
 	}
 	// 1. Check L1 Memory Cache (nanosecond lookup)
-	if val, ok := c.l1.Get(key); ok {
-		return val, true
+	if c.l1 != nil {
+		if val, ok := c.l1.Get(key); ok {
+			return val, true
+		}
 	}
 
 	// 2. Check L2 Redis Cache
 	if c.redis != nil {
 		if val, err := c.redis.Get(ctx, key); err == nil && val != "" {
 			// Populate L1 for subsequent requests
-			c.l1.Set(key, val, c.l1TTL)
+			if c.l1 != nil {
+				c.l1.Set(key, val, c.l1TTL)
+			}
 			return val, true
 		}
 	}
@@ -185,7 +189,9 @@ func (c *MultiTierCache) Set(ctx context.Context, key, value string, l2TTL time.
 		return
 	}
 	// Always set in L1
-	c.l1.Set(key, value, c.l1TTL)
+	if c.l1 != nil {
+		c.l1.Set(key, value, c.l1TTL)
+	}
 
 	// Set in L2 Redis if available
 	if c.redis != nil && l2TTL > 0 {
@@ -198,7 +204,9 @@ func (c *MultiTierCache) Delete(ctx context.Context, key string) {
 	if c == nil {
 		return
 	}
-	c.l1.Delete(key)
+	if c.l1 != nil {
+		c.l1.Delete(key)
+	}
 	if c.redis != nil {
 		_ = c.redis.Del(ctx, key)
 	}

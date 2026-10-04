@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"regexp"
@@ -11,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/v2/bson"
 
+	"xsocial-backend/internal/database"
 	"xsocial-backend/internal/models"
 	"xsocial-backend/internal/queue"
 	"xsocial-backend/internal/repository"
@@ -27,6 +29,7 @@ type PostService struct {
 	activityService     *LinkedInActivityService
 	socialService       *SocialService
 	queue               *queue.PostQueue
+	cache               *database.MultiTierCache
 }
 
 func NewPostService(
@@ -53,8 +56,24 @@ func NewPostService(
 	}
 }
 
+func (s *PostService) SetCache(c *database.MultiTierCache) {
+	s.cache = c
+}
+
 func (s *PostService) SetQueue(q *queue.PostQueue) {
 	s.queue = q
+}
+
+func (s *PostService) invalidatePostCache(ctx context.Context, postID bson.ObjectID, approvalTokens ...string) {
+	if s.cache == nil {
+		return
+	}
+	s.cache.Delete(ctx, "post:"+postID.Hex())
+	for _, tok := range approvalTokens {
+		if tok != "" {
+			s.cache.Delete(ctx, "approval:"+tok)
+		}
+	}
 }
 
 func (s *PostService) validateTemporaryPostDuration(interval *int, unit *string) error {
@@ -491,9 +510,28 @@ func (s *PostService) ListPosts(ctx context.Context, userID bson.ObjectID, query
 }
 
 func (s *PostService) GetPost(ctx context.Context, userID, postID bson.ObjectID) (*models.Post, error) {
+	cacheKey := "post:" + postID.Hex()
+	if s.cache != nil {
+		if cachedJSON, found := s.cache.Get(ctx, cacheKey); found && cachedJSON != "" {
+			var cached models.Post
+			if json.Unmarshal([]byte(cachedJSON), &cached) == nil {
+				if cached.UserID == userID {
+					s.enrichPostWithLinkedInActivity(ctx, userID, &cached)
+					return &cached, nil
+				}
+			}
+		}
+	}
+
 	post, err := s.postRepo.FindByIDAndUserID(ctx, postID, userID)
 	if err != nil || post == nil {
 		return nil, utils.NotFound("Post not found")
+	}
+
+	if s.cache != nil {
+		if b, err := json.Marshal(post); err == nil {
+			s.cache.Set(ctx, cacheKey, string(b), 10*time.Minute)
+		}
 	}
 
 	s.enrichPostWithLinkedInActivity(ctx, userID, post)
@@ -620,11 +658,33 @@ func (s *PostService) UpdatePost(ctx context.Context, userID, postID bson.Object
 		}
 	}
 
+	s.invalidatePostCache(ctx, postID, existing.ApprovalToken)
 	return updated, nil
 }
 
 func (s *PostService) FindByApprovalToken(ctx context.Context, token string) (*models.Post, error) {
-	return s.postRepo.FindByApprovalToken(ctx, token)
+	cacheKey := "approval:" + token
+	if s.cache != nil {
+		if cachedJSON, found := s.cache.Get(ctx, cacheKey); found && cachedJSON != "" {
+			var cached models.Post
+			if json.Unmarshal([]byte(cachedJSON), &cached) == nil {
+				return &cached, nil
+			}
+		}
+	}
+
+	post, err := s.postRepo.FindByApprovalToken(ctx, token)
+	if err != nil || post == nil {
+		return post, err
+	}
+
+	if s.cache != nil {
+		if b, err := json.Marshal(post); err == nil {
+			s.cache.Set(ctx, cacheKey, string(b), 10*time.Minute)
+		}
+	}
+
+	return post, nil
 }
 
 func (s *PostService) SubmitForApproval(ctx context.Context, userID, postID bson.ObjectID) (*models.Post, error) {
@@ -640,7 +700,11 @@ func (s *PostService) SubmitForApproval(ctx context.Context, userID, postID bson
 		"updatedAt":     time.Now(),
 	}
 
-	return s.postRepo.UpdateByIDAndUserID(ctx, postID, userID, update)
+	updated, err := s.postRepo.UpdateByIDAndUserID(ctx, postID, userID, update)
+	if err == nil && updated != nil {
+		s.invalidatePostCache(ctx, postID, post.ApprovalToken)
+	}
+	return updated, err
 }
 
 func (s *PostService) ApprovePost(ctx context.Context, approverID, postID bson.ObjectID, comment string) (*models.Post, error) {
@@ -671,7 +735,11 @@ func (s *PostService) ApprovePost(ctx context.Context, approverID, postID bson.O
 		}
 	}
 
-	return s.postRepo.UpdateByID(ctx, postID, update)
+	updated, err := s.postRepo.UpdateByID(ctx, postID, update)
+	if err == nil && updated != nil {
+		s.invalidatePostCache(ctx, postID, post.ApprovalToken)
+	}
+	return updated, err
 }
 
 func (s *PostService) RejectPost(ctx context.Context, rejectorID, postID bson.ObjectID, reason string) (*models.Post, error) {
@@ -700,7 +768,11 @@ func (s *PostService) RejectPost(ctx context.Context, rejectorID, postID bson.Ob
 		}
 	}
 
-	return s.postRepo.UpdateByID(ctx, postID, update)
+	updated, err := s.postRepo.UpdateByID(ctx, postID, update)
+	if err == nil && updated != nil {
+		s.invalidatePostCache(ctx, postID, post.ApprovalToken)
+	}
+	return updated, err
 }
 
 func (s *PostService) PublicReviewAction(ctx context.Context, token, action, reviewerName, feedback string) (*models.Post, error) {
@@ -736,7 +808,11 @@ func (s *PostService) PublicReviewAction(ctx context.Context, token, action, rev
 		}
 	}
 
-	return s.postRepo.UpdateByID(ctx, post.ID, update)
+	updated, err := s.postRepo.UpdateByID(ctx, post.ID, update)
+	if err == nil && updated != nil {
+		s.invalidatePostCache(ctx, post.ID, token, post.ApprovalToken)
+	}
+	return updated, err
 }
 
 func (s *PostService) deleteLinkedInPlatformPosts(ctx context.Context, userID bson.ObjectID, post *models.Post) {
@@ -765,6 +841,7 @@ func (s *PostService) cleanupPostArtifacts(post *models.Post, userID bson.Object
 	if post == nil {
 		return
 	}
+	s.invalidatePostCache(context.Background(), post.ID, post.ApprovalToken)
 	if s.queue != nil {
 		_ = s.queue.RemoveSchedulePublishJob(post.ID.Hex())
 		_ = s.queue.RemovePostExpiryJobs(post.ID.Hex())
@@ -1014,6 +1091,7 @@ func (s *PostService) BulkPauseRecurringPosts(ctx context.Context, userID bson.O
 				"recurrencePaused": true,
 				"status":           models.PostStatusScheduled,
 			})
+			s.invalidatePostCache(ctx, p.ID)
 			pausedCount++
 		}
 	}
@@ -1053,6 +1131,7 @@ func (s *PostService) BulkResumeRecurringPosts(ctx context.Context, userID bson.
 			})
 			if err == nil && updated != nil {
 				resumedCount++
+				s.invalidatePostCache(ctx, p.ID)
 				if s.queue != nil {
 					_ = s.queue.AddSchedulePublishJobCtx(ctx, p.ID.Hex(), *nextRunAt)
 				}
@@ -1171,6 +1250,7 @@ func (s *PostService) PublishPost(
 				"status":           models.PostStatusScheduled,
 			})
 			if err == nil && recurrentPost != nil {
+				s.invalidatePostCache(ctx, postID)
 				if s.queue != nil {
 					_ = s.queue.AddSchedulePublishJobCtx(ctx, postID.Hex(), *nextRunAt)
 				}
@@ -1179,6 +1259,7 @@ func (s *PostService) PublishPost(
 		}
 	}
 
+	s.invalidatePostCache(ctx, postID)
 	return updated, nil
 }
 
@@ -1264,6 +1345,7 @@ func (s *PostService) SchedulePost(ctx context.Context, userID, postID bson.Obje
 		_ = s.queue.AddSchedulePublishJobCtx(ctx, postID.Hex(), scheduledTime)
 	}
 
+	s.invalidatePostCache(ctx, postID)
 	return updated, nil
 }
 
@@ -1585,6 +1667,7 @@ func (s *PostService) ResharePost(ctx context.Context, userID, sourcePostID bson
 		_, _ = s.postRepo.UpdateByIDAndUserID(ctx, resharePost.ID, userID, update)
 	}
 
+	s.invalidatePostCache(ctx, resharePost.ID)
 	return resharePost, nil
 }
 
