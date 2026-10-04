@@ -62,6 +62,7 @@ func (s *Server) getUploadedMedia(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", media.MimeType)
+	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Cache-Control", "public, max-age=86400")
 	w.WriteHeader(http.StatusOK)
 	_, _ = w.Write(media.Buffer)

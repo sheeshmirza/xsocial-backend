@@ -1447,6 +1447,10 @@ func (s *PostService) PlatformBreakdown(ctx context.Context, userID bson.ObjectI
 }
 
 func (s *PostService) ResharePost(ctx context.Context, userID, sourcePostID bson.ObjectID, req models.ResharePostRequest) (*models.Post, error) {
+	if err := req.Validate(); err != nil {
+		return nil, utils.BadRequest(err.Error())
+	}
+
 	// 1. Fetch source post
 	sourcePost, err := s.postRepo.FindByIDAndUserID(ctx, sourcePostID, userID)
 	if err != nil || sourcePost == nil {
@@ -1454,10 +1458,6 @@ func (s *PostService) ResharePost(ctx context.Context, userID, sourcePostID bson
 	}
 
 	// 2. Validate target accounts
-	if len(req.TargetAccountIDs) == 0 && len(req.TargetPlatforms) == 0 {
-		return nil, utils.BadRequest("Target account IDs or target platforms must be specified for reshare")
-	}
-
 	var targetHandles []models.SocialHandle
 	if len(req.TargetAccountIDs) > 0 {
 		handles, hErr := s.socialHandleRepo.FindByUserAndIDs(ctx, userID, req.TargetAccountIDs)

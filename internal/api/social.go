@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -11,6 +10,7 @@ import (
 
 	"xsocial-backend/internal/models"
 	"xsocial-backend/internal/platform/common"
+	"xsocial-backend/internal/utils"
 )
 
 func (s *Server) listSocialAccounts(w http.ResponseWriter, r *http.Request) {
@@ -55,7 +55,14 @@ func (s *Server) connectSocialPlatform(w http.ResponseWriter, r *http.Request) {
 		RedirectURI string `json:"redirectUri"`
 	}
 	if r.Body != nil && r.ContentLength > 0 {
-		_ = json.NewDecoder(r.Body).Decode(&req)
+		_ = decode(w, r, 0, &req)
+	}
+
+	if req.RedirectURI != "" {
+		if err := utils.ValidateURL(req.RedirectURI); err != nil {
+			writeError(w, http.StatusBadRequest, "invalid redirectUri: "+err.Error())
+			return
+		}
 	}
 
 	if req.Code != "" {

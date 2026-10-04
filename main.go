@@ -161,5 +161,13 @@ func main() {
 		postQueue.Close()
 	}
 
+	if redisClient != nil && redisClient.Client != nil {
+		_ = redisClient.Client.Close()
+	}
+
+	if mongoDB != nil && mongoDB.Client != nil {
+		_ = mongoDB.Client.Disconnect(ctxShutdown)
+	}
+
 	log.Println("Server exited cleanly.")
 }

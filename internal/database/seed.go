@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -40,7 +41,11 @@ func SeedInitialData(ctx context.Context, db *mongo.Database) (*SeedSummary, err
 
 	var adminID bson.ObjectID
 	if err == mongo.ErrNoDocuments {
-		pwdHash, _ := bcrypt.GenerateFromPassword([]byte("AdminPassword123!"), 12)
+		adminPwd := os.Getenv("SEED_ADMIN_PASSWORD")
+		if adminPwd == "" {
+			adminPwd = "AdminPassword123!"
+		}
+		pwdHash, _ := bcrypt.GenerateFromPassword([]byte(adminPwd), 12)
 		now := time.Now()
 		adminUser := models.User{
 			Email:      adminEmail,

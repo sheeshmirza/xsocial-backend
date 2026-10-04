@@ -118,6 +118,14 @@ func (s *UploadService) ProcessUploads(files []*multipart.FileHeader, requestHos
 			mimeType = detected
 		}
 
+		lowerMime := strings.ToLower(mimeType)
+		if strings.Contains(lowerMime, "html") || strings.Contains(lowerMime, "svg") || strings.Contains(lowerMime, "javascript") || strings.Contains(lowerMime, "xml") {
+			return nil, utils.BadRequest(fmt.Sprintf("File %s has an unsupported or prohibited format: %s", fileHeader.Filename, mimeType))
+		}
+		if !strings.HasPrefix(lowerMime, "image/") && !strings.HasPrefix(lowerMime, "video/") && !strings.HasPrefix(lowerMime, "audio/") {
+			return nil, utils.BadRequest(fmt.Sprintf("File %s has an unsupported format %s; only images, videos, and audio are allowed", fileHeader.Filename, mimeType))
+		}
+
 		mediaID := uuid.New().String()
 		encoded := base64.StdEncoding.EncodeToString(buffer)
 		dataURI := fmt.Sprintf("data:%s;base64,%s", mimeType, encoded)

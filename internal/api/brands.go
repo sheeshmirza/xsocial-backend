@@ -2,7 +2,6 @@ package api
 
 import (
 	"net/http"
-	"strings"
 
 	"xsocial-backend/internal/models"
 )
