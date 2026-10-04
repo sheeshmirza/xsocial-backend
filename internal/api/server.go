@@ -560,6 +560,16 @@ func isPrivateIP(ip string) bool {
 }
 
 func (s *Server) checkAuthRate(ip string) (bool, time.Duration) {
+	return s.checkAuthRateCtx(context.Background(), ip)
+}
+
+func (s *Server) checkAuthRateCtx(ctx context.Context, ip string) (bool, time.Duration) {
+	if s.redis != nil {
+		if ttl, err := s.redis.TTL(ctx, "auth:blocked:"+ip); err == nil && ttl > 0 {
+			return true, ttl
+		}
+	}
+
 	s.authMu.Lock()
 	defer s.authMu.Unlock()
 	rec, exists := s.authFailures[ip]
@@ -575,6 +585,22 @@ func (s *Server) checkAuthRate(ip string) (bool, time.Duration) {
 }
 
 func (s *Server) recordAuthFailure(ip string) {
+	s.recordAuthFailureCtx(context.Background(), ip)
+}
+
+func (s *Server) recordAuthFailureCtx(ctx context.Context, ip string) {
+	if s.redis != nil {
+		count, err := s.redis.Incr(ctx, "auth:failed:"+ip)
+		if err == nil {
+			if count == 1 {
+				_ = s.redis.Expire(ctx, "auth:failed:"+ip, 5*time.Minute)
+			}
+			if count >= 10 {
+				_ = s.redis.Set(ctx, "auth:blocked:"+ip, "1", 5*time.Minute)
+			}
+		}
+	}
+
 	s.authMu.Lock()
 	defer s.authMu.Unlock()
 	if s.authFailures == nil {
@@ -603,6 +629,14 @@ func (s *Server) recordAuthFailure(ip string) {
 }
 
 func (s *Server) recordAuthSuccess(ip string) {
+	s.recordAuthSuccessCtx(context.Background(), ip)
+}
+
+func (s *Server) recordAuthSuccessCtx(ctx context.Context, ip string) {
+	if s.redis != nil {
+		_ = s.redis.Del(ctx, "auth:failed:"+ip, "auth:blocked:"+ip)
+	}
+
 	s.authMu.Lock()
 	defer s.authMu.Unlock()
 	delete(s.authFailures, ip)
@@ -708,14 +742,29 @@ func (s *Server) recoverer(next http.Handler) http.Handler {
 	})
 }
 
-func (s *Server) allow(key string) bool {
-	limit := rate.Limit(500)
-	burst := 1000
+func (s *Server) allow(ctx context.Context, key string) bool {
+	limit := 500
+	window := 1 * time.Second
 	if s.cfg != nil && s.cfg.RateLimitMax > 0 && s.cfg.RateLimitWindowMS > 0 {
-		limit = rate.Limit(float64(s.cfg.RateLimitMax) / s.cfg.RateLimitWindowMS.Seconds())
-		burst = s.cfg.RateLimitMax
+		limit = s.cfg.RateLimitMax
+		window = s.cfg.RateLimitWindowMS
 	}
-	v, _ := s.limiters.LoadOrStore(key, rate.NewLimiter(limit, burst))
+
+	// 1. Distributed Stateless Rate Limiting across horizontal instances via Redis
+	if s.redis != nil {
+		allowed, err := s.redis.AllowRateLimit(ctx, "ratelimit:"+key, limit, window)
+		if err == nil {
+			return allowed
+		}
+	}
+
+	// 2. In-Memory Token Bucket Fallback
+	burst := limit * 2
+	if burst < 10 {
+		burst = 10
+	}
+	rateLimit := rate.Limit(float64(limit) / window.Seconds())
+	v, _ := s.limiters.LoadOrStore(key, rate.NewLimiter(rateLimit, burst))
 	if lim, ok := v.(*rate.Limiter); ok {
 		return lim.Allow()
 	}
@@ -725,7 +774,7 @@ func (s *Server) allow(key string) bool {
 func (s *Server) rateLimiter(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ip := clientIP(r)
-		if !s.allow(ip) {
+		if !s.allow(r.Context(), ip) {
 			w.Header().Set("Retry-After", "1")
 			writeError(w, http.StatusTooManyRequests, "rate limit exceeded")
 			return
