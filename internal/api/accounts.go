@@ -22,8 +22,8 @@ func (s *Server) createAPIKey(w http.ResponseWriter, r *http.Request) {
 	if req.Name == "" {
 		req.Name = "Default API Key"
 	}
-	if len(req.Name) > 100 {
-		writeError(w, http.StatusUnprocessableEntity, "key name must be at most 100 characters")
+	if err := req.Validate(); err != nil {
+		writeError(w, http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 

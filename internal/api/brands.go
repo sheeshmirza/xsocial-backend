@@ -18,9 +18,8 @@ func (s *Server) createBrand(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	req.Name = strings.TrimSpace(req.Name)
-	if req.Name == "" {
-		writeError(w, http.StatusBadRequest, "brand name is required")
+	if err := req.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -91,6 +90,11 @@ func (s *Server) updateBrand(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := req.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
 	brand, err := s.brandService.UpdateBrand(r.Context(), brandOID, userOID, req)
 	if err != nil {
 		writeApiError(w, err)
@@ -137,6 +141,11 @@ func (s *Server) addBrandMember(w http.ResponseWriter, r *http.Request) {
 
 	var req models.AddBrandMemberRequest
 	if !decode(w, r, 0, &req) {
+		return
+	}
+
+	if err := req.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 

@@ -496,6 +496,10 @@ func (s *PostService) GetPost(ctx context.Context, userID, postID bson.ObjectID)
 }
 
 func (s *PostService) UpdatePost(ctx context.Context, userID, postID bson.ObjectID, input models.UpdatePostInput) (*models.Post, error) {
+	if err := input.Validate(); err != nil {
+		return nil, utils.BadRequest(err.Error())
+	}
+
 	if err := s.validateTemporaryPostDuration(input.ExpiryInterval, input.ExpiryUnit); err != nil {
 		return nil, err
 	}

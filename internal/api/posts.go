@@ -20,6 +20,11 @@ func (s *Server) createPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := input.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+
 	post, err := s.postService.CreatePost(r.Context(), userOID, input)
 	if err != nil {
 		writeApiError(w, err)
@@ -97,6 +102,11 @@ func (s *Server) updatePost(w http.ResponseWriter, r *http.Request) {
 
 	var input models.UpdatePostInput
 	if !decode(w, r, 0, &input) {
+		return
+	}
+
+	if err := input.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -189,6 +199,10 @@ func (s *Server) bulkDeletePosts(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, 0, &input) {
 		return
 	}
+	if err := input.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 
 	count, err := s.postService.BulkDeletePosts(r.Context(), userOID, input.IDs)
 	if err != nil {
@@ -210,6 +224,10 @@ func (s *Server) bulkDeleteScheduledPosts(w http.ResponseWriter, r *http.Request
 
 	var input models.BulkIDsInput
 	if !decode(w, r, 0, &input) {
+		return
+	}
+	if err := input.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -236,6 +254,10 @@ func (s *Server) bulkDeletePublishedPosts(w http.ResponseWriter, r *http.Request
 	if !decode(w, r, 0, &input) {
 		return
 	}
+	if err := input.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 
 	deleted, failed, err := s.postService.BulkDeletePublishedPosts(r.Context(), userOID, input.IDs)
 	if err != nil {
@@ -260,6 +282,10 @@ func (s *Server) bulkPauseRecurringPosts(w http.ResponseWriter, r *http.Request)
 	if !decode(w, r, 0, &input) {
 		return
 	}
+	if err := input.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 
 	paused, failed, err := s.postService.BulkPauseRecurringPosts(r.Context(), userOID, input.IDs)
 	if err != nil {
@@ -282,6 +308,10 @@ func (s *Server) bulkResumeRecurringPosts(w http.ResponseWriter, r *http.Request
 
 	var input models.BulkIDsInput
 	if !decode(w, r, 0, &input) {
+		return
+	}
+	if err := input.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
@@ -444,6 +474,10 @@ func (s *Server) resharePost(w http.ResponseWriter, r *http.Request) {
 
 	var req models.ResharePostRequest
 	if !decode(w, r, 0, &req) {
+		return
+	}
+	if err := req.Validate(); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 

@@ -4,6 +4,9 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"time"
+
+	"xsocial-backend/internal/utils"
 )
 
 // emailRegexp is a minimal RFC 5321 email validator.
@@ -88,6 +91,10 @@ func (s *Server) loginUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ip := clientIP(r)
+	if blocked, remaining := s.checkAuthRate(ip); blocked {
+		writeError(w, http.StatusTooManyRequests, "too many failed attempts, please try again in "+remaining.Round(time.Second).String())
+		return
+	}
 	res, err := s.authService.Login(r.Context(), req.Email, req.Password, r.UserAgent(), ip)
 	if err != nil {
 		s.recordAuthFailure(ip)
@@ -112,6 +119,10 @@ func (s *Server) refreshToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ip := clientIP(r)
+	if blocked, remaining := s.checkAuthRate(ip); blocked {
+		writeError(w, http.StatusTooManyRequests, "too many failed attempts, please try again in "+remaining.Round(time.Second).String())
+		return
+	}
 	res, err := s.authService.Refresh(r.Context(), req.RefreshToken, r.UserAgent(), ip)
 	if err != nil {
 		s.recordAuthFailure(ip)
@@ -221,6 +232,15 @@ func (s *Server) updateCurrentUser(w http.ResponseWriter, r *http.Request) {
 	if !decode(w, r, 0, &req) {
 		return
 	}
+	req.FullName = utils.SanitizeString(req.FullName)
+	if len(req.FullName) > 100 {
+		writeError(w, http.StatusBadRequest, "fullName must not exceed 100 characters")
+		return
+	}
+	if req.Timezone != "" && !utils.IsValidTimezone(req.Timezone) {
+		writeError(w, http.StatusBadRequest, "invalid timezone")
+		return
+	}
 	updated, err := s.userService.UpdateProfile(r.Context(), userOID, req.FullName, req.Timezone)
 	if err != nil {
 		writeApiError(w, err)
@@ -244,6 +264,14 @@ func (s *Server) changePassword(w http.ResponseWriter, r *http.Request) {
 		NewPassword string `json:"newPassword"`
 	}
 	if !decode(w, r, 0, &req) {
+		return
+	}
+	if len(req.NewPassword) < passwordMinLen {
+		writeError(w, http.StatusBadRequest, "new password must be at least 8 characters")
+		return
+	}
+	if len(req.NewPassword) > passwordMaxLen {
+		writeError(w, http.StatusBadRequest, "new password must not exceed 128 characters")
 		return
 	}
 	if _, err := s.userService.ChangePassword(r.Context(), userOID, req.OldPassword, req.NewPassword); err != nil {
