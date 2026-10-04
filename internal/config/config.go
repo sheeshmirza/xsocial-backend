@@ -175,7 +175,12 @@ func LoadConfig() *Config {
 		JWTRefreshExpiresIn: parseDuration(os.Getenv("JWT_REFRESH_EXPIRES_IN"), 30*24*time.Hour),
 		BcryptSaltRounds:    bcryptRounds,
 		ClientURL:           clientURL,
-		ClientOrigins:       parseOrigins(clientURL),
+		ClientOrigins:       parseOrigins(func() string {
+			if co := cleanEnvValue(os.Getenv("CLIENT_ORIGINS")); co != "" {
+				return co
+			}
+			return clientURL
+		}()),
 		AIWrapperBaseURL:    cleanEnvValue(os.Getenv("AI_WRAPPER_BASE_URL")),
 		AIWrapperTimeoutMS:  time.Duration(aiTimeout) * time.Millisecond,
 		Instagram: OAuthPlatformConfig{

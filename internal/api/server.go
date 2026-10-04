@@ -644,8 +644,19 @@ func (s *Server) accessLog(next http.Handler) http.Handler {
 		start := time.Now()
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 		next.ServeHTTP(rec, r)
-		if s.log != nil && (rec.status >= http.StatusInternalServerError || mathrand.Float64() < 0.05) {
-			s.log.Info("http", "method", r.Method, "path", r.URL.Path, "status", rec.status, "dur_ms", time.Since(start).Milliseconds())
+		if s.log != nil {
+			reqID := w.Header().Get("X-Request-ID")
+			durMs := time.Since(start).Milliseconds()
+			if rec.status >= http.StatusBadRequest || mathrand.Float64() < 0.10 {
+				s.log.Info("http_request",
+					"request_id", reqID,
+					"method", r.Method,
+					"path", r.URL.Path,
+					"status", rec.status,
+					"dur_ms", durMs,
+					"ip", clientIP(r),
+				)
+			}
 		}
 	})
 }
@@ -654,8 +665,9 @@ func (s *Server) recoverer(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
 			if v := recover(); v != nil {
+				reqID := w.Header().Get("X-Request-ID")
 				if s.log != nil {
-					s.log.Error("panic", "value", v, "path", r.URL.Path)
+					s.log.Error("panic_recovered", "request_id", reqID, "panic", fmt.Sprintf("%v", v), "path", r.URL.Path)
 				}
 				writeError(w, http.StatusInternalServerError, "internal server error")
 			}
