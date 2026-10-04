@@ -419,6 +419,9 @@ func (s *PostService) CreatePost(ctx context.Context, userID bson.ObjectID, payl
 	if err := s.postRepo.Create(ctx, post); err != nil {
 		return nil, err
 	}
+	if post.IsScheduled() && post.ScheduledTime != nil && s.queue != nil {
+		_ = s.queue.AddSchedulePublishJob(post.ID.Hex(), *post.ScheduledTime)
+	}
 	return post, nil
 }
 
@@ -587,7 +590,25 @@ func (s *PostService) UpdatePost(ctx context.Context, userID, postID bson.Object
 		update["brandId"] = *input.BrandID
 	}
 
-	return s.postRepo.UpdateByIDAndUserID(ctx, postID, userID, update)
+	updated, err := s.postRepo.UpdateByIDAndUserID(ctx, postID, userID, update)
+	if err != nil {
+		return nil, err
+	}
+
+	if s.queue != nil {
+		// If post is no longer scheduled, cancel background publish job
+		if input.Status != nil && *input.Status != models.PostStatusScheduled && existing.IsScheduled() {
+			_ = s.queue.RemoveSchedulePublishJob(postID.Hex())
+		}
+		// If scheduled time was changed or post moved to scheduled, update background publish job
+		if input.ScheduledTime != nil {
+			if (input.Status != nil && *input.Status == models.PostStatusScheduled) || existing.IsScheduled() {
+				_ = s.queue.AddSchedulePublishJob(postID.Hex(), *input.ScheduledTime)
+			}
+		}
+	}
+
+	return updated, nil
 }
 
 func (s *PostService) FindByApprovalToken(ctx context.Context, token string) (*models.Post, error) {
@@ -1537,6 +1558,10 @@ func (s *PostService) ResharePost(ctx context.Context, userID, sourcePostID bson
 
 	if err := s.postRepo.Create(ctx, resharePost); err != nil {
 		return nil, utils.InternalServerError("Failed to create reshare post")
+	}
+
+	if resharePost.IsScheduled() && resharePost.ScheduledTime != nil && s.queue != nil {
+		_ = s.queue.AddSchedulePublishJob(resharePost.ID.Hex(), *resharePost.ScheduledTime)
 	}
 
 	// 6. If immediate publication requested

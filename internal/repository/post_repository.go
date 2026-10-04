@@ -101,7 +101,6 @@ func (r *PostRepository) FindByIDAndUserID(ctx context.Context, id, userID bson.
 func (r *PostRepository) ListRecurringScheduledPosts(ctx context.Context) ([]models.Post, error) {
 	query := bson.M{
 		"status":           models.PostStatusScheduled,
-		"recurrence":       bson.M{"$ne": "once"},
 		"recurrencePaused": bson.M{"$ne": true},
 		"scheduledTime":    bson.M{"$ne": nil},
 	}
