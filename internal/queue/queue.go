@@ -47,6 +47,7 @@ type PostQueue struct {
 	redisClient *redis.Client
 	handler     HandlerFunc
 	stopCh      chan struct{}
+	closeOnce   sync.Once
 	mu          sync.Mutex
 	memTimers   map[string]*time.Timer
 }
@@ -125,12 +126,27 @@ func (q *PostQueue) startRedisWorker() {
 }
 
 func (q *PostQueue) processJob(jobID, name string, data []byte, retries int) {
+	defer func() {
+		if r := recover(); r != nil {
+			log.Printf("[QueueWorker] PANIC in job %s (id: %s): %v", name, jobID, r)
+		}
+	}()
+	if q.handler == nil {
+		return
+	}
 	if err := q.handler(name, data); err != nil {
 		log.Printf("[QueueWorker] Job %s (id: %s, attempt: %d) failed: %v", name, jobID, retries+1, err)
 
 		if retries < MaxJobRetries {
 			// Retry with exponential backoff: 5s, 20s, 60s
-			backoffSec := []int{5, 20, 60}[retries]
+			backoffSecs := []int{5, 20, 60}
+			backoffIdx := retries
+			if backoffIdx < 0 {
+				backoffIdx = 0
+			} else if backoffIdx >= len(backoffSecs) {
+				backoffIdx = len(backoffSecs) - 1
+			}
+			backoffSec := backoffSecs[backoffIdx]
 			retryAt := time.Now().Add(time.Duration(backoffSec) * time.Second)
 			log.Printf("[QueueWorker] Requeuing job %s (id: %s) in %d seconds (attempt %d/%d)", name, jobID, backoffSec, retries+1, MaxJobRetries)
 
@@ -208,11 +224,18 @@ func (q *PostQueue) AddSchedulePublishJob(postID string, runAt time.Time) error 
 	defer q.mu.Unlock()
 	timerKey := fmt.Sprintf("publish:%s", postID)
 	q.memTimers[timerKey] = time.AfterFunc(delay, func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("[QueueWorker] PANIC in memory publish job handler: %v", r)
+			}
+			q.mu.Lock()
+			delete(q.memTimers, timerKey)
+			q.mu.Unlock()
+		}()
 		dataBytes, _ := json.Marshal(data)
-		_ = q.handler(PublishPostJobName, dataBytes)
-		q.mu.Lock()
-		delete(q.memTimers, timerKey)
-		q.mu.Unlock()
+		if q.handler != nil {
+			_ = q.handler(PublishPostJobName, dataBytes)
+		}
 	})
 
 	return nil
@@ -300,11 +323,18 @@ func (q *PostQueue) AddPostExpiryJob(postID, userID, platform, platformPostID, s
 	defer q.mu.Unlock()
 	timerKey := fmt.Sprintf("expiry:%s:%s", postID, platformPostID)
 	q.memTimers[timerKey] = time.AfterFunc(delay, func() {
+		defer func() {
+			if r := recover(); r != nil {
+				log.Printf("[QueueWorker] PANIC in memory expiry job handler: %v", r)
+			}
+			q.mu.Lock()
+			delete(q.memTimers, timerKey)
+			q.mu.Unlock()
+		}()
 		dataBytes, _ := json.Marshal(data)
-		_ = q.handler(ExpirePostPublicationJobName, dataBytes)
-		q.mu.Lock()
-		delete(q.memTimers, timerKey)
-		q.mu.Unlock()
+		if q.handler != nil {
+			_ = q.handler(ExpirePostPublicationJobName, dataBytes)
+		}
 	})
 
 	return nil
@@ -338,7 +368,9 @@ func (q *PostQueue) RemovePostExpiryJobs(postID string) error {
 	q.mu.Lock()
 	for k, timer := range q.memTimers {
 		if len(k) > len("expiry:"+postID) && k[:len("expiry:"+postID)] == "expiry:"+postID {
-			timer.Stop()
+			if timer != nil {
+				timer.Stop()
+			}
 			delete(q.memTimers, k)
 		}
 	}
@@ -348,5 +380,15 @@ func (q *PostQueue) RemovePostExpiryJobs(postID string) error {
 }
 
 func (q *PostQueue) Close() {
-	close(q.stopCh)
+	q.closeOnce.Do(func() {
+		close(q.stopCh)
+		q.mu.Lock()
+		for k, timer := range q.memTimers {
+			if timer != nil {
+				timer.Stop()
+			}
+			delete(q.memTimers, k)
+		}
+		q.mu.Unlock()
+	})
 }

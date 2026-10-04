@@ -11,11 +11,16 @@ import (
 	"xsocial-backend/internal/utils"
 )
 
+var (
+	reWhitespace = regexp.MustCompile(`\s+`)
+	reDataURI    = regexp.MustCompile(`(?i)^data:([^;]+);base64,(.+)$`)
+)
+
 func NormalizeToken(token string) string {
 	t := strings.TrimSpace(token)
 	t = strings.Trim(t, "\"'`")
 	// Remove all whitespace
-	t = regexp.MustCompile(`\s+`).ReplaceAllString(t, "")
+	t = reWhitespace.ReplaceAllString(t, "")
 	return t
 }
 
@@ -73,8 +78,7 @@ func ParseBase64Image(dataURI string) *ParsedImagePayload {
 		return nil
 	}
 
-	re := regexp.MustCompile(`(?i)^data:([^;]+);base64,(.+)$`)
-	matches := re.FindStringSubmatch(raw)
+	matches := reDataURI.FindStringSubmatch(raw)
 
 	mimeType := "image/jpeg"
 	encodedBody := raw
@@ -84,7 +88,7 @@ func ParseBase64Image(dataURI string) *ParsedImagePayload {
 		encodedBody = matches[2]
 	}
 
-	normalized := regexp.MustCompile(`\s+`).ReplaceAllString(encodedBody, "")
+	normalized := reWhitespace.ReplaceAllString(encodedBody, "")
 	if normalized == "" {
 		return nil
 	}

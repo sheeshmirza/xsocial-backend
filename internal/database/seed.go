@@ -60,7 +60,9 @@ func SeedInitialData(ctx context.Context, db *mongo.Database) (*SeedSummary, err
 		if err != nil {
 			return nil, fmt.Errorf("failed to seed admin user: %w", err)
 		}
-		adminID = res.InsertedID.(bson.ObjectID)
+		if oid, ok := res.InsertedID.(bson.ObjectID); ok {
+			adminID = oid
+		}
 		summary.UsersCreated++
 		log.Printf("[Seeder] Created default admin user (%s)", adminEmail)
 	} else if err == nil {
@@ -92,7 +94,9 @@ func SeedInitialData(ctx context.Context, db *mongo.Database) (*SeedSummary, err
 		if err != nil {
 			return nil, fmt.Errorf("failed to seed brand: %w", err)
 		}
-		brandID = bRes.InsertedID.(bson.ObjectID)
+		if oid, ok := bRes.InsertedID.(bson.ObjectID); ok {
+			brandID = oid
+		}
 		summary.BrandsCreated++
 
 		// Add owner member

@@ -373,7 +373,9 @@ func (a *OAuthAdapter) FetchManagedPages(ctx context.Context, accessToken string
 
 		var orgDetail *OrganizationDetail
 		if cached, ok := orgCache.Load(orgID); ok {
-			orgDetail = cached.(*OrganizationDetail)
+			if detail, ok := cached.(*OrganizationDetail); ok {
+				orgDetail = detail
+			}
 		} else {
 			detail, _ := a.FetchOrganizationDetails(ctx, token, orgID)
 			if detail != nil {
