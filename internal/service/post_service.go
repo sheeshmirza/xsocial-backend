@@ -571,6 +571,9 @@ func (s *PostService) UpdatePost(ctx context.Context, userID, postID bson.Object
 	if input.Status != nil {
 		update["status"] = *input.Status
 	}
+	if input.ScheduledTime != nil {
+		update["scheduledTime"] = input.ScheduledTime
+	}
 	if input.ReviewStatus != "" {
 		update["reviewStatus"] = input.ReviewStatus
 	}
@@ -749,25 +752,27 @@ func (s *PostService) deleteLinkedInPlatformPosts(ctx context.Context, userID bs
 	}
 }
 
+func (s *PostService) cleanupPostArtifacts(post *models.Post, userID bson.ObjectID) {
+	if post == nil {
+		return
+	}
+	if s.queue != nil {
+		_ = s.queue.RemoveSchedulePublishJob(post.ID.Hex())
+		_ = s.queue.RemovePostExpiryJobs(post.ID.Hex())
+	}
+	go s.deleteLinkedInPlatformPosts(context.Background(), userID, post)
+}
+
 func (s *PostService) DeletePost(ctx context.Context, userID, postID bson.ObjectID) error {
 	post, err := s.postRepo.FindByIDAndUserID(ctx, postID, userID)
 	if err != nil || post == nil {
 		return utils.NotFound("Post not found")
 	}
 
-	if s.queue != nil {
-		_ = s.queue.RemoveSchedulePublishJob(postID.Hex())
-		_ = s.queue.RemovePostExpiryJobs(postID.Hex())
-	}
+	s.cleanupPostArtifacts(post, userID)
 
 	_, err = s.postRepo.DeleteByIDAndUserID(ctx, postID, userID)
-	if err != nil {
-		return err
-	}
-
-	// Fire-and-forget LinkedIn deletion
-	go s.deleteLinkedInPlatformPosts(context.Background(), userID, post)
-	return nil
+	return err
 }
 
 func (s *PostService) DeleteScheduledPost(ctx context.Context, userID, postID bson.ObjectID) error {
@@ -780,10 +785,7 @@ func (s *PostService) DeleteScheduledPost(ctx context.Context, userID, postID bs
 		return utils.BadRequest("Only scheduled posts can be deleted from scheduled section")
 	}
 
-	if s.queue != nil {
-		_ = s.queue.RemoveSchedulePublishJob(postID.Hex())
-		_ = s.queue.RemovePostExpiryJobs(postID.Hex())
-	}
+	s.cleanupPostArtifacts(post, userID)
 
 	_, err = s.postRepo.DeleteByIDAndUserID(ctx, postID, userID)
 	return err
@@ -821,18 +823,10 @@ func (s *PostService) DeletePublishedPost(ctx context.Context, userID, postID bs
 		return err
 	}
 
-	if s.queue != nil {
-		_ = s.queue.RemoveSchedulePublishJob(postID.Hex())
-		_ = s.queue.RemovePostExpiryJobs(postID.Hex())
-	}
+	s.cleanupPostArtifacts(post, userID)
 
 	_, err = s.postRepo.DeleteByIDAndUserID(ctx, postID, userID)
-	if err != nil {
-		return err
-	}
-
-	go s.deleteLinkedInPlatformPosts(context.Background(), userID, post)
-	return nil
+	return err
 }
 
 func (s *PostService) BulkDeletePosts(ctx context.Context, userID bson.ObjectID, ids []string) (int64, error) {
@@ -846,11 +840,7 @@ func (s *PostService) BulkDeletePosts(ctx context.Context, userID bson.ObjectID,
 	}
 
 	for _, p := range posts {
-		if s.queue != nil {
-			_ = s.queue.RemoveSchedulePublishJob(p.ID.Hex())
-			_ = s.queue.RemovePostExpiryJobs(p.ID.Hex())
-		}
-		go s.deleteLinkedInPlatformPosts(context.Background(), userID, &p)
+		s.cleanupPostArtifacts(&p, userID)
 	}
 
 	return s.postRepo.DeleteManyByIDsAndUserID(ctx, ids, userID)
@@ -870,10 +860,7 @@ func (s *PostService) BulkDeleteScheduledPosts(ctx context.Context, userID bson.
 	for _, p := range posts {
 		if p.IsScheduled() {
 			scheduledIDs = append(scheduledIDs, p.ID.Hex())
-			if s.queue != nil {
-				_ = s.queue.RemoveSchedulePublishJob(p.ID.Hex())
-				_ = s.queue.RemovePostExpiryJobs(p.ID.Hex())
-			}
+			s.cleanupPostArtifacts(&p, userID)
 		}
 	}
 
@@ -917,11 +904,7 @@ func (s *PostService) BulkDeletePublishedPosts(ctx context.Context, userID bson.
 			})
 		} else {
 			deleteIDs = append(deleteIDs, p.ID.Hex())
-			if s.queue != nil {
-				_ = s.queue.RemoveSchedulePublishJob(p.ID.Hex())
-				_ = s.queue.RemovePostExpiryJobs(p.ID.Hex())
-			}
-			go s.deleteLinkedInPlatformPosts(context.Background(), userID, &p)
+			s.cleanupPostArtifacts(&p, userID)
 		}
 	}
 
@@ -955,6 +938,21 @@ func (s *PostService) PauseRecurringPost(ctx context.Context, userID, postID bso
 	})
 }
 
+func (s *PostService) computeResumedNextRun(post *models.Post, now time.Time) *time.Time {
+	var nextRunAt *time.Time
+	if post.ScheduledTime != nil && post.ScheduledTime.After(now) {
+		nextRunAt = post.ScheduledTime
+	} else if post.ScheduledTime != nil {
+		nextRunAt = s.computeNextRunAfter(*post.ScheduledTime, post, now)
+	} else {
+		nextRunAt = s.computeNextRunAfter(now, post, now)
+	}
+	if nextRunAt == nil {
+		nextRunAt = s.computeNextRun(now, post)
+	}
+	return nextRunAt
+}
+
 func (s *PostService) ResumeRecurringPost(ctx context.Context, userID, postID bson.ObjectID) (*models.Post, error) {
 	post, err := s.postRepo.FindByIDAndUserID(ctx, postID, userID)
 	if err != nil || post == nil {
@@ -966,20 +964,7 @@ func (s *PostService) ResumeRecurringPost(ctx context.Context, userID, postID bs
 	}
 
 	now := time.Now()
-	var nextRunAt *time.Time
-
-	if post.ScheduledTime != nil && post.ScheduledTime.After(now) {
-		nextRunAt = post.ScheduledTime
-	} else if post.ScheduledTime != nil {
-		nextRunAt = s.computeNextRunAfter(*post.ScheduledTime, post, now)
-	} else {
-		nextRunAt = s.computeNextRunAfter(now, post, now)
-	}
-
-	if nextRunAt == nil {
-		nextRunAt = s.computeNextRun(now, post)
-	}
-
+	nextRunAt := s.computeResumedNextRun(post, now)
 	if nextRunAt == nil || nextRunAt.Before(now) {
 		return nil, utils.BadRequest("Unable to compute next recurrence run time")
 	}
@@ -1046,19 +1031,7 @@ func (s *PostService) BulkResumeRecurringPosts(ctx context.Context, userID bson.
 	for _, p := range posts {
 		if p.IsRecurring() && p.RecurrencePaused {
 			eligibleCount++
-			var nextRunAt *time.Time
-			if p.ScheduledTime != nil && p.ScheduledTime.After(now) {
-				nextRunAt = p.ScheduledTime
-			} else if p.ScheduledTime != nil {
-				nextRunAt = s.computeNextRunAfter(*p.ScheduledTime, &p, now)
-			} else {
-				nextRunAt = s.computeNextRunAfter(now, &p, now)
-			}
-
-			if nextRunAt == nil {
-				nextRunAt = s.computeNextRun(now, &p)
-			}
-
+			nextRunAt := s.computeResumedNextRun(&p, now)
 			if nextRunAt == nil || nextRunAt.Before(now) {
 				failedCount++
 				continue

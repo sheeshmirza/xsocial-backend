@@ -14,9 +14,8 @@ import (
 )
 
 func (s *Server) listSocialAccounts(w http.ResponseWriter, r *http.Request) {
-	userOID, ok := currentUserOID(r)
+	userOID, ok := s.requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
@@ -197,15 +196,13 @@ func (s *Server) refreshSocialToken(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) disconnectSocialAccount(w http.ResponseWriter, r *http.Request) {
-	userOID, ok := currentUserOID(r)
+	userOID, ok := s.requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	socialOID, err := bson.ObjectIDFromHex(r.PathValue("id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid social account ID")
+	socialOID, ok := s.parsePathOID(w, r, "id", "social account")
+	if !ok {
 		return
 	}
 
@@ -214,7 +211,7 @@ func (s *Server) disconnectSocialAccount(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	s.auditLogService.Log(r.Context(), &userOID, nil, currentUserID(r), "social.disconnect", "social_account", socialOID.Hex(), clientIP(r), r.UserAgent())
+	s.logAudit(r, &userOID, nil, "social.disconnect", "social_account", socialOID.Hex())
 	writeJSON(w, http.StatusOK, map[string]any{
 		"success": true,
 		"message": "social account disconnected successfully",

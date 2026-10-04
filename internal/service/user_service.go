@@ -12,6 +12,7 @@ import (
 	"xsocial-backend/internal/config"
 	"xsocial-backend/internal/database"
 	"xsocial-backend/internal/models"
+	"xsocial-backend/internal/queue"
 	"xsocial-backend/internal/repository"
 	"xsocial-backend/internal/utils"
 )
@@ -21,6 +22,8 @@ type UserService struct {
 	userRepo         repository.IUserRepository
 	refreshTokenRepo repository.IRefreshTokenRepository
 	redis            *database.RedisClient
+	postRepo         repository.IPostRepository
+	queue            *queue.PostQueue
 }
 
 func NewUserService(cfg *config.Config, userRepo repository.IUserRepository, rfRepo repository.IRefreshTokenRepository, redis *database.RedisClient) *UserService {
@@ -30,6 +33,11 @@ func NewUserService(cfg *config.Config, userRepo repository.IUserRepository, rfR
 		refreshTokenRepo: rfRepo,
 		redis:            redis,
 	}
+}
+
+func (s *UserService) SetDependencies(postRepo repository.IPostRepository, q *queue.PostQueue) {
+	s.postRepo = postRepo
+	s.queue = q
 }
 
 func (s *UserService) GetUserByID(ctx context.Context, userID bson.ObjectID) (*models.User, error) {
@@ -116,5 +124,18 @@ func (s *UserService) DeleteUser(ctx context.Context, userID bson.ObjectID) erro
 		_ = s.redis.Del(ctx, "user:"+userID.Hex())
 	}
 	_ = s.refreshTokenRepo.RevokeAllByUserID(ctx, userID)
+
+	// Clean up user scheduled posts from background queue to prevent phantom execution
+	if s.postRepo != nil {
+		if posts, err := s.postRepo.ListByUserID(ctx, userID, bson.M{"status": models.PostStatusScheduled}, 0, 1000, nil); err == nil {
+			for _, p := range posts {
+				if s.queue != nil {
+					_ = s.queue.RemoveSchedulePublishJob(p.ID.Hex())
+					_ = s.queue.RemovePostExpiryJobs(p.ID.Hex())
+				}
+			}
+		}
+	}
+
 	return s.userRepo.DeleteByID(ctx, userID)
 }

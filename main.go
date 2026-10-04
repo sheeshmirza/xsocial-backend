@@ -90,6 +90,8 @@ func main() {
 	jobDispatcher := queue.CreateJobDispatcher(postService)
 	postQueue := queue.NewPostQueue(redisClient, jobDispatcher)
 	postService.SetQueue(postQueue)
+	userService.SetDependencies(postRepo, postQueue)
+	brandService.SetDependencies(handleRepo)
 
 	// 9. Requeue Recurring Scheduled Posts on Startup
 	ctxStartup, cancelStartup := context.WithTimeout(context.Background(), 10*time.Second)

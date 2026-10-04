@@ -10,9 +10,8 @@ import (
 )
 
 func (s *Server) createPost(w http.ResponseWriter, r *http.Request) {
-	userOID, ok := currentUserOID(r)
+	userOID, ok := s.requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
@@ -27,14 +26,13 @@ func (s *Server) createPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.auditLogService.Log(r.Context(), &userOID, post.BrandID, currentUserID(r), "post.create", "post", post.ID.Hex(), clientIP(r), r.UserAgent())
+	s.logAudit(r, &userOID, post.BrandID, "post.create", "post", post.ID.Hex())
 	writeJSON(w, http.StatusCreated, post)
 }
 
 func (s *Server) listPosts(w http.ResponseWriter, r *http.Request) {
-	userOID, ok := currentUserOID(r)
+	userOID, ok := s.requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
@@ -67,15 +65,13 @@ func (s *Server) listPosts(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getPost(w http.ResponseWriter, r *http.Request) {
-	userOID, ok := currentUserOID(r)
+	userOID, ok := s.requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	postOID, err := bson.ObjectIDFromHex(r.PathValue("id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid post ID")
+	postOID, ok := s.parsePathOID(w, r, "id", "post")
+	if !ok {
 		return
 	}
 
@@ -89,15 +85,13 @@ func (s *Server) getPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) updatePost(w http.ResponseWriter, r *http.Request) {
-	userOID, ok := currentUserOID(r)
+	userOID, ok := s.requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	postOID, err := bson.ObjectIDFromHex(r.PathValue("id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid post ID")
+	postOID, ok := s.parsePathOID(w, r, "id", "post")
+	if !ok {
 		return
 	}
 
@@ -112,20 +106,18 @@ func (s *Server) updatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.auditLogService.Log(r.Context(), &userOID, post.BrandID, currentUserID(r), "post.update", "post", postOID.Hex(), clientIP(r), r.UserAgent())
+	s.logAudit(r, &userOID, post.BrandID, "post.update", "post", postOID.Hex())
 	writeJSON(w, http.StatusOK, post)
 }
 
 func (s *Server) deletePost(w http.ResponseWriter, r *http.Request) {
-	userOID, ok := currentUserOID(r)
+	userOID, ok := s.requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	postOID, err := bson.ObjectIDFromHex(r.PathValue("id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid post ID")
+	postOID, ok := s.parsePathOID(w, r, "id", "post")
+	if !ok {
 		return
 	}
 
@@ -134,7 +126,7 @@ func (s *Server) deletePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.auditLogService.Log(r.Context(), &userOID, nil, currentUserID(r), "post.delete", "post", postOID.Hex(), clientIP(r), r.UserAgent())
+	s.logAudit(r, &userOID, nil, "post.delete", "post", postOID.Hex())
 	writeJSON(w, http.StatusOK, map[string]any{
 		"success": true,
 		"message": "post deleted successfully",
@@ -142,15 +134,13 @@ func (s *Server) deletePost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) deleteScheduledPost(w http.ResponseWriter, r *http.Request) {
-	userOID, ok := currentUserOID(r)
+	userOID, ok := s.requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	postOID, err := bson.ObjectIDFromHex(r.PathValue("id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid post ID")
+	postOID, ok := s.parsePathOID(w, r, "id", "post")
+	if !ok {
 		return
 	}
 
@@ -159,7 +149,7 @@ func (s *Server) deleteScheduledPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.auditLogService.Log(r.Context(), &userOID, nil, currentUserID(r), "post.delete_scheduled", "post", postOID.Hex(), clientIP(r), r.UserAgent())
+	s.logAudit(r, &userOID, nil, "post.delete_scheduled", "post", postOID.Hex())
 	writeJSON(w, http.StatusOK, map[string]any{
 		"success": true,
 		"message": "scheduled post deleted successfully",
@@ -167,15 +157,13 @@ func (s *Server) deleteScheduledPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) deletePublishedPost(w http.ResponseWriter, r *http.Request) {
-	userOID, ok := currentUserOID(r)
+	userOID, ok := s.requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	postOID, err := bson.ObjectIDFromHex(r.PathValue("id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid post ID")
+	postOID, ok := s.parsePathOID(w, r, "id", "post")
+	if !ok {
 		return
 	}
 
@@ -184,7 +172,7 @@ func (s *Server) deletePublishedPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.auditLogService.Log(r.Context(), &userOID, nil, currentUserID(r), "post.delete_published", "post", postOID.Hex(), clientIP(r), r.UserAgent())
+	s.logAudit(r, &userOID, nil, "post.delete_published", "post", postOID.Hex())
 	writeJSON(w, http.StatusOK, map[string]any{
 		"success": true,
 		"message": "published post and remote platform records deleted successfully",
@@ -192,9 +180,8 @@ func (s *Server) deletePublishedPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) bulkDeletePosts(w http.ResponseWriter, r *http.Request) {
-	userOID, ok := currentUserOID(r)
+	userOID, ok := s.requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
@@ -216,9 +203,8 @@ func (s *Server) bulkDeletePosts(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) bulkDeleteScheduledPosts(w http.ResponseWriter, r *http.Request) {
-	userOID, ok := currentUserOID(r)
+	userOID, ok := s.requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
@@ -241,9 +227,8 @@ func (s *Server) bulkDeleteScheduledPosts(w http.ResponseWriter, r *http.Request
 }
 
 func (s *Server) bulkDeletePublishedPosts(w http.ResponseWriter, r *http.Request) {
-	userOID, ok := currentUserOID(r)
+	userOID, ok := s.requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
@@ -266,9 +251,8 @@ func (s *Server) bulkDeletePublishedPosts(w http.ResponseWriter, r *http.Request
 }
 
 func (s *Server) bulkPauseRecurringPosts(w http.ResponseWriter, r *http.Request) {
-	userOID, ok := currentUserOID(r)
+	userOID, ok := s.requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
@@ -291,9 +275,8 @@ func (s *Server) bulkPauseRecurringPosts(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *Server) bulkResumeRecurringPosts(w http.ResponseWriter, r *http.Request) {
-	userOID, ok := currentUserOID(r)
+	userOID, ok := s.requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
@@ -317,15 +300,13 @@ func (s *Server) bulkResumeRecurringPosts(w http.ResponseWriter, r *http.Request
 }
 
 func (s *Server) submitPostForApproval(w http.ResponseWriter, r *http.Request) {
-	userOID, ok := currentUserOID(r)
+	userOID, ok := s.requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	postOID, err := bson.ObjectIDFromHex(r.PathValue("id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid post ID")
+	postOID, ok := s.parsePathOID(w, r, "id", "post")
+	if !ok {
 		return
 	}
 
@@ -345,15 +326,13 @@ func (s *Server) submitPostForApproval(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) approvePost(w http.ResponseWriter, r *http.Request) {
-	userOID, ok := currentUserOID(r)
+	userOID, ok := s.requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	postOID, err := bson.ObjectIDFromHex(r.PathValue("id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid post ID")
+	postOID, ok := s.parsePathOID(w, r, "id", "post")
+	if !ok {
 		return
 	}
 
@@ -370,7 +349,7 @@ func (s *Server) approvePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.auditLogService.Log(r.Context(), &userOID, post.BrandID, currentUserID(r), "post.approve", "post", postOID.Hex(), clientIP(r), r.UserAgent())
+	s.logAudit(r, &userOID, post.BrandID, "post.approve", "post", postOID.Hex())
 	writeJSON(w, http.StatusOK, map[string]any{
 		"success": true,
 		"post":    post,
@@ -378,15 +357,13 @@ func (s *Server) approvePost(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) rejectPost(w http.ResponseWriter, r *http.Request) {
-	userOID, ok := currentUserOID(r)
+	userOID, ok := s.requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	postOID, err := bson.ObjectIDFromHex(r.PathValue("id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid post ID")
+	postOID, ok := s.parsePathOID(w, r, "id", "post")
+	if !ok {
 		return
 	}
 
@@ -403,7 +380,7 @@ func (s *Server) rejectPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.auditLogService.Log(r.Context(), &userOID, post.BrandID, currentUserID(r), "post.reject", "post", postOID.Hex(), clientIP(r), r.UserAgent())
+	s.logAudit(r, &userOID, post.BrandID, "post.reject", "post", postOID.Hex())
 	writeJSON(w, http.StatusOK, map[string]any{
 		"success": true,
 		"post":    post,
@@ -455,15 +432,13 @@ func (s *Server) publicReviewAction(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) resharePost(w http.ResponseWriter, r *http.Request) {
-	userOID, ok := currentUserOID(r)
+	userOID, ok := s.requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	sourcePostOID, err := bson.ObjectIDFromHex(r.PathValue("id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid source post ID")
+	sourcePostOID, ok := s.parsePathOID(w, r, "id", "source post")
+	if !ok {
 		return
 	}
 
@@ -478,20 +453,18 @@ func (s *Server) resharePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.auditLogService.Log(r.Context(), &userOID, resharePost.BrandID, currentUserID(r), "post.reshare", "post", resharePost.ID.Hex(), clientIP(r), r.UserAgent())
+	s.logAudit(r, &userOID, resharePost.BrandID, "post.reshare", "post", resharePost.ID.Hex())
 	writeJSON(w, http.StatusCreated, resharePost)
 }
 
 func (s *Server) publishPost(w http.ResponseWriter, r *http.Request) {
-	userOID, ok := currentUserOID(r)
+	userOID, ok := s.requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	postOID, err := bson.ObjectIDFromHex(r.PathValue("id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid post ID")
+	postOID, ok := s.parsePathOID(w, r, "id", "post")
+	if !ok {
 		return
 	}
 
@@ -510,10 +483,9 @@ func (s *Server) publishPost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.auditLogService.Log(r.Context(), &userOID, post.BrandID, currentUserID(r), "post.publish", "post", postOID.Hex(), clientIP(r), r.UserAgent())
+	s.logAudit(r, &userOID, post.BrandID, "post.publish", "post", postOID.Hex())
 	writeJSON(w, http.StatusOK, map[string]any{
 		"success": true,
 		"post":    post,
 	})
 }
-

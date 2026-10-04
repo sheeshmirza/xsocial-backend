@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	mathrand "math/rand/v2"
 	"net"
@@ -476,6 +477,35 @@ func currentBrandOID(r *http.Request) (bson.ObjectID, bool) {
 	}
 	oid, err := bson.ObjectIDFromHex(bid)
 	return oid, err == nil
+}
+
+// requireUser extracts the authenticated user ObjectID or writes a 401 response.
+func (s *Server) requireUser(w http.ResponseWriter, r *http.Request) (bson.ObjectID, bool) {
+	userOID, ok := currentUserOID(r)
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthorized")
+		return bson.NilObjectID, false
+	}
+	return userOID, true
+}
+
+// parsePathOID parses an ObjectID from path parameters or writes a 400 response.
+func (s *Server) parsePathOID(w http.ResponseWriter, r *http.Request, param, resource string) (bson.ObjectID, bool) {
+	raw := r.PathValue(param)
+	oid, err := bson.ObjectIDFromHex(raw)
+	if err != nil {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("invalid %s ID", resource))
+		return bson.NilObjectID, false
+	}
+	return oid, true
+}
+
+// logAudit records an audit trail event for the request actor.
+func (s *Server) logAudit(r *http.Request, userOID *bson.ObjectID, brandOID *bson.ObjectID, action, resType, resID string) {
+	if s.auditLogService == nil {
+		return
+	}
+	s.auditLogService.Log(r.Context(), userOID, brandOID, currentUserID(r), action, resType, resID, clientIP(r), r.UserAgent())
 }
 
 // clientIP returns the real client IP. X-Forwarded-For is used only when

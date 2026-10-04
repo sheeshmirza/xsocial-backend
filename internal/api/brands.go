@@ -4,15 +4,12 @@ import (
 	"net/http"
 	"strings"
 
-	"go.mongodb.org/mongo-driver/v2/bson"
-
 	"xsocial-backend/internal/models"
 )
 
 func (s *Server) createBrand(w http.ResponseWriter, r *http.Request) {
-	userOID, ok := currentUserOID(r)
+	userOID, ok := s.requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
@@ -33,14 +30,13 @@ func (s *Server) createBrand(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.auditLogService.Log(r.Context(), &userOID, &brand.ID, currentUserID(r), "brand.create", "brand", brand.ID.Hex(), clientIP(r), r.UserAgent())
+	s.logAudit(r, &userOID, &brand.ID, "brand.create", "brand", brand.ID.Hex())
 	writeJSON(w, http.StatusCreated, brand)
 }
 
 func (s *Server) listBrands(w http.ResponseWriter, r *http.Request) {
-	userOID, ok := currentUserOID(r)
+	userOID, ok := s.requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
@@ -60,15 +56,13 @@ func (s *Server) listBrands(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getBrand(w http.ResponseWriter, r *http.Request) {
-	userOID, ok := currentUserOID(r)
+	userOID, ok := s.requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	brandOID, err := bson.ObjectIDFromHex(r.PathValue("id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid brand ID")
+	brandOID, ok := s.parsePathOID(w, r, "id", "brand")
+	if !ok {
 		return
 	}
 
@@ -82,15 +76,13 @@ func (s *Server) getBrand(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) updateBrand(w http.ResponseWriter, r *http.Request) {
-	userOID, ok := currentUserOID(r)
+	userOID, ok := s.requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	brandOID, err := bson.ObjectIDFromHex(r.PathValue("id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid brand ID")
+	brandOID, ok := s.parsePathOID(w, r, "id", "brand")
+	if !ok {
 		return
 	}
 
@@ -105,20 +97,18 @@ func (s *Server) updateBrand(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.auditLogService.Log(r.Context(), &userOID, &brandOID, currentUserID(r), "brand.update", "brand", brandOID.Hex(), clientIP(r), r.UserAgent())
+	s.logAudit(r, &userOID, &brandOID, "brand.update", "brand", brandOID.Hex())
 	writeJSON(w, http.StatusOK, brand)
 }
 
 func (s *Server) deleteBrand(w http.ResponseWriter, r *http.Request) {
-	userOID, ok := currentUserOID(r)
+	userOID, ok := s.requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	brandOID, err := bson.ObjectIDFromHex(r.PathValue("id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid brand ID")
+	brandOID, ok := s.parsePathOID(w, r, "id", "brand")
+	if !ok {
 		return
 	}
 
@@ -127,7 +117,7 @@ func (s *Server) deleteBrand(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.auditLogService.Log(r.Context(), &userOID, &brandOID, currentUserID(r), "brand.delete", "brand", brandOID.Hex(), clientIP(r), r.UserAgent())
+	s.logAudit(r, &userOID, &brandOID, "brand.delete", "brand", brandOID.Hex())
 	writeJSON(w, http.StatusOK, map[string]any{
 		"success": true,
 		"message": "brand deleted successfully",
@@ -135,15 +125,13 @@ func (s *Server) deleteBrand(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) addBrandMember(w http.ResponseWriter, r *http.Request) {
-	userOID, ok := currentUserOID(r)
+	userOID, ok := s.requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	brandOID, err := bson.ObjectIDFromHex(r.PathValue("id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid brand ID")
+	brandOID, ok := s.parsePathOID(w, r, "id", "brand")
+	if !ok {
 		return
 	}
 
@@ -158,20 +146,18 @@ func (s *Server) addBrandMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.auditLogService.Log(r.Context(), &userOID, &brandOID, currentUserID(r), "brand.member_add", "brand_member", member.ID.Hex(), clientIP(r), r.UserAgent())
+	s.logAudit(r, &userOID, &brandOID, "brand.member_add", "brand_member", member.ID.Hex())
 	writeJSON(w, http.StatusCreated, member)
 }
 
 func (s *Server) listBrandMembers(w http.ResponseWriter, r *http.Request) {
-	userOID, ok := currentUserOID(r)
+	userOID, ok := s.requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	brandOID, err := bson.ObjectIDFromHex(r.PathValue("id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid brand ID")
+	brandOID, ok := s.parsePathOID(w, r, "id", "brand")
+	if !ok {
 		return
 	}
 
@@ -191,21 +177,18 @@ func (s *Server) listBrandMembers(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) removeBrandMember(w http.ResponseWriter, r *http.Request) {
-	userOID, ok := currentUserOID(r)
+	userOID, ok := s.requireUser(w, r)
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	brandOID, err := bson.ObjectIDFromHex(r.PathValue("id"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid brand ID")
+	brandOID, ok := s.parsePathOID(w, r, "id", "brand")
+	if !ok {
 		return
 	}
 
-	targetOID, err := bson.ObjectIDFromHex(r.PathValue("userId"))
-	if err != nil {
-		writeError(w, http.StatusBadRequest, "invalid member user ID")
+	targetOID, ok := s.parsePathOID(w, r, "userId", "member user")
+	if !ok {
 		return
 	}
 
@@ -214,7 +197,7 @@ func (s *Server) removeBrandMember(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.auditLogService.Log(r.Context(), &userOID, &brandOID, currentUserID(r), "brand.member_remove", "brand_member", targetOID.Hex(), clientIP(r), r.UserAgent())
+	s.logAudit(r, &userOID, &brandOID, "brand.member_remove", "brand_member", targetOID.Hex())
 	writeJSON(w, http.StatusOK, map[string]any{
 		"success": true,
 		"message": "member removed successfully",

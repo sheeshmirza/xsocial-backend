@@ -15,9 +15,10 @@ import (
 )
 
 type BrandService struct {
-	repo     repository.IBrandRepository
-	userRepo repository.IUserRepository
-	redis    *database.RedisClient
+	repo       repository.IBrandRepository
+	userRepo   repository.IUserRepository
+	redis      *database.RedisClient
+	handleRepo repository.ISocialHandleRepository
 }
 
 func NewBrandService(repo repository.IBrandRepository, userRepo repository.IUserRepository, redis *database.RedisClient) *BrandService {
@@ -26,6 +27,10 @@ func NewBrandService(repo repository.IBrandRepository, userRepo repository.IUser
 		userRepo: userRepo,
 		redis:    redis,
 	}
+}
+
+func (s *BrandService) SetDependencies(handleRepo repository.ISocialHandleRepository) {
+	s.handleRepo = handleRepo
 }
 
 func (s *BrandService) CreateBrand(ctx context.Context, userID bson.ObjectID, req models.CreateBrandRequest) (*models.Brand, error) {
@@ -175,6 +180,15 @@ func (s *BrandService) DeleteBrand(ctx context.Context, id, userID bson.ObjectID
 	// Invalidate cache
 	if s.redis != nil {
 		_ = s.redis.Del(ctx, "brand:"+id.Hex())
+	}
+
+	// Decouple associated social handles
+	if s.handleRepo != nil {
+		if handles, err := s.handleRepo.FindByBrand(ctx, id); err == nil {
+			for _, h := range handles {
+				_, _ = s.handleRepo.UpdateByIDAndUserID(ctx, h.ID, h.UserID, bson.M{"brandId": nil})
+			}
+		}
 	}
 
 	return nil

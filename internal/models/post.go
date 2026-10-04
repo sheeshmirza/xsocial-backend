@@ -337,6 +337,7 @@ type UpdatePostInput struct {
 	RecurrenceInterval *int                    `json:"recurrenceInterval"`
 	RecurrenceUnit     *string                 `json:"recurrenceUnit"`
 	Status             *string                 `json:"status"`
+	ScheduledTime      *time.Time              `json:"scheduledTime,omitempty"`
 	BrandID            *bson.ObjectID          `json:"brandId"`
 	ReviewStatus       string                  `json:"reviewStatus"`
 	ApprovalToken      string                  `json:"approvalToken"`
