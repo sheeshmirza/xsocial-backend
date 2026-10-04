@@ -43,6 +43,7 @@ type CreateApiKeyRequest struct {
 }
 
 func (r *CreateApiKeyRequest) Validate() error {
+	r.Name = strings.ReplaceAll(r.Name, "\x00", "")
 	r.Name = strings.TrimSpace(r.Name)
 	if r.Name == "" {
 		return fmt.Errorf("API key name is required")
@@ -52,6 +53,11 @@ func (r *CreateApiKeyRequest) Validate() error {
 	}
 	if r.ExpiresInDays < 0 || r.ExpiresInDays > 365 {
 		return fmt.Errorf("expiresInDays must be between 1 and 365 days")
+	}
+	if r.BrandID != "" {
+		if _, err := bson.ObjectIDFromHex(strings.TrimSpace(r.BrandID)); err != nil {
+			return fmt.Errorf("invalid brandId format")
+		}
 	}
 	return nil
 }

@@ -421,6 +421,36 @@ type PublishPostInput struct {
 	RecurrenceUnit     *string  `json:"recurrenceUnit"`
 }
 
+func (in *PublishPostInput) Validate() error {
+	validPlatforms := map[string]bool{
+		PlatformInstagram: true,
+		PlatformLinkedIn:  true,
+	}
+	for i, p := range in.Platforms {
+		norm := strings.ToLower(strings.TrimSpace(p))
+		in.Platforms[i] = norm
+		if !validPlatforms[norm] {
+			return fmt.Errorf("unsupported platform: %s", p)
+		}
+	}
+	if in.Recurrence != nil && *in.Recurrence != "" {
+		normRec := strings.ToLower(strings.TrimSpace(*in.Recurrence))
+		validRec := map[string]bool{
+			RecurrenceOnce: true, RecurrenceHourly: true, RecurrenceDaily: true,
+			RecurrenceWeekly: true, RecurrenceMonthly: true, RecurrenceYearly: true,
+		}
+		if !validRec[normRec] {
+			return fmt.Errorf("invalid recurrence: %s", *in.Recurrence)
+		}
+	}
+	if in.RecurrenceInterval != nil && in.RecurrenceUnit != nil {
+		if !IsValidRecurrenceInterval(*in.RecurrenceInterval, *in.RecurrenceUnit) {
+			return fmt.Errorf("invalid recurrence interval %d for unit %s", *in.RecurrenceInterval, *in.RecurrenceUnit)
+		}
+	}
+	return nil
+}
+
 type SchedulePostInput struct {
 	ScheduledTime      *time.Time `json:"scheduledTime"`
 	Date               string     `json:"date"`
@@ -429,6 +459,79 @@ type SchedulePostInput struct {
 	Recurrence         string     `json:"recurrence"`
 	RecurrenceInterval *int       `json:"recurrenceInterval"`
 	RecurrenceUnit     *string    `json:"recurrenceUnit"`
+}
+
+func (in *SchedulePostInput) Validate() error {
+	if in.Timezone != "" && in.Timezone != "UTC" {
+		if _, err := time.LoadLocation(in.Timezone); err != nil {
+			return fmt.Errorf("invalid timezone: %s", in.Timezone)
+		}
+	}
+	if in.Recurrence != "" {
+		validRec := map[string]bool{
+			RecurrenceOnce: true, RecurrenceHourly: true, RecurrenceDaily: true,
+			RecurrenceWeekly: true, RecurrenceMonthly: true, RecurrenceYearly: true,
+		}
+		if !validRec[strings.ToLower(in.Recurrence)] {
+			return fmt.Errorf("invalid recurrence: %s", in.Recurrence)
+		}
+	}
+	if in.RecurrenceInterval != nil && in.RecurrenceUnit != nil {
+		if !IsValidRecurrenceInterval(*in.RecurrenceInterval, *in.RecurrenceUnit) {
+			return fmt.Errorf("invalid recurrence interval %d for unit %s", *in.RecurrenceInterval, *in.RecurrenceUnit)
+		}
+	}
+	return nil
+}
+
+type ApprovePostRequest struct {
+	Comment string `json:"comment"`
+}
+
+func (r *ApprovePostRequest) Validate() error {
+	r.Comment = strings.ReplaceAll(r.Comment, "\x00", "")
+	r.Comment = strings.TrimSpace(r.Comment)
+	if len(r.Comment) > 2000 {
+		return fmt.Errorf("comment exceeds maximum allowed length of 2,000 characters")
+	}
+	return nil
+}
+
+type RejectPostRequest struct {
+	Reason string `json:"reason"`
+}
+
+func (r *RejectPostRequest) Validate() error {
+	r.Reason = strings.ReplaceAll(r.Reason, "\x00", "")
+	r.Reason = strings.TrimSpace(r.Reason)
+	if len(r.Reason) > 2000 {
+		return fmt.Errorf("reason exceeds maximum allowed length of 2,000 characters")
+	}
+	return nil
+}
+
+type PublicReviewActionRequest struct {
+	Action       string `json:"action"` // "approve" or "reject"
+	ReviewerName string `json:"reviewerName"`
+	Feedback     string `json:"feedback"`
+}
+
+func (r *PublicReviewActionRequest) Validate() error {
+	r.Action = strings.ToLower(strings.TrimSpace(r.Action))
+	if r.Action != "approve" && r.Action != "reject" {
+		return fmt.Errorf("action must be either 'approve' or 'reject'")
+	}
+	r.ReviewerName = strings.ReplaceAll(r.ReviewerName, "\x00", "")
+	r.ReviewerName = strings.TrimSpace(r.ReviewerName)
+	if len(r.ReviewerName) > 100 {
+		return fmt.Errorf("reviewer name must not exceed 100 characters")
+	}
+	r.Feedback = strings.ReplaceAll(r.Feedback, "\x00", "")
+	r.Feedback = strings.TrimSpace(r.Feedback)
+	if len(r.Feedback) > 2000 {
+		return fmt.Errorf("feedback exceeds maximum allowed length of 2,000 characters")
+	}
+	return nil
 }
 
 type BulkIDsInput struct {
