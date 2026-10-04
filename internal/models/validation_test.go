@@ -283,3 +283,325 @@ func TestAddBrandMemberRequest_Validate(t *testing.T) {
 	})
 }
 
+func TestSignupRequest_Validate(t *testing.T) {
+	t.Run("Valid Signup", func(t *testing.T) {
+		req := models.SignupRequest{
+			Email:    "User@Example.com",
+			Password: "ValidPassword123!",
+		}
+		if err := req.Validate(); err != nil {
+			t.Errorf("expected valid, got: %v", err)
+		}
+		if req.Email != "user@example.com" {
+			t.Errorf("expected email to be lowercased, got: %s", req.Email)
+		}
+	})
+
+	t.Run("Empty Email", func(t *testing.T) {
+		req := models.SignupRequest{
+			Email:    "  ",
+			Password: "ValidPassword123!",
+		}
+		if err := req.Validate(); err == nil {
+			t.Error("expected error for empty email")
+		}
+	})
+
+	t.Run("Invalid Email Format", func(t *testing.T) {
+		req := models.SignupRequest{
+			Email:    "notanemail",
+			Password: "ValidPassword123!",
+		}
+		if err := req.Validate(); err == nil {
+			t.Error("expected error for invalid email")
+		}
+	})
+
+	t.Run("Password Too Short", func(t *testing.T) {
+		req := models.SignupRequest{
+			Email:    "test@example.com",
+			Password: "short",
+		}
+		if err := req.Validate(); err == nil {
+			t.Error("expected error for short password")
+		}
+	})
+
+	t.Run("Password Too Long", func(t *testing.T) {
+		req := models.SignupRequest{
+			Email:    "test@example.com",
+			Password: strings.Repeat("A", 129),
+		}
+		if err := req.Validate(); err == nil {
+			t.Error("expected error for long password")
+		}
+	})
+}
+
+func TestLoginRequest_Validate(t *testing.T) {
+	t.Run("Valid Login", func(t *testing.T) {
+		req := models.LoginRequest{
+			Email:    "user@example.com",
+			Password: "password123",
+		}
+		if err := req.Validate(); err != nil {
+			t.Errorf("expected valid, got: %v", err)
+		}
+	})
+
+	t.Run("Empty Password", func(t *testing.T) {
+		req := models.LoginRequest{
+			Email:    "user@example.com",
+			Password: "",
+		}
+		if err := req.Validate(); err == nil {
+			t.Error("expected error for empty password")
+		}
+	})
+}
+
+func TestRefreshTokenRequest_Validate(t *testing.T) {
+	t.Run("Valid Refresh Token", func(t *testing.T) {
+		req := models.RefreshTokenRequest{RefreshToken: "valid-token"}
+		if err := req.Validate(); err != nil {
+			t.Errorf("expected valid, got: %v", err)
+		}
+	})
+
+	t.Run("Empty Token", func(t *testing.T) {
+		req := models.RefreshTokenRequest{RefreshToken: "  "}
+		if err := req.Validate(); err == nil {
+			t.Error("expected error for empty refresh token")
+		}
+	})
+
+	t.Run("Token Too Long", func(t *testing.T) {
+		req := models.RefreshTokenRequest{RefreshToken: strings.Repeat("x", 1025)}
+		if err := req.Validate(); err == nil {
+			t.Error("expected error for token exceeding 1024 chars")
+		}
+	})
+}
+
+func TestVerifyEmailRequest_Validate(t *testing.T) {
+	t.Run("Valid Token", func(t *testing.T) {
+		req := models.VerifyEmailRequest{Token: "abc123token"}
+		if err := req.Validate(); err != nil {
+			t.Errorf("expected valid, got: %v", err)
+		}
+	})
+
+	t.Run("Empty Token", func(t *testing.T) {
+		req := models.VerifyEmailRequest{Token: " "}
+		if err := req.Validate(); err == nil {
+			t.Error("expected error for empty token")
+		}
+	})
+}
+
+func TestForgotPasswordRequest_Validate(t *testing.T) {
+	t.Run("Valid Request", func(t *testing.T) {
+		req := models.ForgotPasswordRequest{Email: "user@example.com"}
+		if err := req.Validate(); err != nil {
+			t.Errorf("expected valid, got: %v", err)
+		}
+	})
+
+	t.Run("Invalid Email", func(t *testing.T) {
+		req := models.ForgotPasswordRequest{Email: "invalid-email"}
+		if err := req.Validate(); err == nil {
+			t.Error("expected error for invalid email")
+		}
+	})
+}
+
+func TestResetPasswordRequest_Validate(t *testing.T) {
+	t.Run("Valid Request", func(t *testing.T) {
+		req := models.ResetPasswordRequest{
+			Token:       "valid-token",
+			NewPassword: "newSecurePassword123",
+		}
+		if err := req.Validate(); err != nil {
+			t.Errorf("expected valid, got: %v", err)
+		}
+	})
+
+	t.Run("Password Too Short", func(t *testing.T) {
+		req := models.ResetPasswordRequest{
+			Token:       "valid-token",
+			NewPassword: "short",
+		}
+		if err := req.Validate(); err == nil {
+			t.Error("expected error for short password")
+		}
+	})
+}
+
+func TestUpdateProfileRequest_Validate(t *testing.T) {
+	t.Run("Valid Profile", func(t *testing.T) {
+		req := models.UpdateProfileRequest{
+			FullName: "Alice Smith",
+			Timezone: "America/New_York",
+		}
+		if err := req.Validate(); err != nil {
+			t.Errorf("expected valid, got: %v", err)
+		}
+	})
+
+	t.Run("Null Byte Stripping", func(t *testing.T) {
+		req := models.UpdateProfileRequest{
+			FullName: "Alice\x00 Smith",
+			Timezone: "UTC",
+		}
+		if err := req.Validate(); err != nil {
+			t.Fatalf("expected valid, got: %v", err)
+		}
+		if req.FullName != "Alice Smith" {
+			t.Errorf("expected null bytes stripped, got: %q", req.FullName)
+		}
+	})
+
+	t.Run("Invalid Timezone", func(t *testing.T) {
+		req := models.UpdateProfileRequest{
+			FullName: "Alice Smith",
+			Timezone: "Invalid/Zone",
+		}
+		if err := req.Validate(); err == nil {
+			t.Error("expected error for invalid timezone")
+		}
+	})
+}
+
+func TestChangePasswordRequest_Validate(t *testing.T) {
+	t.Run("Valid Change", func(t *testing.T) {
+		req := models.ChangePasswordRequest{
+			OldPassword: "oldPassword123",
+			NewPassword: "newPassword123",
+		}
+		if err := req.Validate(); err != nil {
+			t.Errorf("expected valid, got: %v", err)
+		}
+	})
+
+	t.Run("Empty Old Password", func(t *testing.T) {
+		req := models.ChangePasswordRequest{
+			OldPassword: "",
+			NewPassword: "newPassword123",
+		}
+		if err := req.Validate(); err == nil {
+			t.Error("expected error for missing old password")
+		}
+	})
+}
+
+func TestPublishPostInput_Validate(t *testing.T) {
+	t.Run("Valid Input", func(t *testing.T) {
+		rec := models.RecurrenceDaily
+		in := models.PublishPostInput{
+			Platforms:  []string{"Instagram", "LinkedIn"},
+			Recurrence: &rec,
+		}
+		if err := in.Validate(); err != nil {
+			t.Errorf("expected valid input, got: %v", err)
+		}
+		if in.Platforms[0] != "instagram" || in.Platforms[1] != "linkedin" {
+			t.Errorf("expected lowercased platforms, got: %v", in.Platforms)
+		}
+	})
+
+	t.Run("Unsupported Platform", func(t *testing.T) {
+		in := models.PublishPostInput{
+			Platforms: []string{"tiktok"},
+		}
+		if err := in.Validate(); err == nil {
+			t.Error("expected error for unsupported platform")
+		}
+	})
+}
+
+func TestSchedulePostInput_Validate(t *testing.T) {
+	t.Run("Valid Schedule", func(t *testing.T) {
+		in := models.SchedulePostInput{
+			Timezone:   "UTC",
+			Recurrence: models.RecurrenceWeekly,
+		}
+		if err := in.Validate(); err != nil {
+			t.Errorf("expected valid schedule, got: %v", err)
+		}
+	})
+
+	t.Run("Invalid Recurrence", func(t *testing.T) {
+		in := models.SchedulePostInput{
+			Recurrence: "every_second",
+		}
+		if err := in.Validate(); err == nil {
+			t.Error("expected error for invalid recurrence")
+		}
+	})
+}
+
+func TestApproveAndRejectPostRequest_Validate(t *testing.T) {
+	t.Run("Valid Approve", func(t *testing.T) {
+		req := models.ApprovePostRequest{Comment: "Looks great!"}
+		if err := req.Validate(); err != nil {
+			t.Errorf("expected valid, got: %v", err)
+		}
+	})
+
+	t.Run("Approve Comment Too Long", func(t *testing.T) {
+		req := models.ApprovePostRequest{Comment: strings.Repeat("A", 2001)}
+		if err := req.Validate(); err == nil {
+			t.Error("expected error for comment exceeding 2000 chars")
+		}
+	})
+
+	t.Run("Valid Reject", func(t *testing.T) {
+		req := models.RejectPostRequest{Reason: "Needs more details"}
+		if err := req.Validate(); err != nil {
+			t.Errorf("expected valid, got: %v", err)
+		}
+	})
+
+	t.Run("Reject Reason Too Long", func(t *testing.T) {
+		req := models.RejectPostRequest{Reason: strings.Repeat("B", 2001)}
+		if err := req.Validate(); err == nil {
+			t.Error("expected error for reason exceeding 2000 chars")
+		}
+	})
+}
+
+func TestPublicReviewActionRequest_Validate(t *testing.T) {
+	t.Run("Valid Action", func(t *testing.T) {
+		req := models.PublicReviewActionRequest{
+			Action:       "Approve",
+			ReviewerName: "John Reviewer",
+			Feedback:     "LGTM",
+		}
+		if err := req.Validate(); err != nil {
+			t.Errorf("expected valid, got: %v", err)
+		}
+		if req.Action != "approve" {
+			t.Errorf("expected action to be lowercased, got: %s", req.Action)
+		}
+	})
+
+	t.Run("Invalid Action", func(t *testing.T) {
+		req := models.PublicReviewActionRequest{
+			Action: "maybe",
+		}
+		if err := req.Validate(); err == nil {
+			t.Error("expected error for invalid action")
+		}
+	})
+
+	t.Run("Reviewer Name Too Long", func(t *testing.T) {
+		req := models.PublicReviewActionRequest{
+			Action:       "approve",
+			ReviewerName: strings.Repeat("X", 101),
+		}
+		if err := req.Validate(); err == nil {
+			t.Error("expected error for reviewer name exceeding 100 chars")
+		}
+	})
+}
+

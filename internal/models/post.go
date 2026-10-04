@@ -423,8 +423,8 @@ type PublishPostInput struct {
 
 func (in *PublishPostInput) Validate() error {
 	validPlatforms := map[string]bool{
-		PlatformInstagram: true,
-		PlatformLinkedIn:  true,
+		strings.ToLower(PlatformInstagram): true,
+		strings.ToLower(PlatformLinkedIn):  true,
 	}
 	for i, p := range in.Platforms {
 		norm := strings.ToLower(strings.TrimSpace(p))
