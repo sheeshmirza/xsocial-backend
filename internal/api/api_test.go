@@ -184,3 +184,31 @@ func TestSignupValidation(t *testing.T) {
 		}
 	})
 }
+
+func TestSecurityHeaders(t *testing.T) {
+	srv := createTestServer()
+	handler := srv.Handler()
+
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	headers := map[string]string{
+		"X-Content-Type-Options":    "nosniff",
+		"X-Frame-Options":           "DENY",
+		"Referrer-Policy":           "strict-origin-when-cross-origin",
+		"X-XSS-Protection":          "0",
+		"Content-Security-Policy":   "default-src 'none'; frame-ancestors 'none'",
+		"Strict-Transport-Security": "max-age=31536000; includeSubDomains",
+	}
+
+	for header, expected := range headers {
+		if val := rec.Header().Get(header); val != expected {
+			t.Errorf("expected header %s = %q, got %q", header, expected, val)
+		}
+	}
+	if rec.Header().Get("X-Request-ID") == "" {
+		t.Error("expected X-Request-ID header to be set")
+	}
+}

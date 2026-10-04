@@ -63,7 +63,7 @@ func init() {
 				return true
 			})
 		}
-	}()
+	})
 }
 
 func (s *Server) mcpOAuthResource(r *http.Request) string {
