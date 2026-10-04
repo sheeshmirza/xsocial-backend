@@ -3,6 +3,7 @@ package utils_test
 import (
 	"net/http"
 	"testing"
+	"time"
 
 	"xsocial-backend/internal/utils"
 )
@@ -99,5 +100,20 @@ func TestApiErrors(t *testing.T) {
 	}
 	if err.Error() != "invalid payload" {
 		t.Errorf("expected message %q, got %q", "invalid payload", err.Error())
+	}
+}
+
+func TestSafeGo(t *testing.T) {
+	done := make(chan struct{})
+	utils.SafeGo(func() {
+		defer close(done)
+		// Intentionally trigger a panic to verify recovery
+		panic("test panic recovery")
+	})
+	select {
+	case <-done:
+		// Succeeded in recovering without crashing process
+	case <-time.After(1 * time.Second):
+		t.Fatal("SafeGo timed out")
 	}
 }

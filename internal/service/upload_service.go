@@ -42,8 +42,9 @@ func NewUploadService(cfg *config.Config) *UploadService {
 	}
 
 	// Periodic cleanup every 10 minutes
-	go func() {
+	utils.SafeGo(func() {
 		ticker := time.NewTicker(10 * time.Minute)
+		defer ticker.Stop()
 		for range ticker.C {
 			now := time.Now()
 			s.store.Range(func(key, value any) bool {
@@ -55,7 +56,7 @@ func NewUploadService(cfg *config.Config) *UploadService {
 				return true
 			})
 		}
-	}()
+	})
 
 	return s
 }
@@ -74,7 +75,10 @@ func (s *UploadService) GetMedia(id string) *StoredMedia {
 		return nil
 	}
 
-	entry := val.(StoredMedia)
+	entry, ok := val.(StoredMedia)
+	if !ok {
+		return nil
+	}
 	if time.Now().After(entry.ExpiresAt) {
 		s.store.Delete(id)
 		return nil
@@ -87,12 +91,16 @@ func (s *UploadService) ProcessUploads(files []*multipart.FileHeader, requestHos
 		return nil, utils.BadRequest("No files were uploaded")
 	}
 
-	baseURL := strings.TrimRight(s.config.PublicBaseURL, "/")
+	baseURL := ""
+	apiPrefix := ""
+	if s.config != nil {
+		baseURL = strings.TrimRight(s.config.PublicBaseURL, "/")
+		apiPrefix = strings.TrimRight(s.config.ApiPrefix, "/")
+	}
 	if baseURL == "" {
 		baseURL = fmt.Sprintf("http://%s", requestHost)
 	}
 
-	apiPrefix := strings.TrimRight(s.config.ApiPrefix, "/")
 	results := make([]UploadedMediaResponse, 0, len(files))
 
 	for _, fileHeader := range files {

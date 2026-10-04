@@ -44,12 +44,22 @@ func (s *SocialService) normalizePlatform(p string) string {
 
 func (s *SocialService) GetConnectURL(userID, platform string) (string, error) {
 	norm := s.normalizePlatform(platform)
-	state := common.GenerateOAuthState(userID, s.config.JWTAccessSecret)
+	secret := ""
+	if s.config != nil {
+		secret = s.config.JWTAccessSecret
+	}
+	state := common.GenerateOAuthState(userID, secret)
 
 	switch norm {
 	case models.PlatformInstagram:
+		if s.instagramService == nil {
+			return "", utils.InternalServerError("Instagram service unavailable")
+		}
 		return s.instagramService.GetConnectURL(state), nil
 	case models.PlatformLinkedIn:
+		if s.linkedinService == nil {
+			return "", utils.InternalServerError("LinkedIn service unavailable")
+		}
 		return s.linkedinService.GetConnectURL(state), nil
 	default:
 		return "", utils.BadRequest(fmt.Sprintf("Unsupported platform: %s", platform))
@@ -254,6 +264,10 @@ func (s *SocialService) SyncLinkedInPages(ctx context.Context, userID bson.Objec
 		}
 
 		if isChildPage || models.IsLinkedInOrganization(accountType) {
+			continue
+		}
+
+		if s.linkedinService == nil || s.linkedinService.OAuth == nil {
 			continue
 		}
 

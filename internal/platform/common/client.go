@@ -93,7 +93,7 @@ func (c *HTTPClient) PostJSONWithRespHeaders(ctx context.Context, requestURL str
 	}
 	defer resp.Body.Close()
 
-	bodyBytes, err := io.ReadAll(resp.Body)
+	bodyBytes, err := io.ReadAll(io.LimitReader(resp.Body, 10<<20))
 	if err != nil {
 		return nil, resp.StatusCode, resp.Header, err
 	}
@@ -183,7 +183,7 @@ func (c *HTTPClient) do(req *http.Request) ([]byte, int, error) {
 	}
 	defer resp.Body.Close()
 
-	bodyBytes, err := io.ReadAll(resp.Body)
+	bodyBytes, err := io.ReadAll(io.LimitReader(resp.Body, 10<<20))
 	if err != nil {
 		return nil, resp.StatusCode, err
 	}
@@ -214,9 +214,13 @@ func (c *HTTPClient) FetchMediaBytes(ctx context.Context, mediaURL string) ([]by
 		return nil, "", fmt.Errorf("HTTP error %d fetching media from URL", resp.StatusCode)
 	}
 
-	body, err := io.ReadAll(resp.Body)
+	const maxMediaDownloadSize = 100 << 20 // 100 MB max
+	body, err := io.ReadAll(io.LimitReader(resp.Body, maxMediaDownloadSize+1))
 	if err != nil {
 		return nil, "", err
+	}
+	if len(body) > maxMediaDownloadSize {
+		return nil, "", utils.BadRequest("Media file exceeds maximum allowed download size of 100 MB")
 	}
 
 	contentType := resp.Header.Get("Content-Type")

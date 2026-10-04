@@ -99,7 +99,11 @@ func (s *UserService) ChangePassword(ctx context.Context, userID bson.ObjectID, 
 		return false, utils.BadRequest("Old password is incorrect")
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), s.config.BcryptSaltRounds)
+	saltRounds := bcrypt.DefaultCost
+	if s.config != nil && s.config.BcryptSaltRounds > 0 {
+		saltRounds = s.config.BcryptSaltRounds
+	}
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), saltRounds)
 	if err != nil {
 		return false, utils.InternalServerError("Failed to hash new password")
 	}

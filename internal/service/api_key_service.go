@@ -133,7 +133,11 @@ func (s *ApiKeyService) ValidateApiKey(ctx context.Context, rawKey string) (*mod
 		if cachedJSON, err := s.redis.Get(ctx, "apikey:"+keyHash); err == nil && cachedJSON != "" {
 			var cached models.ApiKey
 			if json.Unmarshal([]byte(cachedJSON), &cached) == nil {
-				go s.repo.UpdateLastUsed(context.Background(), cached.ID)
+				if s.repo != nil {
+					utils.SafeGo(func() {
+						_ = s.repo.UpdateLastUsed(context.Background(), cached.ID)
+					})
+				}
 				return &cached, nil
 			}
 		}
@@ -155,7 +159,11 @@ func (s *ApiKeyService) ValidateApiKey(ctx context.Context, rawKey string) (*mod
 	s.cacheKeyInRedis(ctx, keyHash, key)
 
 	// Update last used asynchronously
-	go s.repo.UpdateLastUsed(context.Background(), key.ID)
+	if s.repo != nil {
+		utils.SafeGo(func() {
+			_ = s.repo.UpdateLastUsed(context.Background(), key.ID)
+		})
+	}
 
 	return key, nil
 }

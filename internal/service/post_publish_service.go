@@ -62,7 +62,12 @@ func (s *PostPublishService) PublishToPlatforms(
 	responses := make([]models.PlatformPublishResponse, 0, len(handles))
 
 	for _, handle := range handles {
-		freshHandle := s.socialService.RefreshPlatformTokenIfNeeded(ctx, userID, &handle)
+		freshHandle := &handle
+		if s.socialService != nil {
+			if refreshed := s.socialService.RefreshPlatformTokenIfNeeded(ctx, userID, &handle); refreshed != nil {
+				freshHandle = refreshed
+			}
+		}
 		platformNorm := strings.ToUpper(strings.TrimSpace(freshHandle.Platform))
 
 		var res *models.PlatformPublishResponse
@@ -70,13 +75,22 @@ func (s *PostPublishService) PublishToPlatforms(
 
 		switch platformNorm {
 		case models.PlatformInstagram:
-			res, pubErr = s.instagramService.PublishPost(ctx, post, freshHandle)
+			if s.instagramService != nil {
+				res, pubErr = s.instagramService.PublishPost(ctx, post, freshHandle)
+			} else {
+				pubErr = utils.InternalServerError("Instagram publishing service unavailable")
+			}
 
 		case models.PlatformLinkedIn:
-			res, pubErr = s.linkedinService.PublishPost(ctx, post, freshHandle)
-			if res != nil && strings.Contains(strings.ToLower(res.Message), "revoked") {
-				// Delete revoked handle
-				_, _ = s.socialHandleRepo.DeleteByIDAndUserID(ctx, freshHandle.ID, userID)
+			if s.linkedinService != nil {
+				res, pubErr = s.linkedinService.PublishPost(ctx, post, freshHandle)
+				if res != nil && strings.Contains(strings.ToLower(res.Message), "revoked") {
+					if s.socialHandleRepo != nil {
+						_, _ = s.socialHandleRepo.DeleteByIDAndUserID(ctx, freshHandle.ID, userID)
+					}
+				}
+			} else {
+				pubErr = utils.InternalServerError("LinkedIn publishing service unavailable")
 			}
 
 		default:

@@ -48,7 +48,11 @@ func (s *AuthService) Signup(ctx context.Context, email, password string) (*mode
 		return nil, utils.Conflict("Email is already registered")
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), s.config.BcryptSaltRounds)
+	saltRounds := bcrypt.DefaultCost
+	if s.config != nil && s.config.BcryptSaltRounds > 0 {
+		saltRounds = s.config.BcryptSaltRounds
+	}
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), saltRounds)
 	if err != nil {
 		return nil, utils.InternalServerError("Failed to hash password")
 	}
@@ -189,7 +193,11 @@ func (s *AuthService) ResetPassword(ctx context.Context, token, newPassword stri
 		return utils.BadRequest("Invalid or expired reset token")
 	}
 
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), s.config.BcryptSaltRounds)
+	saltRounds := bcrypt.DefaultCost
+	if s.config != nil && s.config.BcryptSaltRounds > 0 {
+		saltRounds = s.config.BcryptSaltRounds
+	}
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(newPassword), saltRounds)
 	if err != nil {
 		return utils.InternalServerError("Failed to hash password")
 	}

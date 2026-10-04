@@ -8,6 +8,7 @@ import (
 
 	"xsocial-backend/internal/models"
 	"xsocial-backend/internal/repository"
+	"xsocial-backend/internal/utils"
 )
 
 type AuditLogService struct {
@@ -21,7 +22,10 @@ func NewAuditLogService(repo repository.IAuditLogRepository) *AuditLogService {
 }
 
 func (s *AuditLogService) Log(ctx context.Context, userID *bson.ObjectID, brandID *bson.ObjectID, actor, action, resourceType, resourceID, ip, userAgent string) {
-	go func() {
+	if s.repo == nil {
+		return
+	}
+	utils.SafeGo(func() {
 		log := &models.AuditLog{
 			UserID:       userID,
 			BrandID:      brandID,
@@ -34,7 +38,7 @@ func (s *AuditLogService) Log(ctx context.Context, userID *bson.ObjectID, brandI
 			CreatedAt:    time.Now(),
 		}
 		s.repo.Record(context.Background(), log)
-	}()
+	})
 }
 
 func (s *AuditLogService) ListLogs(ctx context.Context, userID *bson.ObjectID, brandID *bson.ObjectID, limit int64) ([]models.AuditLog, error) {

@@ -428,9 +428,11 @@ func (s *PostService) CreatePost(ctx context.Context, userID bson.ObjectID, payl
 func (s *PostService) ListPosts(ctx context.Context, userID bson.ObjectID, queryParams map[string]string, skip, limit int, sort bson.D) ([]models.Post, int64, error) {
 	// Sync LinkedIn historical activity on page 1 if not filtered by status or search
 	if skip == 0 && queryParams["status"] == "" && queryParams["search"] == "" {
-		go func() {
-			_, _, _ = s.activityService.SyncLinkedInHistoricalPostsForAllConnectedAccounts(context.Background(), userID)
-		}()
+		if s.activityService != nil {
+			utils.SafeGo(func() {
+				_, _, _ = s.activityService.SyncLinkedInHistoricalPostsForAllConnectedAccounts(context.Background(), userID)
+			})
+		}
 	}
 
 	filters := bson.M{}
@@ -1149,9 +1151,11 @@ func (s *PostService) PublishPost(
 	// Trigger LinkedIn post activity sync
 	for _, item := range responseItems {
 		if strings.ToLower(item.Platform) == "linkedin" && item.Status == "success" {
-			go func() {
-				_ = s.activityService.SyncPostLinkedInActivity(context.Background(), userID, postID)
-			}()
+			if s.activityService != nil {
+				utils.SafeGo(func() {
+					_ = s.activityService.SyncPostLinkedInActivity(context.Background(), userID, postID)
+				})
+			}
 			break
 		}
 	}
