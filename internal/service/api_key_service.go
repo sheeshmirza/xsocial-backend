@@ -135,7 +135,7 @@ func (s *ApiKeyService) ValidateApiKey(ctx context.Context, rawKey string) (*mod
 			if json.Unmarshal([]byte(cachedJSON), &cached) == nil {
 				if s.repo != nil {
 					utils.SafeGo(func() {
-						_ = s.repo.UpdateLastUsed(context.Background(), cached.ID)
+						s.repo.UpdateLastUsed(context.Background(), cached.ID)
 					})
 				}
 				return &cached, nil
@@ -161,7 +161,7 @@ func (s *ApiKeyService) ValidateApiKey(ctx context.Context, rawKey string) (*mod
 	// Update last used asynchronously
 	if s.repo != nil {
 		utils.SafeGo(func() {
-			_ = s.repo.UpdateLastUsed(context.Background(), key.ID)
+			s.repo.UpdateLastUsed(context.Background(), key.ID)
 		})
 	}
 

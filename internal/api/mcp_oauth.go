@@ -14,6 +14,8 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"go.mongodb.org/mongo-driver/v2/bson"
+
+	"xsocial-backend/internal/utils"
 )
 
 const (
@@ -23,10 +25,15 @@ const (
 )
 
 func (s *Server) mcpOAuthSigningKey() []byte {
-	if s.cfg.MCPOAuthSigningSecret != "" {
-		return []byte(s.cfg.MCPOAuthSigningSecret)
+	if s != nil && s.cfg != nil {
+		if s.cfg.MCPOAuthSigningSecret != "" {
+			return []byte(s.cfg.MCPOAuthSigningSecret)
+		}
+		if s.cfg.JWTAccessSecret != "" {
+			return []byte(s.cfg.JWTAccessSecret)
+		}
 	}
-	return []byte(s.cfg.JWTAccessSecret)
+	return []byte("xsocial-mcp-oauth-local-signing-secret-key-32b")
 }
 
 var usedMCPAuthCodes sync.Map
@@ -36,8 +43,9 @@ var mcpRefreshTokenStore sync.Map
 func init() {
 	// Background reaper to clean up in-memory auth codes and refresh token tracking
 	// so memory doesn't grow unbounded when Redis is not configured.
-	go func() {
+	utils.SafeGo(func() {
 		ticker := time.NewTicker(15 * time.Minute)
+		defer ticker.Stop()
 		for range ticker.C {
 			cutoffCodes := time.Now().Add(-10 * time.Minute)
 			usedMCPAuthCodes.Range(func(key, val any) bool {
@@ -532,7 +540,8 @@ func (s *Server) mcpRefreshToken(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		stored, exists := mcpRefreshTokenStore.Load(refreshJTI)
-		if !exists || stored.(string) != sub {
+		storedStr, ok := stored.(string)
+		if !exists || !ok || storedStr != sub {
 			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_grant"})
 			return
 		}

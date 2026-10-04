@@ -11,6 +11,7 @@ import (
 	mathrand "math/rand/v2"
 	"net"
 	"net/http"
+	"runtime/debug"
 	"strings"
 	"sync"
 	"time"
@@ -576,6 +577,15 @@ func (s *Server) recordAuthFailure(ip string) {
 		s.authFailures = make(map[string]*authFailureRecord)
 	}
 	now := time.Now()
+	// Bound memory growth under brute-force from rotating IPs
+	if len(s.authFailures) > 2000 {
+		cutoff := now.Add(-10 * time.Minute)
+		for k, v := range s.authFailures {
+			if v.lastSeen.Before(cutoff) {
+				delete(s.authFailures, k)
+			}
+		}
+	}
 	rec, exists := s.authFailures[ip]
 	if !exists || now.Sub(rec.lastSeen) > 5*time.Minute {
 		s.authFailures[ip] = &authFailureRecord{count: 1, lastSeen: now}
@@ -599,10 +609,12 @@ func (s *Server) cors(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := strings.TrimRight(strings.TrimSpace(r.Header.Get("Origin")), "/")
 		allowed := false
-		for _, configured := range s.cfg.ClientOrigins {
-			if origin != "" && origin == strings.TrimRight(strings.TrimSpace(configured), "/") {
-				allowed = true
-				break
+		if s.cfg != nil {
+			for _, configured := range s.cfg.ClientOrigins {
+				if origin != "" && origin == strings.TrimRight(strings.TrimSpace(configured), "/") {
+					allowed = true
+					break
+				}
 			}
 		}
 		if allowed {
@@ -634,6 +646,9 @@ func (s *Server) securityHeaders(next http.Handler) http.Handler {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "DENY")
 		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		w.Header().Set("X-XSS-Protection", "0")
+		w.Header().Set("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
+		w.Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 		ctx := context.WithValue(r.Context(), reqIDKey{}, id)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
@@ -666,8 +681,9 @@ func (s *Server) recoverer(next http.Handler) http.Handler {
 		defer func() {
 			if v := recover(); v != nil {
 				reqID := w.Header().Get("X-Request-ID")
+				stack := string(debug.Stack())
 				if s.log != nil {
-					s.log.Error("panic_recovered", "request_id", reqID, "panic", fmt.Sprintf("%v", v), "path", r.URL.Path)
+					s.log.Error("panic_recovered", "request_id", reqID, "panic", fmt.Sprintf("%v", v), "path", r.URL.Path, "stack", stack)
 				}
 				writeError(w, http.StatusInternalServerError, "internal server error")
 			}
@@ -684,7 +700,10 @@ func (s *Server) allow(key string) bool {
 		burst = s.cfg.RateLimitMax
 	}
 	v, _ := s.limiters.LoadOrStore(key, rate.NewLimiter(limit, burst))
-	return v.(*rate.Limiter).Allow()
+	if lim, ok := v.(*rate.Limiter); ok {
+		return lim.Allow()
+	}
+	return true
 }
 
 func (s *Server) rateLimiter(next http.Handler) http.Handler {
@@ -732,6 +751,14 @@ func writeError(w http.ResponseWriter, status int, msg string) {
 
 func writeApiError(w http.ResponseWriter, err error) {
 	if err == nil {
+		return
+	}
+	if errors.Is(err, context.Canceled) {
+		writeError(w, 499, "client closed request")
+		return
+	}
+	if errors.Is(err, context.DeadlineExceeded) {
+		writeError(w, http.StatusGatewayTimeout, "request timed out")
 		return
 	}
 	var apiErr *utils.ApiError
