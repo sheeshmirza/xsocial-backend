@@ -84,8 +84,55 @@ type UpdateBrandRequest struct {
 	WebsiteURL  *string `json:"websiteUrl"`
 }
 
+func (r *UpdateBrandRequest) Validate() error {
+	if r.Name != nil {
+		*r.Name = strings.TrimSpace(*r.Name)
+		if *r.Name == "" {
+			return fmt.Errorf("brand name cannot be empty")
+		}
+		if len(*r.Name) > 100 {
+			return fmt.Errorf("brand name must not exceed 100 characters")
+		}
+	}
+	if r.Currency != nil && *r.Currency != "" {
+		*r.Currency = strings.ToUpper(strings.TrimSpace(*r.Currency))
+		if len(*r.Currency) != 3 {
+			return fmt.Errorf("currency must be a 3-letter ISO code")
+		}
+	}
+	if r.Timezone != nil && *r.Timezone != "" {
+		if _, err := time.LoadLocation(*r.Timezone); err != nil {
+			return fmt.Errorf("invalid timezone: %s", *r.Timezone)
+		}
+	}
+	return nil
+}
+
 type AddBrandMemberRequest struct {
 	Email string    `json:"email" binding:"required,email"`
 	Name  string    `json:"name"`
 	Role  BrandRole `json:"role" binding:"required"`
+}
+
+func (r *AddBrandMemberRequest) Validate() error {
+	r.Email = strings.ToLower(strings.TrimSpace(r.Email))
+	if r.Email == "" {
+		return fmt.Errorf("email is required")
+	}
+	if len(r.Email) < 3 || len(r.Email) > 254 || !strings.Contains(r.Email, "@") || !strings.Contains(r.Email, ".") {
+		return fmt.Errorf("invalid email address format")
+	}
+	r.Name = strings.TrimSpace(r.Name)
+	if len(r.Name) > 100 {
+		return fmt.Errorf("name must not exceed 100 characters")
+	}
+	validRoles := map[BrandRole]bool{
+		BrandRoleOwner: true, BrandRoleAdmin: true, BrandRoleManager: true,
+		BrandRoleEditor: true, BrandRoleApprover: true, BrandRoleViewer: true,
+		BrandRoleClient: true,
+	}
+	if !validRoles[r.Role] {
+		return fmt.Errorf("invalid brand role: %s", r.Role)
+	}
+	return nil
 }

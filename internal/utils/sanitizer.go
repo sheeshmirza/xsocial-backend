@@ -115,3 +115,33 @@ func ValidatePublicURL(rawURL string) error {
 
 	return nil
 }
+
+// MaskURL redacts passwords and sensitive query params from a URL string for safe logging.
+func MaskURL(rawURL string) string {
+	rawURL = strings.TrimSpace(rawURL)
+	if rawURL == "" {
+		return ""
+	}
+	parsed, err := url.Parse(rawURL)
+	if err != nil {
+		return "***"
+	}
+	if parsed.User != nil {
+		if _, hasPassword := parsed.User.Password(); hasPassword {
+			parsed.User = url.UserPassword(parsed.User.Username(), "redacted")
+		}
+	}
+	q := parsed.Query()
+	sensitiveKeys := []string{"access_token", "client_secret", "secret", "token", "key", "api_key", "password", "refresh_token"}
+	hasSensitive := false
+	for _, key := range sensitiveKeys {
+		if q.Has(key) {
+			q.Set(key, "redacted")
+			hasSensitive = true
+		}
+	}
+	if hasSensitive {
+		parsed.RawQuery = q.Encode()
+	}
+	return parsed.String()
+}

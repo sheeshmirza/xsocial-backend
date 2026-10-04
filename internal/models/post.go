@@ -346,6 +346,70 @@ type UpdatePostInput struct {
 	Poll               *PollData               `json:"poll,omitempty"`
 }
 
+func (in *UpdatePostInput) Validate() error {
+	if in.Title != nil {
+		*in.Title = strings.TrimSpace(*in.Title)
+		if len(*in.Title) > 500 {
+			return fmt.Errorf("title exceeds maximum allowed length of 500 characters")
+		}
+	}
+	if in.Caption != nil {
+		*in.Caption = strings.TrimSpace(*in.Caption)
+		if len(*in.Caption) > 50000 {
+			return fmt.Errorf("caption exceeds maximum allowed length of 50,000 characters")
+		}
+	}
+	if in.PostType != nil && *in.PostType != "" {
+		validTypes := map[string]bool{
+			"text": true, "image": true, "video": true, "gif": true,
+			"mixed": true, "reel": true, "story": true, "carousel": true,
+			"poll": true, "article": true,
+		}
+		if !validTypes[strings.ToLower(*in.PostType)] {
+			return fmt.Errorf("invalid postType: %s", *in.PostType)
+		}
+	}
+	if in.Visibility != nil && *in.Visibility != "" {
+		v := strings.ToLower(*in.Visibility)
+		if v != "public" && v != "private" {
+			return fmt.Errorf("visibility must be either 'public' or 'private'")
+		}
+	}
+	if in.Timezone != nil && *in.Timezone != "" && *in.Timezone != "UTC" {
+		if _, err := time.LoadLocation(*in.Timezone); err != nil {
+			return fmt.Errorf("invalid timezone: %s", *in.Timezone)
+		}
+	}
+	if in.Recurrence != nil && *in.Recurrence != "" {
+		validRec := map[string]bool{
+			RecurrenceOnce: true, RecurrenceHourly: true, RecurrenceDaily: true,
+			RecurrenceWeekly: true, RecurrenceMonthly: true, RecurrenceYearly: true,
+		}
+		if !validRec[strings.ToLower(*in.Recurrence)] {
+			return fmt.Errorf("invalid recurrence: %s", *in.Recurrence)
+		}
+	}
+	if in.Media != nil {
+		for i, m := range *in.Media {
+			if m.URL != "" {
+				trimmedURL := strings.TrimSpace(m.URL)
+				if !strings.HasPrefix(trimmedURL, "http://") && !strings.HasPrefix(trimmedURL, "https://") {
+					return fmt.Errorf("media[%d] URL must start with http:// or https://", i)
+				}
+			}
+		}
+	}
+	if in.Poll != nil {
+		if len(in.Poll.Options) < 2 {
+			return fmt.Errorf("poll requires at least 2 options")
+		}
+		if len(in.Poll.Options) > 10 {
+			return fmt.Errorf("poll cannot have more than 10 options")
+		}
+	}
+	return nil
+}
+
 type CreatePostRequest = CreatePostInput
 type UpdatePostRequest = UpdatePostInput
 
@@ -371,6 +435,16 @@ type BulkIDsInput struct {
 	IDs []string `json:"ids" binding:"required"`
 }
 
+func (in *BulkIDsInput) Validate() error {
+	if len(in.IDs) == 0 {
+		return fmt.Errorf("at least one ID is required")
+	}
+	if len(in.IDs) > 100 {
+		return fmt.Errorf("bulk operation limit is 100 IDs per request")
+	}
+	return nil
+}
+
 type ResharePostRequest struct {
 	TargetAccountIDs   []string   `json:"targetAccountIds"`
 	TargetPlatforms    []string   `json:"targetPlatforms"`
@@ -378,5 +452,21 @@ type ResharePostRequest struct {
 	ScheduledTime      *time.Time `json:"scheduledTime"`
 	IncludeMedia       *bool      `json:"includeMedia"`
 	PublishImmediately bool       `json:"publishImmediately"`
+}
+
+func (r *ResharePostRequest) Validate() error {
+	if len(r.TargetAccountIDs) == 0 && len(r.TargetPlatforms) == 0 {
+		return fmt.Errorf("target account IDs or target platforms must be specified for reshare")
+	}
+	if r.NewCaption != nil {
+		*r.NewCaption = strings.TrimSpace(*r.NewCaption)
+		if len(*r.NewCaption) > 50000 {
+			return fmt.Errorf("caption exceeds maximum allowed length of 50,000 characters")
+		}
+	}
+	if r.ScheduledTime != nil && !r.PublishImmediately && r.ScheduledTime.Before(time.Now().Add(-5*time.Minute)) {
+		return fmt.Errorf("scheduled time cannot be in the past")
+	}
+	return nil
 }
 

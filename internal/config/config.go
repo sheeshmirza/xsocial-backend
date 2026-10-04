@@ -47,6 +47,8 @@ type Config struct {
 	ClientOrigins       []string
 	AIWrapperBaseURL    string
 	AIWrapperTimeoutMS  time.Duration
+	RateLimitWindowMS   time.Duration
+	RateLimitMax        int
 	Instagram           OAuthPlatformConfig
 	LinkedIn            OAuthPlatformConfig
 	MCPOAuthIssuer         string
@@ -107,12 +109,19 @@ func LoadConfig() *Config {
 	if nodeEnv == "" {
 		nodeEnv = "development"
 	}
-	if nodeEnv != "test" {
+	if nodeEnv == "production" {
 		if weakSecrets[strings.ToLower(jwtAccessSecret)] || len(jwtAccessSecret) < 32 {
-			log.Fatalf("[FATAL] JWT_ACCESS_SECRET is missing, too short (<32 chars), or uses a known-weak placeholder. Set a strong random secret before starting.")
+			log.Fatalf("[FATAL] JWT_ACCESS_SECRET is missing, too short (<32 chars), or uses a known-weak placeholder in production. Set a strong random secret before starting.")
 		}
 		if weakSecrets[strings.ToLower(jwtRefreshSecret)] || len(jwtRefreshSecret) < 32 {
-			log.Fatalf("[FATAL] JWT_REFRESH_SECRET is missing, too short (<32 chars), or uses a known-weak placeholder. Set a strong random secret before starting.")
+			log.Fatalf("[FATAL] JWT_REFRESH_SECRET is missing, too short (<32 chars), or uses a known-weak placeholder in production. Set a strong random secret before starting.")
+		}
+	} else if nodeEnv != "test" {
+		if weakSecrets[strings.ToLower(jwtAccessSecret)] || len(jwtAccessSecret) < 32 {
+			log.Printf("[WARN] JWT_ACCESS_SECRET is short or uses a placeholder. Recommended >= 32 characters in production.")
+		}
+		if weakSecrets[strings.ToLower(jwtRefreshSecret)] || len(jwtRefreshSecret) < 32 {
+			log.Printf("[WARN] JWT_REFRESH_SECRET is short or uses a placeholder. Recommended >= 32 characters in production.")
 		}
 	}
 
@@ -129,6 +138,16 @@ func LoadConfig() *Config {
 	aiTimeout, err := strconv.Atoi(cleanEnvValue(os.Getenv("AI_WRAPPER_TIMEOUT_MS")))
 	if err != nil || aiTimeout <= 0 {
 		aiTimeout = 30000
+	}
+
+	rateLimitWindow, err := strconv.Atoi(cleanEnvValue(os.Getenv("RATE_LIMIT_WINDOW_MS")))
+	if err != nil || rateLimitWindow <= 0 {
+		rateLimitWindow = 900000 // 15 minutes default
+	}
+
+	rateLimitMax, err := strconv.Atoi(cleanEnvValue(os.Getenv("RATE_LIMIT_MAX")))
+	if err != nil || rateLimitMax <= 0 {
+		rateLimitMax = 200
 	}
 
 	apiPrefix := cleanEnvValue(os.Getenv("API_PREFIX"))
@@ -183,6 +202,8 @@ func LoadConfig() *Config {
 		}()),
 		AIWrapperBaseURL:    cleanEnvValue(os.Getenv("AI_WRAPPER_BASE_URL")),
 		AIWrapperTimeoutMS:  time.Duration(aiTimeout) * time.Millisecond,
+		RateLimitWindowMS:   time.Duration(rateLimitWindow) * time.Millisecond,
+		RateLimitMax:        rateLimitMax,
 		Instagram: OAuthPlatformConfig{
 			ClientID:     cleanEnvValue(os.Getenv("INSTAGRAM_CLIENT_ID")),
 			ClientSecret: cleanEnvValue(os.Getenv("INSTAGRAM_CLIENT_SECRET")),

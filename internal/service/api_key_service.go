@@ -18,12 +18,12 @@ import (
 )
 
 type ApiKeyService struct {
-	repo      *repository.ApiKeyRepository
+	repo      repository.IApiKeyRepository
 	redis     *database.RedisClient
-	brandRepo *repository.BrandRepository
+	brandRepo repository.IBrandRepository
 }
 
-func NewApiKeyService(repo *repository.ApiKeyRepository, redis *database.RedisClient, brandRepo *repository.BrandRepository) *ApiKeyService {
+func NewApiKeyService(repo repository.IApiKeyRepository, redis *database.RedisClient, brandRepo repository.IBrandRepository) *ApiKeyService {
 	return &ApiKeyService{
 		repo:      repo,
 		redis:     redis,

@@ -41,14 +41,14 @@ type Server struct {
 	cfg          *config.Config
 	log          *slog.Logger
 	redis        *database.RedisClient
-	userRepo     *repository.UserRepository
-	rfRepo       *repository.RefreshTokenRepository
-	handleRepo   *repository.SocialHandleRepository
-	postRepo     *repository.PostRepository
-	postActRepo  *repository.PostActivityRepository
-	apiKeyRepo   *repository.ApiKeyRepository
-	brandRepo    *repository.BrandRepository
-	auditLogRepo *repository.AuditLogRepository
+	userRepo     repository.IUserRepository
+	rfRepo       repository.IRefreshTokenRepository
+	handleRepo   repository.ISocialHandleRepository
+	postRepo     repository.IPostRepository
+	postActRepo  repository.IPostActivityRepository
+	apiKeyRepo   repository.IApiKeyRepository
+	brandRepo    repository.IBrandRepository
+	auditLogRepo repository.IAuditLogRepository
 
 	// Services
 	tokenService    *service.TokenService
@@ -85,14 +85,14 @@ type ServerDeps struct {
 	Config                  *config.Config
 	Logger                  *slog.Logger
 	Redis                   *database.RedisClient
-	UserRepo                *repository.UserRepository
-	RefreshTokenRepo        *repository.RefreshTokenRepository
-	SocialHandleRepo        *repository.SocialHandleRepository
-	PostRepo                *repository.PostRepository
-	PostActivityRepo        *repository.PostActivityRepository
-	ApiKeyRepo              *repository.ApiKeyRepository
-	BrandRepo               *repository.BrandRepository
-	AuditLogRepo            *repository.AuditLogRepository
+	UserRepo                repository.IUserRepository
+	RefreshTokenRepo        repository.IRefreshTokenRepository
+	SocialHandleRepo        repository.ISocialHandleRepository
+	PostRepo                repository.IPostRepository
+	PostActivityRepo        repository.IPostActivityRepository
+	ApiKeyRepo              repository.IApiKeyRepository
+	BrandRepo               repository.IBrandRepository
+	AuditLogRepo            repository.IAuditLogRepository
 	TokenService            *service.TokenService
 	AuthService             *service.AuthService
 	UserService             *service.UserService
@@ -148,14 +148,14 @@ func New(
 	cfg *config.Config,
 	log *slog.Logger,
 	redis *database.RedisClient,
-	userRepo *repository.UserRepository,
-	rfRepo *repository.RefreshTokenRepository,
-	handleRepo *repository.SocialHandleRepository,
-	postRepo *repository.PostRepository,
-	postActRepo *repository.PostActivityRepository,
-	apiKeyRepo *repository.ApiKeyRepository,
-	brandRepo *repository.BrandRepository,
-	auditLogRepo *repository.AuditLogRepository,
+	userRepo repository.IUserRepository,
+	rfRepo repository.IRefreshTokenRepository,
+	handleRepo repository.ISocialHandleRepository,
+	postRepo repository.IPostRepository,
+	postActRepo repository.IPostActivityRepository,
+	apiKeyRepo repository.IApiKeyRepository,
+	brandRepo repository.IBrandRepository,
+	auditLogRepo repository.IAuditLogRepository,
 	tokenService *service.TokenService,
 	authService *service.AuthService,
 	userService *service.UserService,
@@ -677,7 +677,13 @@ func (s *Server) recoverer(next http.Handler) http.Handler {
 }
 
 func (s *Server) allow(key string) bool {
-	v, _ := s.limiters.LoadOrStore(key, rate.NewLimiter(rate.Limit(500), 1000))
+	limit := rate.Limit(500)
+	burst := 1000
+	if s.cfg != nil && s.cfg.RateLimitMax > 0 && s.cfg.RateLimitWindowMS > 0 {
+		limit = rate.Limit(float64(s.cfg.RateLimitMax) / s.cfg.RateLimitWindowMS.Seconds())
+		burst = s.cfg.RateLimitMax
+	}
+	v, _ := s.limiters.LoadOrStore(key, rate.NewLimiter(limit, burst))
 	return v.(*rate.Limiter).Allow()
 }
 
@@ -764,6 +770,10 @@ func writeSuccess(w http.ResponseWriter, status int, data any, message string) {
 }
 
 func decode(w http.ResponseWriter, r *http.Request, limit int64, v any) bool {
+	if r.Body == nil {
+		writeError(w, http.StatusBadRequest, "request body cannot be empty")
+		return false
+	}
 	if limit <= 0 {
 		limit = 10 << 20
 	}

@@ -1,6 +1,7 @@
 package utils_test
 
 import (
+	"strings"
 	"testing"
 
 	"xsocial-backend/internal/utils"
@@ -131,4 +132,43 @@ func TestValidateURLAndSSRF(t *testing.T) {
 			}
 		}
 	})
+}
+
+func TestMaskURL(t *testing.T) {
+	tests := []struct {
+		input    string
+		contains string
+		notHas   string
+	}{
+		{
+			input:    "redis://:supersecretpass@127.0.0.1:6379",
+			contains: ":redacted@127.0.0.1:6379",
+			notHas:   "supersecretpass",
+		},
+		{
+			input:    "https://graph.instagram.com/v12.0/me?access_token=EAAB12345secret&fields=id",
+			contains: "access_token=redacted",
+			notHas:   "EAAB12345secret",
+		},
+		{
+			input:    "mongodb+srv://admin:adminpassword123@cluster.mongodb.net/db",
+			contains: "admin:redacted@cluster.mongodb.net/db",
+			notHas:   "adminpassword123",
+		},
+		{
+			input:    "https://api.linkedin.com/v2/oauth?client_secret=topsecretkey",
+			contains: "client_secret=redacted",
+			notHas:   "topsecretkey",
+		},
+	}
+
+	for _, tt := range tests {
+		masked := utils.MaskURL(tt.input)
+		if !strings.Contains(masked, tt.contains) {
+			t.Errorf("MaskURL(%q) = %q; expected to contain %q", tt.input, masked, tt.contains)
+		}
+		if strings.Contains(masked, tt.notHas) {
+			t.Errorf("MaskURL(%q) leaked sensitive value %q in output: %q", tt.input, tt.notHas, masked)
+		}
+	}
 }

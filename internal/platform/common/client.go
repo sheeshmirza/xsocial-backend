@@ -99,7 +99,7 @@ func (c *HTTPClient) PostJSONWithRespHeaders(ctx context.Context, requestURL str
 	}
 
 	if resp.StatusCode >= 400 {
-		log.Printf("[PlatformHTTP] Error %d on %s %s: %s", resp.StatusCode, req.Method, req.URL.String(), string(bodyBytes))
+		log.Printf("[PlatformHTTP] Error %d on %s %s: %s", resp.StatusCode, req.Method, utils.MaskURL(req.URL.String()), string(bodyBytes))
 	}
 
 	return bodyBytes, resp.StatusCode, resp.Header, nil
@@ -189,7 +189,7 @@ func (c *HTTPClient) do(req *http.Request) ([]byte, int, error) {
 	}
 
 	if resp.StatusCode >= 400 {
-		log.Printf("[PlatformHTTP] Error %d on %s %s: %s", resp.StatusCode, req.Method, req.URL.String(), string(bodyBytes))
+		log.Printf("[PlatformHTTP] Error %d on %s %s: %s", resp.StatusCode, req.Method, utils.MaskURL(req.URL.String()), string(bodyBytes))
 	}
 
 	return bodyBytes, resp.StatusCode, nil

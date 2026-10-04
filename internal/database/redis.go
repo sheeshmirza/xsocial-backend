@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"xsocial-backend/internal/config"
+	"xsocial-backend/internal/utils"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -35,7 +36,7 @@ func ConnectRedis(cfg *config.Config) *RedisClient {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 	if err := client.Ping(ctx).Err(); err != nil {
-		log.Printf("Failed to connect to Redis at %s: %v; running without Redis", cfg.RedisURL, err)
+		log.Printf("Failed to connect to Redis at %s: %v; running without Redis", utils.MaskURL(cfg.RedisURL), err)
 		return nil
 	}
 	log.Println("Redis connected successfully")
