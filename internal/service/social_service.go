@@ -326,11 +326,27 @@ func (s *SocialService) SyncLinkedInPages(ctx context.Context, userID bson.Objec
 
 			_, _ = s.socialHandleRepo.UpsertByUserPlatformIdentity(ctx, userID, models.PlatformLinkedIn, page.ID, pageHandle)
 		}
+		s.invalidateUserSocialCache(ctx, userID)
 	}
 }
 
 func (s *SocialService) ListAccounts(ctx context.Context, userID bson.ObjectID, platformFilter string, skip, limit int, sort bson.D) ([]models.SocialHandle, int64, error) {
 	norm := s.normalizePlatform(platformFilter)
+	cacheKey := fmt.Sprintf("social:list:%s:%s", userID.Hex(), norm)
+
+	// L1/L2 Cache fast path for default pagination
+	if s.cache != nil && skip == 0 && (limit == 0 || limit >= 50) && len(sort) == 0 {
+		if cachedJSON, found := s.cache.Get(ctx, cacheKey); found && cachedJSON != "" {
+			var cached struct {
+				Items []models.SocialHandle `json:"items"`
+				Total int64                 `json:"total"`
+			}
+			if json.Unmarshal([]byte(cachedJSON), &cached) == nil {
+				return cached.Items, cached.Total, nil
+			}
+		}
+	}
+
 	filters := bson.M{}
 	if norm != "" {
 		filters["platform"] = norm
@@ -349,6 +365,20 @@ func (s *SocialService) ListAccounts(ctx context.Context, userID bson.ObjectID, 
 	total, err := s.socialHandleRepo.CountByUserID(ctx, userID, filters)
 	if err != nil {
 		return nil, 0, err
+	}
+
+	// Store in MultiTierCache
+	if s.cache != nil && skip == 0 && (limit == 0 || limit >= 50) && len(sort) == 0 {
+		payload := struct {
+			Items []models.SocialHandle `json:"items"`
+			Total int64                 `json:"total"`
+		}{
+			Items: items,
+			Total: total,
+		}
+		if b, err := json.Marshal(payload); err == nil {
+			s.cache.Set(ctx, cacheKey, string(b), 5*time.Minute)
+		}
 	}
 
 	return items, total, nil

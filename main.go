@@ -61,13 +61,18 @@ func main() {
 	igService := instagram.NewService(cfg.Instagram)
 	liService := linkedin.NewService(cfg.LinkedIn)
 
-	// 6. Initialize Core & Platform Domain Services
+	// 6. Initialize Multi-Tier Distributed & Micro Cache (L1 Sharded Memory + L2 Redis)
+	multiTierCache := database.NewMultiTierCache(redisClient, 1*time.Minute)
+
+	// 7. Initialize Core & Platform Domain Services
 	tokenService := service.NewTokenService(cfg, rfRepo)
 	authService := service.NewAuthService(cfg, userRepo, tokenService)
 	userService := service.NewUserService(cfg, userRepo, rfRepo, redisClient)
+	userService.SetCache(multiTierCache)
 	aiService := service.NewAIService(cfg)
 	uploadService := service.NewUploadService(cfg)
 	socialService := service.NewSocialService(cfg, handleRepo, igService, liService)
+	socialService.SetCache(multiTierCache)
 	postPublishService := service.NewPostPublishService(handleRepo, socialService, igService, liService)
 	liActivityService := service.NewLinkedInActivityService(postRepo, handleRepo, postActivityRepo, liService)
 
@@ -82,25 +87,28 @@ func main() {
 		socialService,
 		nil, // queue set below
 	)
+	postService.SetCache(multiTierCache)
 
-	// 7. Initialize Workspaces and Keys Services
+	// 8. Initialize Workspaces and Keys Services
 	apiKeyService := service.NewApiKeyService(apiKeyRepo, redisClient, brandRepo)
+	apiKeyService.SetCache(multiTierCache)
 	brandService := service.NewBrandService(brandRepo, userRepo, redisClient)
+	brandService.SetCache(multiTierCache)
 	auditLogService := service.NewAuditLogService(auditLogRepo)
 
-	// 8. Initialize Queue & Dispatcher
+	// 9. Initialize Queue & Dispatcher
 	jobDispatcher := queue.CreateJobDispatcher(postService)
 	postQueue := queue.NewPostQueue(redisClient, jobDispatcher)
 	postService.SetQueue(postQueue)
 	userService.SetDependencies(postRepo, postQueue)
 	brandService.SetDependencies(handleRepo)
 
-	// 9. Requeue Recurring Scheduled Posts on Startup
+	// 10. Requeue Recurring Scheduled Posts on Startup
 	ctxStartup, cancelStartup := context.WithTimeout(context.Background(), 10*time.Second)
 	postService.RequeueRecurringScheduledPostsOnStartup(ctxStartup)
 	cancelStartup()
 
-	// 10. Instantiate API Server with clean dependency injection
+	// 11. Instantiate API Server with clean dependency injection
 	apiServer := api.NewWithDeps(api.ServerDeps{
 		Config:                  cfg,
 		Logger:                  logger,
@@ -132,14 +140,14 @@ func main() {
 	srv := &http.Server{
 		Addr:              fmt.Sprintf(":%d", cfg.Port),
 		Handler:           apiServer.Handler(),
-		ReadHeaderTimeout: 5 * time.Second,
-		ReadTimeout:       2 * time.Minute,
-		WriteTimeout:      2 * time.Minute,
-		IdleTimeout:       2 * time.Minute,
+		ReadHeaderTimeout: 3 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      45 * time.Second,
+		IdleTimeout:       120 * time.Second,
 		MaxHeaderBytes:    1 << 20,
 	}
 
-	// 11. Graceful Shutdown Listener
+	// 12. Graceful Shutdown Listener
 	go func() {
 		logger.Info("xSocial API server listening", "port", cfg.Port, "mcp", "/mcp", "api_prefix", cfg.ApiPrefix)
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -161,6 +169,14 @@ func main() {
 
 	if postQueue != nil {
 		postQueue.Close()
+	}
+
+	if auditLogService != nil {
+		auditLogService.Close()
+	}
+
+	if multiTierCache != nil {
+		multiTierCache.Close()
 	}
 
 	if redisClient != nil && redisClient.Client != nil {
