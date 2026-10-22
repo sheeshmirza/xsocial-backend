@@ -195,3 +195,4 @@ xSocial is a production-grade, enterprise social media planning, publishing, and
 2. **Rotate Tokens**: Use cryptographically signed JWT tokens with short expiration windows (`15m` access, `30d` refresh).
 3. **Audit Trails**: All state mutations (post creation, updates, deletes, member invitations) are written to immutable audit logs.
 4. **Resilient Workers**: All asynchronous background workers run through panic-shielded goroutines (`utils.SafeGo`).
+
