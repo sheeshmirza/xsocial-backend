@@ -32,7 +32,7 @@ func ConnectMongoDB(cfg *config.Config) (*MongoDB, error) {
 		SetMinPoolSize(25).
 		SetMaxConnIdleTime(5 * time.Minute).
 		SetServerSelectionTimeout(5 * time.Second).
-		SetSocketTimeout(30 * time.Second)
+		SetTimeout(30 * time.Second)
 
 	client, err := mongo.Connect(clientOpts)
 	if err != nil {

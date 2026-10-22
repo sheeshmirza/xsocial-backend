@@ -38,6 +38,10 @@ type Config struct {
 	MongoURI            string
 	MongoDBName         string
 	RedisURL            string
+	PostgresURL         string
+	RabbitMQURL         string
+	QdrantURL           string
+	QdrantAPIKey        string
 	JWTAccessSecret     string
 	JWTRefreshSecret    string
 	JWTAccessExpiresIn  time.Duration
@@ -188,6 +192,10 @@ func LoadConfig() *Config {
 		MongoURI:            mongoURI,
 		MongoDBName:         dbName,
 		RedisURL:            cleanEnvValue(os.Getenv("REDIS_URL")),
+		PostgresURL:         cleanEnvValue(os.Getenv("POSTGRES_URL")),
+		RabbitMQURL:         cleanEnvValue(os.Getenv("RABBITMQ_URL")),
+		QdrantURL:           cleanEnvValue(os.Getenv("QDRANT_URL")),
+		QdrantAPIKey:        cleanEnvValue(os.Getenv("QDRANT_API_KEY")),
 		JWTAccessSecret:     jwtAccessSecret,
 		JWTRefreshSecret:    jwtRefreshSecret,
 		JWTAccessExpiresIn:  parseDuration(os.Getenv("JWT_ACCESS_EXPIRES_IN"), 15*time.Minute),

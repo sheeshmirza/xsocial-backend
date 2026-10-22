@@ -212,3 +212,45 @@ func TestSecurityHeaders(t *testing.T) {
 		t.Error("expected X-Request-ID header to be set")
 	}
 }
+
+func TestHealthEndpoints_Components(t *testing.T) {
+	srv := createTestServer()
+	handler := srv.Handler()
+
+	req := httptest.NewRequest(http.MethodGet, "/health?ready=1", nil)
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected 200, got %d", rec.Code)
+	}
+
+	var body map[string]any
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	components, ok := body["components"].(map[string]any)
+	if !ok {
+		t.Fatalf("expected components map in response, got %v", body["components"])
+	}
+
+	if components["mongodb"] != "healthy" {
+		t.Errorf("expected mongodb to be healthy, got %v", components["mongodb"])
+	}
+}
+
+func TestSemanticSearchPosts_AuthRequired(t *testing.T) {
+	srv := createTestServer()
+	handler := srv.Handler()
+
+	req := httptest.NewRequest(http.MethodGet, "/v1/posts/search/semantic?q=launch", nil)
+	rec := httptest.NewRecorder()
+
+	handler.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusUnauthorized {
+		t.Errorf("expected 401 Unauthorized, got %d", rec.Code)
+	}
+}

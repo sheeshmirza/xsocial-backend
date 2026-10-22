@@ -3,6 +3,8 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"strconv"
+	"strings"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 
@@ -542,5 +544,60 @@ func (s *Server) publishPost(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"success": true,
 		"post":    post,
+	})
+}
+
+func (s *Server) semanticSearchPosts(w http.ResponseWriter, r *http.Request) {
+	userOID, ok := s.requireUser(w, r)
+	if !ok {
+		return
+	}
+
+	query := strings.TrimSpace(r.URL.Query().Get("q"))
+	if query == "" {
+		writeError(w, http.StatusBadRequest, "search query parameter 'q' is required")
+		return
+	}
+
+	brandID := strings.TrimSpace(r.URL.Query().Get("brandId"))
+	if brandID == "" {
+		brandID = strings.TrimSpace(r.URL.Query().Get("brand_id"))
+	}
+	if brandID != "" {
+		brandOID, err := bson.ObjectIDFromHex(brandID)
+		if err == nil {
+			if _, err := s.brandService.GetBrand(r.Context(), brandOID, userOID); err != nil {
+				writeApiError(w, err)
+				return
+			}
+		}
+	}
+
+	limit := 10
+	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= 50 {
+			limit = l
+		}
+	}
+
+	if s.vecSearchService == nil {
+		writeJSON(w, http.StatusOK, map[string]any{
+			"results": []any{},
+			"total":   0,
+			"query":   query,
+		})
+		return
+	}
+
+	results, err := s.vecSearchService.SearchSimilarPosts(r.Context(), brandID, query, limit)
+	if err != nil {
+		writeApiError(w, err)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"results": results,
+		"total":   len(results),
+		"query":   query,
 	})
 }

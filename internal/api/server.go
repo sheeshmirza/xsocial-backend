@@ -24,6 +24,7 @@ import (
 	"xsocial-backend/internal/database"
 	"xsocial-backend/internal/platform/instagram"
 	"xsocial-backend/internal/platform/linkedin"
+	"xsocial-backend/internal/queue"
 	"xsocial-backend/internal/repository"
 	"xsocial-backend/internal/service"
 	"xsocial-backend/internal/utils"
@@ -63,6 +64,12 @@ type Server struct {
 	apiKeyService   *service.ApiKeyService
 	brandService    *service.BrandService
 	auditLogService *service.AuditLogService
+	vecSearchService *service.VectorSearchService
+
+	// Infrastructure engines
+	postgres *database.PostgresDB
+	rabbitMQ *queue.RabbitMQBroker
+	qdrant   *database.QdrantClient
 
 	// Platforms
 	igService *instagram.Service
@@ -105,6 +112,10 @@ type ServerDeps struct {
 	ApiKeyService           *service.ApiKeyService
 	BrandService            *service.BrandService
 	AuditLogService         *service.AuditLogService
+	VectorSearchService     *service.VectorSearchService
+	Postgres                *database.PostgresDB
+	RabbitMQ                *queue.RabbitMQBroker
+	Qdrant                  *database.QdrantClient
 	InstagramService        *instagram.Service
 	LinkedInService         *linkedin.Service
 }
@@ -115,32 +126,36 @@ func NewWithDeps(deps ServerDeps) *Server {
 		logger = utils.NewRedactingLogger(nil, slog.LevelInfo, true)
 	}
 	return &Server{
-		cfg:             deps.Config,
-		log:             logger,
-		redis:           deps.Redis,
-		userRepo:        deps.UserRepo,
-		rfRepo:          deps.RefreshTokenRepo,
-		handleRepo:      deps.SocialHandleRepo,
-		postRepo:        deps.PostRepo,
-		postActRepo:     deps.PostActivityRepo,
-		apiKeyRepo:      deps.ApiKeyRepo,
-		brandRepo:       deps.BrandRepo,
-		auditLogRepo:    deps.AuditLogRepo,
-		tokenService:    deps.TokenService,
-		authService:     deps.AuthService,
-		userService:     deps.UserService,
-		aiService:       deps.AIService,
-		uploadService:   deps.UploadService,
-		socialService:   deps.SocialService,
-		postPubService:  deps.PostPublishService,
-		liActService:    deps.LinkedInActivityService,
-		postService:     deps.PostService,
-		apiKeyService:   deps.ApiKeyService,
-		brandService:    deps.BrandService,
-		auditLogService: deps.AuditLogService,
-		igService:       deps.InstagramService,
-		liService:       deps.LinkedInService,
-		authFailures:    make(map[string]*authFailureRecord),
+		cfg:              deps.Config,
+		log:              logger,
+		redis:            deps.Redis,
+		userRepo:         deps.UserRepo,
+		rfRepo:           deps.RefreshTokenRepo,
+		handleRepo:       deps.SocialHandleRepo,
+		postRepo:         deps.PostRepo,
+		postActRepo:      deps.PostActivityRepo,
+		apiKeyRepo:       deps.ApiKeyRepo,
+		brandRepo:        deps.BrandRepo,
+		auditLogRepo:     deps.AuditLogRepo,
+		tokenService:     deps.TokenService,
+		authService:      deps.AuthService,
+		userService:      deps.UserService,
+		aiService:        deps.AIService,
+		uploadService:    deps.UploadService,
+		socialService:    deps.SocialService,
+		postPubService:   deps.PostPublishService,
+		liActService:     deps.LinkedInActivityService,
+		postService:      deps.PostService,
+		apiKeyService:    deps.ApiKeyService,
+		brandService:     deps.BrandService,
+		auditLogService:  deps.AuditLogService,
+		vecSearchService: deps.VectorSearchService,
+		postgres:         deps.Postgres,
+		rabbitMQ:         deps.RabbitMQ,
+		qdrant:           deps.Qdrant,
+		igService:        deps.InstagramService,
+		liService:        deps.LinkedInService,
+		authFailures:     make(map[string]*authFailureRecord),
 	}
 }
 
@@ -307,6 +322,7 @@ func (s *Server) Handler() http.Handler {
 		"POST /v1/posts/{id}/reject":            s.rejectPost,
 		"POST /v1/posts/{id}/reshare":           s.resharePost,
 		"POST /v1/posts/{id}/publish":           s.publishPost,
+		"GET /v1/posts/search/semantic":         s.semanticSearchPosts,
 	}
 
 	for pattern, h := range routes {
@@ -332,10 +348,68 @@ func (s *Server) Handler() http.Handler {
 }
 
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{
-		"status":  "healthy",
-		"service": "xsocial-backend",
-		"time":    time.Now().UTC().Format(time.RFC3339),
+	status := "healthy"
+	components := map[string]string{
+		"mongodb": "healthy",
+		"redis":   "healthy",
+	}
+
+	// Verify Redis readiness
+	if s.redis != nil && s.redis.Client != nil {
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+		if err := s.redis.Client.Ping(ctx).Err(); err != nil {
+			components["redis"] = "degraded"
+			status = "degraded"
+		}
+	}
+
+	// Verify PostgreSQL readiness (if configured)
+	if s.postgres != nil {
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+		if err := s.postgres.Ping(ctx); err != nil {
+			components["postgres"] = "degraded"
+			status = "degraded"
+		} else {
+			components["postgres"] = "healthy"
+		}
+	}
+
+	// Verify RabbitMQ readiness (if configured)
+	if s.rabbitMQ != nil {
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+		if err := s.rabbitMQ.Health(ctx); err != nil {
+			components["rabbitmq"] = "degraded"
+			status = "degraded"
+		} else {
+			components["rabbitmq"] = "healthy"
+		}
+	}
+
+	// Verify Qdrant readiness (if configured)
+	if s.qdrant != nil {
+		ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+		defer cancel()
+		if err := s.qdrant.Health(ctx); err != nil {
+			components["qdrant"] = "degraded"
+			status = "degraded"
+		} else {
+			components["qdrant"] = "healthy"
+		}
+	}
+
+	statusCode := http.StatusOK
+	if r.URL.Query().Get("ready") == "1" && status == "degraded" {
+		statusCode = http.StatusServiceUnavailable
+	}
+
+	writeJSON(w, statusCode, map[string]any{
+		"status":     status,
+		"service":    "xsocial-backend",
+		"time":       time.Now().UTC().Format(time.RFC3339),
+		"components": components,
 	})
 }
 

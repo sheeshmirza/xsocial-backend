@@ -45,6 +45,28 @@ func main() {
 	// 2. Connect Redis
 	redisClient := database.ConnectRedis(cfg)
 
+	// 2.1 Connect PostgreSQL (Relational Engine)
+	postgresDB, err := database.ConnectPostgres(cfg)
+	if err != nil {
+		logger.Warn("postgres_connection_skipped_or_failed", "error", err)
+	}
+
+	// 2.2 Connect RabbitMQ (Advanced AMQP Message Broker)
+	var rabbitBroker *queue.RabbitMQBroker
+	if cfg.RabbitMQURL != "" {
+		rabbitBroker, err = queue.NewRabbitMQBroker(cfg.RabbitMQURL)
+		if err != nil {
+			logger.Warn("rabbitmq_connection_skipped_or_failed", "error", err)
+		}
+	}
+
+	// 2.3 Connect Qdrant (Vector Database Engine)
+	qdrantClient, err := database.NewQdrantClient(cfg)
+	if err != nil {
+		logger.Warn("qdrant_connection_skipped_or_failed", "error", err)
+	}
+	vecSearchService := service.NewVectorSearchService(qdrantClient)
+
 	// 3. Initialize Core Repositories
 	userRepo := repository.NewUserRepository(mongoDB.Database)
 	rfRepo := repository.NewRefreshTokenRepository(mongoDB.Database)
@@ -133,6 +155,10 @@ func main() {
 		ApiKeyService:           apiKeyService,
 		BrandService:            brandService,
 		AuditLogService:         auditLogService,
+		VectorSearchService:     vecSearchService,
+		Postgres:                postgresDB,
+		RabbitMQ:                rabbitBroker,
+		Qdrant:                  qdrantClient,
 		InstagramService:        igService,
 		LinkedInService:         liService,
 	})
@@ -169,6 +195,14 @@ func main() {
 
 	if postQueue != nil {
 		postQueue.Close()
+	}
+
+	if rabbitBroker != nil {
+		_ = rabbitBroker.Close()
+	}
+
+	if postgresDB != nil {
+		_ = postgresDB.Close()
 	}
 
 	if auditLogService != nil {
