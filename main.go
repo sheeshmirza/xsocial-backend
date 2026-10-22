@@ -14,7 +14,6 @@ import (
 	"xsocial-backend/internal/api"
 	"xsocial-backend/internal/config"
 	"xsocial-backend/internal/database"
-	"xsocial-backend/internal/database/migrations"
 	"xsocial-backend/internal/platform/instagram"
 	"xsocial-backend/internal/platform/linkedin"
 	"xsocial-backend/internal/queue"
@@ -34,14 +33,6 @@ func main() {
 		log.Fatalf("Failed to connect MongoDB: %v", err)
 	}
 
-	// 1.1 Apply database schema migrations & ensure indexing
-	migrator := migrations.NewMigrator(mongoDB.Database)
-	migCtx, migCancel := context.WithTimeout(context.Background(), 30*time.Second)
-	if err := migrator.ApplyAll(migCtx); err != nil {
-		log.Fatalf("Database migration failed: %v", err)
-	}
-	migCancel()
-
 	// 2. Connect Redis
 	redisClient := database.ConnectRedis(cfg)
 
@@ -49,12 +40,6 @@ func main() {
 	postgresDB, err := database.ConnectPostgres(cfg)
 	if err != nil {
 		logger.Warn("postgres_connection_skipped_or_failed", "error", err)
-	} else if postgresDB != nil {
-		pgMigCtx, pgCancel := context.WithTimeout(context.Background(), 30*time.Second)
-		if err := postgresDB.AutoMigrate(pgMigCtx); err != nil {
-			logger.Warn("postgres_automigrate_warning", "error", err)
-		}
-		pgCancel()
 	}
 
 	// 2.2 Connect RabbitMQ (Advanced AMQP Message Broker)

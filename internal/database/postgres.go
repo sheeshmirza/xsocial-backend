@@ -3,7 +3,6 @@ package database
 import (
 	"context"
 	"database/sql"
-	_ "embed"
 	"fmt"
 	"log/slog"
 	"time"
@@ -12,9 +11,6 @@ import (
 
 	"xsocial-backend/internal/config"
 )
-
-//go:embed migrations/sql/001_normalized_relational_schema.sql
-var DefaultPostgresSchemaSQL string
 
 // PostgresDB encapsulates the relational database connection pool and query execution methods.
 type PostgresDB struct {
@@ -96,7 +92,7 @@ func (p *PostgresDB) WithTransaction(ctx context.Context, fn func(tx *sql.Tx) er
 	return err
 }
 
-// ExecuteSchema executes multi-statement SQL strings for migrations and schema bootstrapping.
+// ExecuteSchema executes multi-statement SQL strings for schema bootstrapping.
 func (p *PostgresDB) ExecuteSchema(ctx context.Context, schemaSQL string) error {
 	if p == nil || p.DB == nil {
 		return fmt.Errorf("postgresql database is uninitialized")
@@ -106,16 +102,4 @@ func (p *PostgresDB) ExecuteSchema(ctx context.Context, schemaSQL string) error 
 		return fmt.Errorf("failed to execute postgres schema: %w", err)
 	}
 	return nil
-}
-
-// AutoMigrate applies the built-in 3NF normalized schema migrations to the PostgreSQL cluster.
-func (p *PostgresDB) AutoMigrate(ctx context.Context) error {
-	if p == nil || p.DB == nil {
-		return nil
-	}
-	if DefaultPostgresSchemaSQL == "" {
-		return nil
-	}
-	slog.Info("applying_postgresql_relational_migrations")
-	return p.ExecuteSchema(ctx, DefaultPostgresSchemaSQL)
 }
