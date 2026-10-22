@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/redis/go-redis/v9"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"xsocial-backend/internal/database"
 	"xsocial-backend/internal/utils"
 )
@@ -51,12 +52,30 @@ type JobEnvelope struct {
 type HandlerFunc func(name string, payload []byte) error
 
 type PostQueue struct {
-	redisClient *redis.Client
-	handler     HandlerFunc
-	stopCh      chan struct{}
-	closeOnce   sync.Once
-	mu          sync.Mutex
-	memTimers   map[string]*time.Timer
+	redisClient  *redis.Client
+	rabbitBroker *RabbitMQBroker
+	handler      HandlerFunc
+	stopCh       chan struct{}
+	closeOnce    sync.Once
+	mu           sync.Mutex
+	memTimers    map[string]*time.Timer
+}
+
+func (q *PostQueue) SetRabbitMQ(broker *RabbitMQBroker) {
+	if q == nil || broker == nil {
+		return
+	}
+	q.rabbitBroker = broker
+	ctx := context.Background()
+	_ = broker.Consume(ctx, QueuePostPublish, 10, func(msgCtx context.Context, delivery amqp.Delivery) error {
+		var env JobEnvelope
+		if err := json.Unmarshal(delivery.Body, &env); err != nil {
+			return err
+		}
+		dataBytes, _ := json.Marshal(env.Data)
+		q.processJob(env.ID, env.Name, dataBytes, env.Retries)
+		return nil
+	})
 }
 
 func NewPostQueue(redisDb *database.RedisClient, handler HandlerFunc) *PostQueue {
@@ -122,7 +141,22 @@ func (q *PostQueue) startRedisWorker() {
 						_ = q.redisClient.Del(ctx, RedisJobIndexKey+envelope.ID).Err()
 					}
 
-					go q.processJob(envelope.ID, envelope.Name, envelope.Data, envelope.Retries)
+					if q.rabbitBroker != nil {
+						ctxPub, cancelPub := context.WithTimeout(context.Background(), 5*time.Second)
+						env := JobEnvelope{
+							ID:        envelope.ID,
+							Name:      envelope.Name,
+							Data:      envelope.Data,
+							Retries:   envelope.Retries,
+							CreatedAt: envelope.CreatedAt,
+						}
+						if err := q.rabbitBroker.Publish(ctxPub, ExchangeDirect, RoutingPostPublish, env); err != nil {
+							go q.processJob(envelope.ID, envelope.Name, envelope.Data, envelope.Retries)
+						}
+						cancelPub()
+					} else {
+						go q.processJob(envelope.ID, envelope.Name, envelope.Data, envelope.Retries)
+					}
 				}
 			}
 			cancel()

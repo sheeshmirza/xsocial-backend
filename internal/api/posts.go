@@ -1,14 +1,17 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 
 	"xsocial-backend/internal/models"
+	"xsocial-backend/internal/utils"
 )
 
 func (s *Server) createPost(w http.ResponseWriter, r *http.Request) {
@@ -31,6 +34,15 @@ func (s *Server) createPost(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeApiError(w, err)
 		return
+	}
+
+	if s.vecSearchService != nil {
+		postCopy := *post
+		utils.SafeGo(func() {
+			ctxBg, cancelBg := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancelBg()
+			_ = s.vecSearchService.IndexPost(ctxBg, &postCopy)
+		})
 	}
 
 	s.logAudit(r, &userOID, post.BrandID, "post.create", "post", post.ID.Hex())
@@ -119,6 +131,15 @@ func (s *Server) updatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if s.vecSearchService != nil {
+		postCopy := *post
+		utils.SafeGo(func() {
+			ctxBg, cancelBg := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancelBg()
+			_ = s.vecSearchService.IndexPost(ctxBg, &postCopy)
+		})
+	}
+
 	s.logAudit(r, &userOID, post.BrandID, "post.update", "post", postOID.Hex())
 	writeJSON(w, http.StatusOK, post)
 }
@@ -137,6 +158,15 @@ func (s *Server) deletePost(w http.ResponseWriter, r *http.Request) {
 	if err := s.postService.DeletePost(r.Context(), userOID, postOID); err != nil {
 		writeApiError(w, err)
 		return
+	}
+
+	if s.vecSearchService != nil {
+		postIDHex := postOID.Hex()
+		utils.SafeGo(func() {
+			ctxBg, cancelBg := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancelBg()
+			_ = s.vecSearchService.DeletePostVector(ctxBg, postIDHex)
+		})
 	}
 
 	s.logAudit(r, &userOID, nil, "post.delete", "post", postOID.Hex())
@@ -211,6 +241,17 @@ func (s *Server) bulkDeletePosts(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		writeApiError(w, err)
 		return
+	}
+
+	if s.vecSearchService != nil && len(input.IDs) > 0 {
+		idsCopy := append([]string(nil), input.IDs...)
+		utils.SafeGo(func() {
+			ctxBg, cancelBg := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancelBg()
+			for _, id := range idsCopy {
+				_ = s.vecSearchService.DeletePostVector(ctxBg, id)
+			}
+		})
 	}
 
 	writeJSON(w, http.StatusOK, map[string]any{

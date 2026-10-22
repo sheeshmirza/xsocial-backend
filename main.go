@@ -49,6 +49,12 @@ func main() {
 	postgresDB, err := database.ConnectPostgres(cfg)
 	if err != nil {
 		logger.Warn("postgres_connection_skipped_or_failed", "error", err)
+	} else if postgresDB != nil {
+		pgMigCtx, pgCancel := context.WithTimeout(context.Background(), 30*time.Second)
+		if err := postgresDB.AutoMigrate(pgMigCtx); err != nil {
+			logger.Warn("postgres_automigrate_warning", "error", err)
+		}
+		pgCancel()
 	}
 
 	// 2.2 Connect RabbitMQ (Advanced AMQP Message Broker)
@@ -121,6 +127,9 @@ func main() {
 	// 9. Initialize Queue & Dispatcher
 	jobDispatcher := queue.CreateJobDispatcher(postService)
 	postQueue := queue.NewPostQueue(redisClient, jobDispatcher)
+	if rabbitBroker != nil {
+		postQueue.SetRabbitMQ(rabbitBroker)
+	}
 	postService.SetQueue(postQueue)
 	userService.SetDependencies(postRepo, postQueue)
 	brandService.SetDependencies(handleRepo)
