@@ -54,10 +54,7 @@ func NewMemoryCache(numShards int, cleanupInterval time.Duration) *MemoryCache {
 func (m *MemoryCache) getShard(key string) *memCacheShard {
 	h := fnv.New32a()
 	_, _ = h.Write([]byte(key))
-	idx := int(h.Sum32()) % m.numShards
-	if idx < 0 {
-		idx = -idx
-	}
+	idx := int(h.Sum32() % uint32(m.numShards))
 	return m.shards[idx]
 }
 
@@ -85,11 +82,22 @@ func (m *MemoryCache) Set(key, value string, ttl time.Duration) {
 	shard := m.getShard(key)
 	shard.mu.Lock()
 	// Bound shard size to 5,000 items (max 160,000 items across 32 shards) to avoid OOM
-	if len(shard.items) > 5000 {
+	if len(shard.items) >= 5000 {
 		now := time.Now()
 		for k, v := range shard.items {
 			if now.After(v.expiresAt) {
 				delete(shard.items, k)
+			}
+		}
+		// If still at capacity after purging expired entries, evict to prevent unbounded growth
+		if len(shard.items) >= 5000 {
+			toEvict := len(shard.items) - 4500
+			for k := range shard.items {
+				delete(shard.items, k)
+				toEvict--
+				if toEvict <= 0 {
+					break
+				}
 			}
 		}
 	}

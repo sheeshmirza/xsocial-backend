@@ -198,8 +198,8 @@ func LoadConfig() *Config {
 		QdrantAPIKey:        cleanEnvValue(os.Getenv("QDRANT_API_KEY")),
 		JWTAccessSecret:     jwtAccessSecret,
 		JWTRefreshSecret:    jwtRefreshSecret,
-		JWTAccessExpiresIn:  parseDuration(os.Getenv("JWT_ACCESS_EXPIRES_IN"), 15*time.Minute),
-		JWTRefreshExpiresIn: parseDuration(os.Getenv("JWT_REFRESH_EXPIRES_IN"), 30*24*time.Hour),
+		JWTAccessExpiresIn:  parseDuration(cleanEnvValue(os.Getenv("JWT_ACCESS_EXPIRES_IN")), 15*time.Minute),
+		JWTRefreshExpiresIn: parseDuration(cleanEnvValue(os.Getenv("JWT_REFRESH_EXPIRES_IN")), 30*24*time.Hour),
 		BcryptSaltRounds:    bcryptRounds,
 		ClientURL:           clientURL,
 		ClientOrigins:       parseOrigins(func() string {

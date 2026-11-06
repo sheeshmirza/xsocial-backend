@@ -40,9 +40,9 @@ func ValidateOAuthState(state string, secret string) (string, error) {
 		return "", utils.BadRequest("Invalid OAuth state format")
 	}
 
-	uid := parts[0]
-	tsStr := parts[1]
-	sig := parts[2]
+	sig := parts[len(parts)-1]
+	tsStr := parts[len(parts)-2]
+	uid := strings.Join(parts[:len(parts)-2], ":")
 
 	tsNum, err := strconv.ParseInt(tsStr, 10, 64)
 	if err != nil {

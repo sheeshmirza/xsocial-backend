@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"strings"
 	"sync"
 	"time"
 
@@ -437,9 +438,10 @@ func (q *PostQueue) RemovePostExpiryJobs(postID string) error {
 		}
 	}
 
+	prefix := "expiry:" + postID + ":"
 	q.mu.Lock()
 	for k, timer := range q.memTimers {
-		if len(k) > len("expiry:"+postID) && k[:len("expiry:"+postID)] == "expiry:"+postID {
+		if strings.HasPrefix(k, prefix) {
 			if timer != nil {
 				timer.Stop()
 			}

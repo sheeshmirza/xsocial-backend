@@ -47,7 +47,11 @@ func (s *SocialService) SetCache(c *database.MultiTierCache) {
 
 func (s *SocialService) invalidateUserSocialCache(ctx context.Context, userID bson.ObjectID) {
 	if s.cache != nil {
-		s.cache.Delete(ctx, "social:list:"+userID.Hex())
+		uid := userID.Hex()
+		s.cache.Delete(ctx, "social:list:"+uid)
+		s.cache.Delete(ctx, "social:list:"+uid+":")
+		s.cache.Delete(ctx, "social:list:"+uid+":"+models.PlatformInstagram)
+		s.cache.Delete(ctx, "social:list:"+uid+":"+models.PlatformLinkedIn)
 	}
 }
 

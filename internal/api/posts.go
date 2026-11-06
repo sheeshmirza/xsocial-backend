@@ -606,7 +606,11 @@ func (s *Server) semanticSearchPosts(w http.ResponseWriter, r *http.Request) {
 	}
 	if brandID != "" {
 		brandOID, err := bson.ObjectIDFromHex(brandID)
-		if err == nil {
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "invalid brandId format")
+			return
+		}
+		if s.brandService != nil {
 			if _, err := s.brandService.GetBrand(r.Context(), brandOID, userOID); err != nil {
 				writeApiError(w, err)
 				return

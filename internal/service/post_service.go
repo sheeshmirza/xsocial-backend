@@ -335,7 +335,7 @@ func (s *PostService) getPublishedExpiryDate(publishedAt time.Time, post *models
 }
 
 func (s *PostService) enrichPostWithLinkedInActivity(ctx context.Context, userID bson.ObjectID, post *models.Post) {
-	if !post.HasSuccessfulLinkedInPublish() {
+	if s.activityService == nil || !post.HasSuccessfulLinkedInPublish() {
 		post.LinkedInActivity = []models.PostActivity{}
 		return
 	}
@@ -816,7 +816,7 @@ func (s *PostService) PublicReviewAction(ctx context.Context, token, action, rev
 }
 
 func (s *PostService) deleteLinkedInPlatformPosts(ctx context.Context, userID bson.ObjectID, post *models.Post) {
-	if post == nil {
+	if post == nil || s.socialHandleRepo == nil || s.postPublishService == nil || s.postPublishService.linkedinService == nil {
 		return
 	}
 	tCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
@@ -828,8 +828,14 @@ func (s *PostService) deleteLinkedInPlatformPosts(ctx context.Context, userID bs
 				if hid, err := bson.ObjectIDFromHex(r.SocialHandleID); err == nil {
 					handle, _ := s.socialHandleRepo.FindByIDAndUserID(tCtx, hid, userID)
 					if handle != nil {
-						fresh := s.socialService.RefreshPlatformTokenIfNeeded(tCtx, userID, handle)
-						_ = s.postPublishService.linkedinService.DeletePost(tCtx, fresh.PlatformAccessToken, r.PlatformPostID)
+						token := handle.PlatformAccessToken
+						if s.socialService != nil {
+							fresh := s.socialService.RefreshPlatformTokenIfNeeded(tCtx, userID, handle)
+							if fresh != nil && fresh.PlatformAccessToken != "" {
+								token = fresh.PlatformAccessToken
+							}
+						}
+						_ = s.postPublishService.linkedinService.DeletePost(tCtx, token, r.PlatformPostID)
 					}
 				}
 			}
@@ -846,7 +852,10 @@ func (s *PostService) cleanupPostArtifacts(post *models.Post, userID bson.Object
 		_ = s.queue.RemoveSchedulePublishJob(post.ID.Hex())
 		_ = s.queue.RemovePostExpiryJobs(post.ID.Hex())
 	}
-	go s.deleteLinkedInPlatformPosts(context.Background(), userID, post)
+	postCopy := *post
+	utils.SafeGo(func() {
+		s.deleteLinkedInPlatformPosts(context.Background(), userID, &postCopy)
+	})
 }
 
 func (s *PostService) DeletePost(ctx context.Context, userID, postID bson.ObjectID) error {
@@ -888,7 +897,10 @@ func (s *PostService) DeletePublishedPost(ctx context.Context, userID, postID bs
 	}
 
 	if post.IsRecurringScheduled() {
-		go s.deleteLinkedInPlatformPosts(context.Background(), userID, post)
+		postCopy := *post
+		utils.SafeGo(func() {
+			s.deleteLinkedInPlatformPosts(context.Background(), userID, &postCopy)
+		})
 		if s.queue != nil {
 			_ = s.queue.RemovePostExpiryJobs(postID.Hex())
 		}
@@ -979,7 +991,10 @@ func (s *PostService) BulkDeletePublishedPosts(ctx context.Context, userID bson.
 
 		if p.IsRecurringScheduled() {
 			recurringCount++
-			go s.deleteLinkedInPlatformPosts(context.Background(), userID, &p)
+			pCopy := p
+			utils.SafeGo(func() {
+				s.deleteLinkedInPlatformPosts(context.Background(), userID, &pCopy)
+			})
 			if s.queue != nil {
 				_ = s.queue.RemovePostExpiryJobs(p.ID.Hex())
 			}
@@ -1430,7 +1445,7 @@ func (s *PostService) PublishScheduledPost(ctx context.Context, postIDStr string
 		if post.ScheduledTime != nil {
 			baseRunAt = *post.ScheduledTime
 		}
-		nextRunAt := s.computeNextRun(baseRunAt, post)
+		nextRunAt := s.computeNextRunAfter(baseRunAt, post, time.Now())
 		if nextRunAt != nil {
 			_, _ = s.postRepo.UpdateByIDAndUserID(ctx, post.ID, post.UserID, bson.M{
 				"scheduledTime":    nextRunAt,
@@ -1462,15 +1477,27 @@ func (s *PostService) ExpirePublishedPlatformPost(ctx context.Context, payload q
 	}
 
 	platform := strings.ToLower(strings.TrimSpace(payload.Platform))
-	if platform == "linkedin" && payload.SocialHandleID != "" {
-		if hid, err := bson.ObjectIDFromHex(payload.SocialHandleID); err == nil {
-			handle, _ := s.socialHandleRepo.FindByIDAndUserID(ctx, hid, userOID)
-			if handle != nil {
-				fresh := s.socialService.RefreshPlatformTokenIfNeeded(ctx, userOID, handle)
-				_ = s.postPublishService.linkedinService.DeletePost(ctx, fresh.PlatformAccessToken, payload.PlatformPostID)
+	if platform == "linkedin" && payload.PlatformPostID != "" {
+		if payload.SocialHandleID != "" && s.socialHandleRepo != nil {
+			if hid, err := bson.ObjectIDFromHex(payload.SocialHandleID); err == nil {
+				handle, _ := s.socialHandleRepo.FindByIDAndUserID(ctx, hid, userOID)
+				if handle != nil {
+					token := handle.PlatformAccessToken
+					if s.socialService != nil {
+						fresh := s.socialService.RefreshPlatformTokenIfNeeded(ctx, userOID, handle)
+						if fresh != nil && fresh.PlatformAccessToken != "" {
+							token = fresh.PlatformAccessToken
+						}
+					}
+					if s.postPublishService != nil && s.postPublishService.linkedinService != nil {
+						_ = s.postPublishService.linkedinService.DeletePost(ctx, token, payload.PlatformPostID)
+					}
+				}
 			}
 		}
-		_ = s.postActivityRepo.DeleteByPostPlatformAndPlatformPostID(ctx, userOID, "linkedin", payload.PlatformPostID)
+		if s.postActivityRepo != nil {
+			_ = s.postActivityRepo.DeleteByPostPlatformAndPlatformPostID(ctx, userOID, "linkedin", payload.PlatformPostID)
+		}
 	}
 
 	remainingResponses := make([]models.PlatformPublishResponse, 0)

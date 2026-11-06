@@ -28,6 +28,7 @@ const (
 // RabbitMQBroker manages high-reliability AMQP message routing, channels, and consumer topologies.
 type RabbitMQBroker struct {
 	mu         sync.RWMutex
+	pubMu      sync.Mutex
 	url        string
 	conn       *amqp.Connection
 	pubChannel *amqp.Channel
@@ -195,6 +196,9 @@ func (b *RabbitMQBroker) Publish(ctx context.Context, exchange, routingKey strin
 		},
 	}
 
+	b.pubMu.Lock()
+	defer b.pubMu.Unlock()
+
 	return b.pubChannel.PublishWithContext(
 		ctx,
 		exchange,
@@ -304,6 +308,9 @@ func (b *RabbitMQBroker) Close() error {
 		return nil
 	}
 	b.closed = true
+
+	b.pubMu.Lock()
+	defer b.pubMu.Unlock()
 
 	var err error
 	if b.pubChannel != nil {

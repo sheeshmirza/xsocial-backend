@@ -3,6 +3,7 @@ package api
 import (
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/subtle"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -67,6 +68,9 @@ func init() {
 }
 
 func (s *Server) mcpOAuthResource(r *http.Request) string {
+	if s == nil || s.cfg == nil {
+		return mcpOAuthDefaultResource
+	}
 	if s.cfg.MCPOAuthResource != "" {
 		return s.cfg.MCPOAuthResource
 	}
@@ -77,6 +81,9 @@ func (s *Server) mcpOAuthResource(r *http.Request) string {
 }
 
 func (s *Server) mcpOAuthIssuer(r *http.Request) string {
+	if s == nil || s.cfg == nil {
+		return mcpOAuthDefaultIssuer
+	}
 	if s.cfg.MCPOAuthIssuer != "" {
 		return s.cfg.MCPOAuthIssuer
 	}
@@ -187,6 +194,9 @@ func (s *Server) parseMCPTransaction(raw string) (mcpOAuthTransaction, bool) {
 }
 
 func (s *Server) authenticateMCPUserToken(r *http.Request) (bson.ObjectID, bool) {
+	if s == nil || s.cfg == nil {
+		return bson.NilObjectID, false
+	}
 	auth := strings.TrimSpace(r.Header.Get("Authorization"))
 	if !strings.HasPrefix(strings.ToLower(auth), "bearer ") {
 		return bson.NilObjectID, false
@@ -217,7 +227,10 @@ func (s *Server) authenticateMCPUserToken(r *http.Request) (bson.ObjectID, bool)
 }
 
 func (s *Server) oauthRedirectResult(r *http.Request, redirectURI, state string, code, description string) string {
-	u, _ := url.Parse(redirectURI)
+	u, err := url.Parse(redirectURI)
+	if err != nil || u == nil {
+		return redirectURI
+	}
 	p := u.Query()
 	if code != "" {
 		p.Set("error", code)
@@ -400,7 +413,8 @@ func (s *Server) mcpToken(w http.ResponseWriter, r *http.Request) {
 
 	challenge, _ := claims["code_challenge"].(string)
 	sum := sha256.Sum256([]byte(verifier))
-	if !strings.EqualFold(base64.RawURLEncoding.EncodeToString(sum[:]), challenge) {
+	verifierChallenge := base64.RawURLEncoding.EncodeToString(sum[:])
+	if subtle.ConstantTimeCompare([]byte(verifierChallenge), []byte(challenge)) != 1 {
 		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_grant"})
 		return
 	}
@@ -545,7 +559,7 @@ func (s *Server) mcpRefreshToken(w http.ResponseWriter, r *http.Request) {
 			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_grant"})
 			return
 		}
-		if _, loaded := usedMCPRefreshTokens.LoadOrStore(refreshJTI, sub); loaded {
+		if _, loaded := usedMCPRefreshTokens.LoadOrStore(refreshJTI, time.Now()); loaded {
 			writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_grant"})
 			return
 		}
@@ -599,17 +613,19 @@ func (s *Server) mcpRefreshToken(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) mcpOAuthError(w http.ResponseWriter, r *http.Request, redirectURI, state, code, description string) {
 	if validMCPRedirect(redirectURI) {
-		u, _ := url.Parse(redirectURI)
-		p := u.Query()
-		p.Set("error", code)
-		p.Set("error_description", description)
-		if state != "" {
-			p.Set("state", state)
+		u, err := url.Parse(redirectURI)
+		if err == nil && u != nil {
+			p := u.Query()
+			p.Set("error", code)
+			p.Set("error_description", description)
+			if state != "" {
+				p.Set("state", state)
+			}
+			p.Set("iss", s.mcpOAuthIssuer(r))
+			u.RawQuery = p.Encode()
+			http.Redirect(w, r, u.String(), http.StatusFound)
+			return
 		}
-		p.Set("iss", s.mcpOAuthIssuer(r))
-		u.RawQuery = p.Encode()
-		http.Redirect(w, r, u.String(), http.StatusFound)
-		return
 	}
 	writeError(w, http.StatusBadRequest, description)
 }

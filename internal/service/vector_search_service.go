@@ -168,14 +168,20 @@ func (s *VectorSearchService) SearchSimilarPosts(ctx context.Context, brandID, q
 
 	results := make([]SemanticPostResult, 0, len(points))
 	for _, p := range points {
+		getStr := func(k string) string {
+			if v, ok := p.Payload[k].(string); ok {
+				return v
+			}
+			return ""
+		}
 		res := SemanticPostResult{
-			PostID: fmt.Sprintf("%v", p.Payload["post_id"]),
-			BrandID: fmt.Sprintf("%v", p.Payload["brand_id"]),
-			Content: fmt.Sprintf("%v", p.Payload["content"]),
-			Status:  fmt.Sprintf("%v", p.Payload["status"]),
+			PostID:  getStr("post_id"),
+			BrandID: getStr("brand_id"),
+			Content: getStr("content"),
+			Status:  getStr("status"),
 			Score:   p.Score,
 		}
-		if timeStr, ok := p.Payload["created_at"].(string); ok {
+		if timeStr := getStr("created_at"); timeStr != "" {
 			res.CreatedAt, _ = time.Parse(time.RFC3339, timeStr)
 		}
 		results = append(results, res)
